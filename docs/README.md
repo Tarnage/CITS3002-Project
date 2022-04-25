@@ -34,7 +34,9 @@ actionset2:
         requires program.o square.o cube.o
 ```
 
-Note that this project is a systems-focused networking project - it is not about parsing a (simple) textfile. You may assume that any Rakefiles will be syntactically correct, and so you won't need to rigorously parse them or report any errors. Everything in the file may be parsed or processed from top-to-bottom, left-to-right, with no recursion or dependencies to be resolved. Some Rakefiles and a program to generate them for tens or hundreds of C source files will be provided.
+**De-stressing Note** that this project is a systems-focused networking project - it is not about parsing a (simple) textfile. You may assume that any Rakefiles will be syntactically correct, and so you won't need to rigorously parse them or report any errors. Everything in the file may be parsed or processed from top-to-bottom, left-to-right, with no recursion or dependencies to be resolved. Some Rakefiles and a program to generate them for tens or hundreds of C source files will be provided.
+
+**Hint -** parse the whole Rakefile and store its information in your client's data-structures before commencing the execution of processes. Some *Rakefiles* and a program to generate them for tens or hundreds of C source files will be provided. 
 
 In the example above, the names of the remote hosts that will perform the compilation and linking of C files are provided - there will always be at least one hostname which (for testing) may be localhost. hostname3 is also followed by an integer port-number, indicating that its server (your server) will be listening on a port other than the default (6238).
 
@@ -56,9 +58,9 @@ While you can assume that all remote hosts have the same architecture and operat
 
 2. your project will consist of client and server programs developed in standard C99 (or C11, or C17), and Python v3.6 (or later). [Sorry, but recent experience in CITS3002 has shown that it's challenging for many students to install and develop on a consistent version of Java, resulting in great frustration with installations on personal devices and when marking].
 
-3. your project's single server program, named remoteserver, will be developed in either C or Python. The choice is up to you.
+3. your project's single server program, named rakeserver, will be developed in either C or Python. The choice is up to you.
 
-4. you will develop two distinct client programs - one in C named client-c, and one in Python named client-p.
+4. you will develop two distinct client programs - one in C named rake-c, and one in Python named rake-p. Each client should simply attempt to read from a file named Rakefile in the current working directory.
 
 5. your project will be capable of executing multiple instances of your server program on distict (physical) computers connected using internet protocols, and each of your client programs on the computer 'in front of you'.
 
@@ -78,9 +80,12 @@ While you can assume that all remote hosts have the same architecture and operat
 
     1. a single textfile named team.txt containing the names and student number of your project's team members (even if completed individually),
     2. a single PDF file named report.pdf, and
-    3. three subdirectories of source-code named server, client-c, and client-p.
+    3. three subdirectories of source-code named rakeserver, rake-c, and rake-p.
 
-- Your project submission must include a report of no more than 3 A4 PDF pages describing (ideally with diagrams) the protocol you have designed and developed for all communication between your client and server programs and, with the use of an example, 'walk-through' the execution sequence employed to compile and link an multi-file program.
+- Your project submission must include a report of no more than 3 A4 PDF pages describing (ideally with diagrams and examples):
+    - the protocol you have designed and developed for all communication between your client and server programs and,
+    - a 'walk-through' the execution sequence employed to compile and link an multi-file program and,
+    - the conditions under which remote compilation and linking appears to perform better (faster) than just using your local machine.
 
 #
 
