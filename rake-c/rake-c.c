@@ -26,16 +26,13 @@ void file_process(char *file_name)
 			if (line[0] == '\t')
 			{
 				printf("action\n");
+				if (line[1] == '\t') 
+            	{
+					printf("Req prog\n");
+
+            	}
 			
-			}
-
-            if (line[0] == '\t' && line[1] == '\t') 
-            {
-				printf("Req prog\n");
-
-            }
-
-			
+			}		
         }
     }
 
