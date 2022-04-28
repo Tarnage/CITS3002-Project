@@ -8,7 +8,7 @@ MAX_BYTES = 1024
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 1
 
-if(len(sys.argv) == 2 and sys.argv[1].lower() == "usage"):
+if(len(sys.argv) >= 2 or sys.argv[1].lower() == "usage"):
 	print("Usage: ")
 
 else:
@@ -22,6 +22,7 @@ else:
 		print("socket creation failed with error {}".format(err))
 
 	# BIND SOCKET TO PORT
+	# TODO: change port if port is used or add try except 
 	sd.bind((SERVER_HOST, SERVER_PORT))
 	print("Socket is binded to {}".format(SERVER_PORT))
 
