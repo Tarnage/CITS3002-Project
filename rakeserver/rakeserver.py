@@ -8,7 +8,7 @@ MAX_BYTES = 1024
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 1
 
-if (len(sys.argv) >= 2 or sys.argv[1].lower() == "usage"):
+if (len(sys.argv) >= 2):
 	print("Usage: ")
 
 else:
