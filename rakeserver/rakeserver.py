@@ -1,4 +1,5 @@
 import socket
+import sys
 
 SERVER_PORT = 50007
 SERVER_HOST = ""
@@ -7,31 +8,38 @@ MAX_BYTES = 1024
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 1
 
-try:
-    # AF_INET IS THE ADDRESS FAMILY IP4
-    # SOCK_STREAM MEANS TCP PROTOCOL IS USED
-    sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("Port succesfully created!")
-except socket.error as err:
-    print("socket creation failed with error {}".format(err))
+if(len(sys.argv) == 2 and sys.argv[1].lower() == "usage"):
+	print("Usage: ")
 
-# BIND SOCKET TO PORT
-sd.bind((SERVER_HOST, SERVER_PORT))
-print("Socket is binded to {}".format(SERVER_PORT))
+else:
+	
+	try:
+		# AF_INET IS THE ADDRESS FAMILY IP4
+		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
+		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		print("Port succesfully created!")
+	except socket.error as err:
+		print("socket creation failed with error {}".format(err))
 
-# PUT THE SOCKET TO LISTEN MODE
-sd.listen(DEFAULT_BACKLOG)
-print("Socket is listening")
+	# BIND SOCKET TO PORT
+	sd.bind((SERVER_HOST, SERVER_PORT))
+	print("Socket is binded to {}".format(SERVER_PORT))
 
-while True:
+	# PUT THE SOCKET TO LISTEN MODE
+	sd.listen(DEFAULT_BACKLOG)
+	print("Socket is listening")
 
-    # ESTABLISH CONNECTION WITH CLIENT
-    conn, addr = sd.accept()
-    print("Got a connection from {}".format(addr))
+	while True:
 
-    data = conn.recv(MAX_BYTES).decode()
-    print("Received msg: {}".format(data))
+		# ESTABLISH CONNECTION WITH CLIENT
+		conn, addr = sd.accept()
+		print("Got a connection from {}".format(addr))
 
-    conn.send("Thank you for connecting".encode())
+		data = conn.recv(MAX_BYTES).decode()
+		print("Received msg: {}".format(data))
 
-    conn.close()
+		conn.send("Thank you for connecting".encode())
+
+		conn.close()
+
+		break
