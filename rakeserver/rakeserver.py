@@ -8,7 +8,7 @@ MAX_BYTES = 1024
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 1
 
-if(len(sys.argv) >= 2 or sys.argv[1].lower() == "usage"):
+if (len(sys.argv) >= 2 or sys.argv[1].lower() == "usage"):
 	print("Usage: ")
 
 else:
@@ -23,8 +23,8 @@ else:
 
 	# BIND SOCKET TO PORT
 	# TODO: change port if port is used or add try except 
-	sd.bind((SERVER_HOST, SERVER_PORT))
-	print("Socket is binded to {}".format(SERVER_PORT))
+	sd.bind( (SERVER_HOST, SERVER_PORT) )
+	print( "Socket is binded to {}".format(SERVER_PORT) )
 
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
@@ -34,12 +34,12 @@ else:
 
 		# ESTABLISH CONNECTION WITH CLIENT
 		conn, addr = sd.accept()
-		print("Got a connection from {}".format(addr))
+		print( "Got a connection from {}".format(addr) )
 
 		data = conn.recv(MAX_BYTES).decode()
-		print("Received msg: {}".format(data))
+		print( "Received msg: {}".format(data) )
 
-		conn.send("Thank you for connecting".encode())
+		conn.send( "Thank you for connecting".encode() )
 
 		conn.close()
 
