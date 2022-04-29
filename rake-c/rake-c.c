@@ -15,6 +15,11 @@ void file_process(char *file_name)
     else
     {
         char line[MAX_LINE_LENGTH] = "";
+        int num_actions = 0;
+        int curr_action = 0;
+        int action_counter; 
+        char **actions = (char **)malloc(sizeof(char*));
+
         // READ AND PARSE FILES LINE BY LINE
         while(fgets(line, MAX_LINE_LENGTH, fp))
         {
@@ -25,7 +30,14 @@ void file_process(char *file_name)
 
 			if (line[0] == '\t')
 			{
-				printf("action\n");
+                // take in actions
+                num_actions++; 
+                actions = (char **)realloc(actions, num_actions * sizeof(char*));
+                actions[curr_action] = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+                actions[curr_action] = line;
+                printf("%s\n", actions[curr_action]);
+                curr_action++; 
+
 				if (line[1] == '\t') 
             	{
 					printf("Req prog\n");
