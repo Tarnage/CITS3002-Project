@@ -16,10 +16,6 @@ def usage():
 	print("Usage: ")
 
 def client_socket(host, port):
-	'''
-	Blocking verion of the socket program
-	Program will block while waiting for a connection
-	'''	
 	try:
 		sd = socket.socket()
 		logger.info("Port succesfully created!")
@@ -27,7 +23,7 @@ def client_socket(host, port):
 	except socket.error as err:
 		logger.warning( f'socket creation failed with error {err}' )
 	
-	logger.info( f'connecting...' )
+	logger.info( f'connecting to {host}:{port}...' )
 	sd.connect( (host, port) )
 	logger.info( f'send...' )
 	sd.send( "HELLOOO FROM PYTHON CLIENT".encode(FORMAT) )

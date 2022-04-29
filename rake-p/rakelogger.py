@@ -1,6 +1,8 @@
 '''
 Just a simple logger set-up
 usage for logging info in a server-client envionment
+
+BEAWARE IF YOU GET AN ERORR ABOUT HOSTNAME YOU MAY NEED TO EDIT '/etc/hosts' FILE
 '''
 
 import socket

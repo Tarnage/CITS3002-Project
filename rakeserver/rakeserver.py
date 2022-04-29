@@ -32,7 +32,7 @@ def blocking_socket(host, port):
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		logger.info("Port succesfully created!")
 	except socket.error as err:
-		logger.info( f'socket creation failed with error {err}' )
+		logger.warning( f'socket creation failed with error {err}' )
 
 	# BIND SOCKET TO PORT
 	# TODO: change port if port is used or add try except 
