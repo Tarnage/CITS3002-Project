@@ -5,8 +5,9 @@ import sys
 import rakelogger
 
 SERVER_PORT = 50006
-SERVER_HOST = '127.0.0.1'
+SERVER_HOST = "192-168-0-105.tpgi.com.au"
 MAX_BYTES = 1024
+FORMAT = 'utf-8'
 
 # JUST COPYING REFERENCE TO OBJECT FROM rakelogger FOR CONVENIENCE
 logger = rakelogger.logger
@@ -23,15 +24,16 @@ def client_socket(host, port):
 		sd = socket.socket()
 		logger.info("Port succesfully created!")
 
-		sd.connect( (host, port) )
 	except socket.error as err:
-		logger.info( f'socket creation failed with error {err}' )
+		logger.warning( f'socket creation failed with error {err}' )
 	
+	logger.info( f'connecting...' )
+	sd.connect( (host, port) )
 	logger.info( f'send...' )
-	sd.send( "HELLOOO FROM PYTHON CLIENT".encode() )
+	sd.send( "HELLOOO FROM PYTHON CLIENT".encode(FORMAT) )
 
 	logger.info( f'receiving...' )
-	data_recv = sd.recv( MAX_BYTES ).decode()
+	data_recv = sd.recv( MAX_BYTES ).decode(FORMAT)
 	logger.info( f'message: {data_recv}' )
 
 	sd.close()
