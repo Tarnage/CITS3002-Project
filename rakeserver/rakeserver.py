@@ -5,12 +5,15 @@ import sys
 import rakelogger
 
 SERVER_PORT = 50006
+
+# BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
 SERVER_HOST = socket.gethostbyname(socket.gethostname())
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
 
+
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
-DEFAULT_BACKLOG = 1
+DEFAULT_BACKLOG = 5
 
 # JUST COPYING REFERENCE TO OBJECT FROM rakelogger FOR CONVENIENCE
 logger = rakelogger.logger
@@ -38,7 +41,7 @@ def blocking_socket(host, port):
 
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
-	logger.info("Socket is listening...")
+	logger.info( f"Socket is listening on {host}..." )
 
 	while True:
 

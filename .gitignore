@@ -2,4 +2,3 @@
 */*.o
 */rake-c
 */__pycache__
-*/logs/*
