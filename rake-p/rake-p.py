@@ -2,7 +2,7 @@ import os
 
 file = open('Rakefile', 'r')
 
-array_actions = []
+array_action_sets = []
 
 count = 0
 for line in file.readlines():
