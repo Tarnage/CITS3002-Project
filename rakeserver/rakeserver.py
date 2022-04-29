@@ -5,8 +5,9 @@ import sys
 import rakelogger
 
 SERVER_PORT = 50006
-SERVER_HOST = ""
+SERVER_HOST = socket.gethostbyname(socket.gethostname())
 MAX_BYTES = 1024
+FORMAT = 'utf-8'
 
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 1
@@ -45,12 +46,14 @@ def blocking_socket(host, port):
 		conn, addr = sd.accept()
 		logger.info( f'Got a connection from {addr}' )
 
-		data = conn.recv(MAX_BYTES).decode()
+		data = conn.recv(MAX_BYTES).decode(FORMAT)
 		logger.info( f'Received msg: {data}' )
 
-		conn.send( "Thank you for connecting".encode() )
+		conn.send( "Thank you for connecting".encode(FORMAT) )
 
 		conn.close()
+		
+		break
 
 
 def non_blocking_socket(host, port):
