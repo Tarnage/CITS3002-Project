@@ -17,8 +17,11 @@ void file_process(char *file_name)
         char line[MAX_LINE_LENGTH] = "";
         int num_actions = 0;
         int curr_action = 0;
-        int action_counter; 
         char **actions = (char **)malloc(sizeof(char*));
+
+        int num_req = 0;
+        int curr_req = 0;
+        char **requirements = (char**)malloc(sizeof(char*));
 
         // READ AND PARSE FILES LINE BY LINE
         while(fgets(line, MAX_LINE_LENGTH, fp))
@@ -30,19 +33,38 @@ void file_process(char *file_name)
 
 			if (line[0] == '\t')
 			{
-                // take in actions
-                num_actions++; 
-                actions = (char **)realloc(actions, num_actions * sizeof(char*));
-                actions[curr_action] = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
-                actions[curr_action] = line;
-                printf("%s\n", actions[curr_action]);
-                curr_action++; 
-
 				if (line[1] == '\t') 
             	{
-					printf("Req prog\n");
+                    // take in actions by dividing the line 
+                    char *program = strtok(line, " ");
 
+                    while(program != NULL)
+                    {
+                        if(strstr(program, ".c") != NULL || 
+                            strstr(program, ".h") != NULL ||
+                            strstr(program, ".o") != NULL)
+                            {
+                                
+                                num_req++;
+                                requirements = (char **)realloc(requirements, num_req * sizeof(char*));
+                                requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
+                                requirements[curr_req] = program;
+                                printf("%s\n", requirements[curr_req]);
+                                curr_req++;
+                            }
+                        program = strtok(NULL, " ");
+                    }
             	}
+                else
+                {
+                    // take in actions
+                    num_actions++; 
+                    actions = (char **)realloc(actions, num_actions * sizeof(char*));
+                    actions[curr_action] = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+                    actions[curr_action] = line;
+                    printf("%s\n", actions[curr_action]);
+                    curr_action++; 
+                }
 			
 			}		
         }
