@@ -2,3 +2,5 @@
 */*.o
 */rake-c
 */__pycache__/*
+rake-c/client_socket
+.vscode/settings.json
