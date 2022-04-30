@@ -2,7 +2,9 @@
 
 import socket
 import sys
-import rakelogger
+# This shorthand makes one module visible to the other
+sys.path.insert(0, '../')
+from logger_p import rakelogger
 
 SERVER_PORT = 50008
 
