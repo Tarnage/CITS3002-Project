@@ -4,7 +4,7 @@ import socket
 import sys
 import rakelogger
 
-SERVER_PORT = 50006
+SERVER_PORT = 50009
 SERVER_HOST = '192.168.1.105'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
