@@ -2,9 +2,11 @@
 
 import socket
 import sys
-import rakelogger
+# This shorthand makes one module visible to the other
+sys.path.insert(0, '../')
+from logger_p import rakelogger
 
-SERVER_PORT = 50006
+SERVER_PORT = 50008
 
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
 SERVER_HOST = socket.gethostbyname(socket.gethostname())

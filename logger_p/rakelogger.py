@@ -2,6 +2,8 @@
 Just a simple logger set-up
 usage for logging info in a server-client envionment
 
+NOTE make sure you have a folder named log where you are you using logger, logger can make files but can't make folders.
+
 BEAWARE IF YOU GET AN ERORR ABOUT HOSTNAME YOU MAY NEED TO EDIT '/etc/hosts' FILE
 '''
 
