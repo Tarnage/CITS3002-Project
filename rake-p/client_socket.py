@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import socket
+import select
 import sys
 # This shorthand makes one module visible to the other
 sys.path.insert(0, '../')
@@ -17,37 +18,73 @@ def usage():
 	print("Usage: ")
 
 
-def client_socket(host, port):
+def create_socket(host, port):
 	try:
 		sd = socket.socket()
-		logger.info("Port succesfully created!")
+		logger.info( f"Socket succesfully created! ({host}:{port})" )
 
 	except socket.error as err:
 		logger.warning( f'socket creation failed with error {err}' )
 	
 	logger.info( f'connecting to {host}:{port}...' )
 	sd.connect( (host, port) )
+
 	logger.info( f'send...' )
 	sd.send( "HELLOOO FROM PYTHON CLIENT".encode(FORMAT) )
 
-	logger.info( f'receiving...' )
-	data_recv = sd.recv( MAX_BYTES ).decode(FORMAT)
-	logger.info( f'message: {data_recv}' )
-
-	sd.close()
+	return sd
 
 
-def main():
+def client_socket(host, port):
+
+	socket_list = []
+
+	for p in port:
+		socket_list.append(create_socket(host, p))
+	
+	while True:
+		try:
+			# GET THE LIST OF READABLE SOCKETS
+			read_sockets, write_sockets, error_sockets = select.select(socket_list, [], [])
+
+			for sock in read_sockets:
+				if sock:
+					logger.info( f'receiving...' )
+					data_recv = sock.recv( MAX_BYTES ).decode( FORMAT )
+					logger.info( f'message: {data_recv}' )
+
+		except KeyboardInterrupt:
+			logger.info('Interrupted. Closing sockets...')
+			# Make sure we close sockets gracefully
+			close_sockets(read_sockets)
+			close_sockets(write_sockets)
+			close_sockets(error_sockets)
+			break
+		except Exception as err:
+			logger.warning( f'ERROR occurred in {client_socket.__name__} with code: {err}' )
+			break
+
+
+def close_sockets(sockets):
+	for sock in sockets:
+		sock.close()
+
+
+def main(port):
+	client_socket(SERVER_HOST, port)
+
+
+if __name__ == "__main__":
 	# INIT GLOBAL LOGGER
 	global logger
 	logger = rakelogger.init_logger()
 
-	client_socket(SERVER_HOST, SERVER_PORT)
-
-
-if __name__ == "__main__":
-
-	if (len(sys.argv) >= 2):
+	if (len(sys.argv) == 1 or sys.argv[1].lower() == 'usage'):
 		usage()
 	else:
-		main()
+		port_list = []
+
+		for port in sys.argv[1:]:
+			port_list.append(int(port))
+		
+		main(port_list)
