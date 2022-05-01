@@ -4,3 +4,4 @@
 */__pycache__/
 rake-c/client_socket
 .vscode
+*.log
