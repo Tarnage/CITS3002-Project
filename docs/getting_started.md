@@ -34,7 +34,7 @@ The steps have not been written so that multiple people in a team can 'go away a
 
 #
 
-- **commence development and testing of your rakeserver**
+- <del>**commence development and testing of your rakeserver**</del>
 
     In practice your rakeserver will need to be executing, and awaiting new network connections, before any rake clients can connect to it. Your rakeserver doesn't require command-line arguments, doesn't read the Rakefile, or have access to the source and object files it needs work with (though it may have its own special libraries used in final linking).
 
@@ -69,7 +69,7 @@ The steps have not been written so that multiple people in a team can 'go away a
 
 #
 
-- **extending your rake client to contact your rakeserver**
+- <del>**extending your rake client to contact your rakeserver**</del>
 
     At this point you should have a nearly complete rake client, that reads and stores the contents of a Rakefile, executes actions (locally), captures and report actions' output, and performs correctly based on whether the action(s) were successful or otherwise.
 
