@@ -35,7 +35,10 @@ def init_logger(level=logging.INFO):
 	formatter = logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%I:%M:%S")
 	
 	file_handler = logging.FileHandler(filename=f"./logs/{current_date}.log")
-	file_handler.setLevel(logging.WARNING)
+	# LOG TO FILE WARNINGS AND HIGHER 
+	#file_handler.setLevel(logging.WARNING)
+	# LOG TO FILE INFO AND HIGHER
+	file_handler.setLevel(logging.INFO)
 	file_handler.setFormatter(formatter)
 	
 	logger.addHandler(file_handler)
