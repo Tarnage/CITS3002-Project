@@ -12,13 +12,24 @@ import logging
 from datetime import date
 
 # CREATE LOGGER OBJECT FOR THIS PROGRAM
+def init_logger(level=logging.INFO):
+	"""Init a logger object
+	Creates a logger object and set the name of the logger to
+	the hosts name and hosts ip
 
-host_name = socket.gethostname()
-host_ip = socket.gethostbyname(host_name)
-logger = logging.getLogger(f'{host_name}-{host_ip}')
-current_date = date.today().strftime("%d-%m-%Y")
+	Args:
+		level (int): set what gets printed to the screen.
 
-def set_logger(level=logging.INFO):
+	Returns:
+		obj: a logger object
+	
+	"""
+
+	current_date = date.today().strftime("%d-%m-%Y")
+	host_name 	= socket.gethostname()
+	host_ip 	= socket.gethostbyname(host_name)
+	logger 		= logging.getLogger(f'{host_name}-{host_ip}')
+
 	logger.setLevel(logging.DEBUG)
 
 	formatter = logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s:%(message)s", datefmt="%I:%M:%S")
@@ -34,3 +45,5 @@ def set_logger(level=logging.INFO):
 	stream_handler.setFormatter(formatter)
 
 	logger.addHandler(stream_handler)
+
+	return logger

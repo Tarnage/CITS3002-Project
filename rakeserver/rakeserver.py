@@ -7,27 +7,28 @@ sys.path.insert(0, '../')
 from logger_p import rakelogger
 
 SERVER_PORT = 50008
-
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
-SERVER_HOST = socket.gethostbyname(socket.gethostname())
+#SERVER_HOST = socket.gethostbyname(socket.gethostname())
+SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
-
-
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
 
-# JUST COPYING REFERENCE TO OBJECT FROM rakelogger FOR CONVENIENCE
-logger = rakelogger.logger
 
 def usage():
 	print("Usage: ")
 
+
 def blocking_socket(host, port):
-	'''
-	Blocking verion of the socket program
+	'''Blocking verion of the socket server program
 	Program will block while waiting for a connection
+
+	Args:
+		host (str): the ip address the server will bind
+		port (int): the port the server will bind 
 	'''	
+
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
@@ -62,13 +63,19 @@ def blocking_socket(host, port):
 
 
 def non_blocking_socket(host, port):
-	'''
-	Non Blocking version will contiously poll the socket for connection
-	'''
+	'''Non Blocking server version, server will continuously poll the socket for connection
+		
+		Args:
+		host (str): the ip address the server will bind
+		port (int): the port the server will bind 
+	'''	
 
 
 def main():
-	rakelogger.set_logger()
+	# INIT GLOBAL LOGGER
+	global logger
+	logger = rakelogger.init_logger()
+
 	blocking_socket(SERVER_HOST, SERVER_PORT)
 	#non_blocking_socket(SERVER_HOST, SERVER_PORT)
 
