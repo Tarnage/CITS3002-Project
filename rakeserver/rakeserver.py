@@ -4,6 +4,7 @@ import time
 import random
 import os
 import socket
+import select
 import sys
 # This shorthand makes one module visible to the other
 sys.path.insert(0, '../')
@@ -47,7 +48,7 @@ def blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	logger.info( f"Socket is listening on {host}..." )
-
+	
 	while True:
 
 		try:
@@ -68,7 +69,8 @@ def blocking_socket(host, port):
 			# SEND DATA BACK
 			send_data = f'Thank you for connecting to {host}:{port}'
 			conn.send( send_data.encode(FORMAT) )
-			logger.info( f'Received msg: {send_data}' )
+			logger.info( f'sending: {send_data}' )
+			
 
 		except KeyboardInterrupt:
 			logger.info('Interrupted.')
@@ -84,10 +86,85 @@ def non_blocking_socket(host, port):
 		port (int): the port the server will bind 
 	'''	
 
+	try:
+		# AF_INET IS THE ADDRESS FAMILY IP4
+		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
+		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		logger.info("Port succesfully created!")
+	except socket.error as err:
+		logger.warning( f'socket creation failed with error {err}' )
+
+	# BIND SOCKET TO PORT
+	sd.bind( (host, port) )
+	logger.info( f'Socket is binded to {port}' )
+
+	# PUT THE SOCKET TO LISTEN MODE
+	sd.listen(DEFAULT_BACKLOG)
+	logger.info( f"Socket is listening on {host}..." )
+
+	connection_list = [sd]
+	write_list  = []
+
+	while True:
+
+		try:
+			# GET THE LIST OF READABLE SOCKETS
+			read_sockets, write_sockets, error_sockets = select.select(connection_list, write_list, [])
+
+			for sock in read_sockets:
+				if sock == sd:
+					# ESTABLISH CONNECTION WITH CLIENT
+					conn, addr = sd.accept()
+					logger.info( f'Got a connection from {addr}' )
+
+					# ADD CONECTION TO LIST OF SOCKETS
+					connection_list.append(conn)
+
+				else:
+					# RECIEVE DATA
+					data = conn.recv(MAX_BYTES).decode(FORMAT)
+					logger.info( f'Received msg: {data}' )
+
+					# GET READY TO REPLY
+					write_list.append(sock)
+
+			for sock in write_sockets:
+				if sock:
+					# SLEEP
+					rand = random.randint(1, 10)
+					timer = os.getpid() % rand + 2
+					logger.info( f'sleep for: {timer}' )
+					time.sleep(timer)
+
+					# SEND DATA BACK
+					send_data = f'Thank you for connecting to {sock.getsockname()}'
+					sock.send( send_data.encode(FORMAT) )
+					logger.info( f'sending: {send_data}' )
+
+					# ADD SERVER BACK TO LISTENING FOR DATA
+					connection_list.append(sd)
+
+					# REMOVE CURRENT SOCKET FROM WRITING LIST
+					write_list.remove(sock)
+
+		except KeyboardInterrupt:
+			logger.warning('Interrupted.')
+			# Make sure we close sockets gracefully
+			close_sockets(read_sockets)
+			close_sockets(write_sockets)
+			close_sockets(error_sockets)
+			break
+
+
+def close_sockets(sockets):
+	for sock in sockets:
+		sock.close()
+
 
 def main(port):
-	blocking_socket(SERVER_HOST, int(port))
-	#non_blocking_socket(SERVER_HOST, SERVER_PORT)
+	#blocking_socket(SERVER_HOST, int(port))
+	non_blocking_socket(SERVER_HOST, int(port))
+
 
 if __name__ == "__main__":
 	# INIT GLOBAL LOGGER
