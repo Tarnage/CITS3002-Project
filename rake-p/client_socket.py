@@ -7,7 +7,8 @@ sys.path.insert(0, '../')
 from logger_p import rakelogger
 
 SERVER_PORT = 50009
-SERVER_HOST = '192.168.1.105'
+#SERVER_HOST = '192.168.1.105'
+SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
 

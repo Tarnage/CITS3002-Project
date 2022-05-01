@@ -8,7 +8,8 @@ from logger_p import rakelogger
 
 SERVER_PORT = 50008
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
-SERVER_HOST = socket.gethostbyname(socket.gethostname())
+#SERVER_HOST = socket.gethostbyname(socket.gethostname())
+SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
