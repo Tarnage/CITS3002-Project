@@ -29,32 +29,60 @@ def create_socket(host, port):
 	logger.info( f'connecting to {host}:{port}...' )
 	sd.connect( (host, port) )
 
-	logger.info( f'send...' )
-	sd.send( "HELLOOO FROM PYTHON CLIENT".encode(FORMAT) )
-
 	return sd
+
+
+def send_data(sd, data):
+	logger.info( f'sending...' )
+	sd.send(data.encode( FORMAT ))
 
 
 def client_socket(host, port):
 
 	socket_list = []
+	write_list  = []
 
+	# ADD ACTIVE SOCKETS
 	for p in port:
 		socket_list.append(create_socket(host, p))
-	
+
+	# ADD SOCKETS THAT NEED TO SEND DATA
+	for p in socket_list:
+		write_list.append(p)
+
 	while True:
 		try:
 			# GET THE LIST OF READABLE SOCKETS
-			read_sockets, write_sockets, error_sockets = select.select(socket_list, [], [])
+			read_sockets, write_sockets, error_sockets = select.select(socket_list, write_list, [])
 
+			# CHECK IF SOCKETS ARE RECEIVING DATA
 			for sock in read_sockets:
+				logger.info("entered read sockets")
 				if sock:
-					logger.info( f'receiving...' )
+					logger.info( f'{sock.getsockname()}:receiving...' )
 					data_recv = sock.recv( MAX_BYTES ).decode( FORMAT )
 					logger.info( f'message: {data_recv}' )
+					
+					# ADD SOCKET BACK TO WRITE QUEUE
+					write_list.append(sock)
+			
+			# SOCKETS IN write_socket ARE WAITING TO SEND DATA
+			for sock in write_sockets:
+				logger.info("entered write lists")
+				if sock:
+					test = f'sending from {sock.getsockname()}'
+					logger.info( f"{test}" )
+
+					# SEND DATA
+					send_data(sock, test)
+					
+					# MAKE SURE TO REMOVE SOCKETS FROM write_list ONCE SOCKET HAS SENT DATA
+					write_list.remove(sock)
+
+					
 
 		except KeyboardInterrupt:
-			logger.info('Interrupted. Closing sockets...')
+			logger.warning('Interrupted. Closing sockets...')
 			# Make sure we close sockets gracefully
 			close_sockets(read_sockets)
 			close_sockets(write_sockets)
