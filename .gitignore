@@ -1,4 +1,6 @@
 *.DS_Store
 */*.o
 */rake-c
-*/__pycache__/*
+*/__pycache__/
+rake-c/client_socket
+.vscode
