@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import time
+import random
+import os
 import socket
 import sys
 # This shorthand makes one module visible to the other
@@ -38,7 +41,6 @@ def blocking_socket(host, port):
 		logger.warning( f'socket creation failed with error {err}' )
 
 	# BIND SOCKET TO PORT
-	# TODO: change port if port is used or add try except 
 	sd.bind( (host, port) )
 	logger.info( f'Socket is binded to {port}' )
 
@@ -48,18 +50,30 @@ def blocking_socket(host, port):
 
 	while True:
 
-		# ESTABLISH CONNECTION WITH CLIENT
-		conn, addr = sd.accept()
-		logger.info( f'Got a connection from {addr}' )
+		try:
+			# ESTABLISH CONNECTION WITH CLIENT
+			conn, addr = sd.accept()
+			logger.info( f'Got a connection from {addr}' )
 
-		data = conn.recv(MAX_BYTES).decode(FORMAT)
-		logger.info( f'Received msg: {data}' )
+			# RECIEVE DATA
+			data = conn.recv(MAX_BYTES).decode(FORMAT)
+			logger.info( f'Received msg: {data}' )
 
-		conn.send( "Thank you for connecting".encode(FORMAT) )
+			# SLEEP
+			rand = random.randint(1, 10)
+			timer = os.getpid() % rand + 2
+			logger.info( f'sleep for: {timer}' )
+			time.sleep(timer)
 
-		conn.close()
-		
-		break
+			# SEND DATA BACK
+			send_data = f'Thank you for connecting to {host}:{port}'
+			conn.send( send_data.encode(FORMAT) )
+			logger.info( f'Received msg: {send_data}' )
+
+		except KeyboardInterrupt:
+			logger.info('Interrupted.')
+			sd.close()
+			break
 
 
 def non_blocking_socket(host, port):
@@ -71,17 +85,16 @@ def non_blocking_socket(host, port):
 	'''	
 
 
-def main():
+def main(port):
+	blocking_socket(SERVER_HOST, int(port))
+	#non_blocking_socket(SERVER_HOST, SERVER_PORT)
+
+if __name__ == "__main__":
 	# INIT GLOBAL LOGGER
 	global logger
 	logger = rakelogger.init_logger()
 
-	blocking_socket(SERVER_HOST, SERVER_PORT)
-	#non_blocking_socket(SERVER_HOST, SERVER_PORT)
-
-if __name__ == "__main__":
-
-	if (len(sys.argv) >= 2):
+	if (len(sys.argv) == 1 or sys.argv[1].lower() == 'usage'):
 		usage()
 	else:
-		main()
+		main(sys.argv[1])
