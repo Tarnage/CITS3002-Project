@@ -4,6 +4,7 @@
 SOURCES = $(wildcard *.c)
 HEADERS = $(wildcard *.h)
 TARGETS = $(basename $(SOURCES))
+LIBS	= logger_c.c
 
 C11		= cc -std=c11
 CFLAGS 	= -Wall -Werror -pedantic
@@ -17,7 +18,7 @@ DIRT = $(wildcard *.o)
 deafault all: $(TARGETS)
 
 %: %.c
-	$(C11) $(CFLAGS) $^ -o $@
+	$(C11) $(CFLAGS) $(LIBS) $^ -o $@
 
 %.i: %.c
 	$(C11) -E $(CFLAGS) $< | uniq > $@
