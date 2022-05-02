@@ -4,7 +4,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <time.h>
 
+#include "logger_c.h"
+
+#define FILE_FORMAT  "%d-%m-%Y.log"
 #define SERVER_PORT  50006
 #define SERVER_HOST  "192.168.1.111"
 #define MAX_BYTES    1024
@@ -48,8 +52,17 @@ int client_socket(char *host, int port) {
 }
 
 int main()
-{
-    client_socket(SERVER_HOST, SERVER_PORT);
+{   
+    time_t now = time(NULL);
+    char file[32];
+    file[strftime(file, sizeof(file), "./logs/" FILE_FORMAT, localtime(&now))] = '\0';
+    FILE *fp;
+    fp = fopen(file, "a");
+    log_add_fp(fp, LOG_DEBUG);
+
+    log_debug("TEST");
+
+    //client_socket(SERVER_HOST, SERVER_PORT);
 
     return 0;
 }
