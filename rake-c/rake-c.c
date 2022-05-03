@@ -91,7 +91,7 @@ void file_process(char *file_name)
                     {
                         if(strcmp(words[i], "requires") == 0)
                         {
-                            printf("Word: %s\n", words[i]);
+                            continue;
                         }
                         else
                         {
