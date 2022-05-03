@@ -1,18 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
-#include <ctype.h>s
+#include <ctype.h>
 #include "strsplit.c"
 
 #define MAX_LINE_LENGTH 80
 
 // STRUCT FOR ACTION AND ACTION SETS
-typedef struct action_set
-{
-    int num_actions;
-    ACTION *actions; 
-} ACTION_SET;
-
 typedef struct action
 {
     int is_remote;
@@ -21,6 +15,14 @@ typedef struct action
     char **requirements; 
 
 } ACTION;
+
+typedef struct action_set
+{
+    int num_actions;
+    ACTION *actions; 
+} ACTION_SET;
+
+
 
 void file_process(char *file_name)
 {
@@ -32,7 +34,6 @@ void file_process(char *file_name)
     else
     {
         int curr_set = 0;
-        int num_actions = 0;
         int curr_action = 0;
         // char **actions = (char **)malloc(sizeof(char*));
 
@@ -59,12 +60,13 @@ void file_process(char *file_name)
 			if (line[0] == '\t')
 			{
                 num_sets++;
+                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
 
 				if (line[1] == '\t') 
             	{
                     // take in actions by dividing the line 
                     int nwords;
-                    char *words = strsplit(line, &nwords);
+                    char **words = strsplit(line, &nwords);
 
                    /* while(program != NULL)
                     {
@@ -85,6 +87,7 @@ void file_process(char *file_name)
 
                     for(int i = 0; i < nwords; i++)
                     {
+                        printf("Iterating reqs\n");
                         if(strcmp(words[i], "requires") != 0)
                         {
                             sets->actions[curr_action].num_req++;
@@ -93,6 +96,7 @@ void file_process(char *file_name)
                             sets->actions[curr_action].requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
                             sets->actions[curr_action].requirements[curr_req] = words[i];
                             printf("%s\n", sets->actions[curr_action].requirements[curr_req]);
+                            curr_req++;
                         }
                     }
             	}
@@ -106,7 +110,25 @@ void file_process(char *file_name)
                     printf("%s\n", actions[curr_action]);
                     curr_action++; */
 
-                    sets[curr_set]->num_actions
+                    sets[curr_set].num_actions++;
+                    sets[curr_set].actions = (ACTION*)realloc(sets[curr_set].actions, 
+                                                              sets[curr_set].num_actions * sizeof(ACTION));
+                    
+                    int nwords = 0;
+                    char **words = strsplit(line, &nwords);
+                    for (int i = 0; i < nwords; i++)
+                    {
+                        if(strstr(words[i], "remote-"))
+                        {
+                            sets[curr_set].actions[curr_action].is_remote = 1;
+                        }
+                    }
+
+                    sets[curr_set].actions[curr_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+                    sets[curr_set].actions[curr_action].command = line;
+                    printf("%s\n", sets[curr_set].actions[curr_action].command);
+                    curr_action++;
+
                 }
 			
 			}		
