@@ -1,21 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
+#include <ctype.h>s
+#include "strsplit.c"
 
 #define MAX_LINE_LENGTH 80
 
-// struct for action?
+// STRUCT FOR ACTION AND ACTION SETS
+typedef struct action_set
+{
+    int num_actions;
+    ACTION *actions; 
+} ACTION_SET;
+
 typedef struct action
 {
-    bool is_remote;
-    char *flags; 
-    char *action; 
+    int is_remote;
+    char *command; 
+    int num_req;
+    char **requirements; 
 
 } ACTION;
-
-ACTION *actions = (ACTION*)malloc(sizeof(ACTION));
 
 void file_process(char *file_name)
 {
@@ -26,14 +31,22 @@ void file_process(char *file_name)
     }
     else
     {
-        char line[MAX_LINE_LENGTH] = "";
+        int curr_set = 0;
         int num_actions = 0;
         int curr_action = 0;
-        char **actions = (char **)malloc(sizeof(char*));
+        // char **actions = (char **)malloc(sizeof(char*));
 
-        int num_req = 0;
         int curr_req = 0;
-        char **requirements = (char**)malloc(sizeof(char*));
+        int num_sets;
+
+        ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
+        sets[curr_set].num_actions = 0;
+        sets[curr_set].actions = (ACTION*)malloc(sizeof(ACTION));
+        sets[curr_set].actions[curr_action].requirements = (char**)malloc(sizeof(char*));
+        sets[curr_set].actions[curr_action].num_req = 0;
+
+        char line[MAX_LINE_LENGTH] = "";
+        
 
         // READ AND PARSE FILES LINE BY LINE
         while(fgets(line, MAX_LINE_LENGTH, fp))
@@ -45,12 +58,15 @@ void file_process(char *file_name)
 
 			if (line[0] == '\t')
 			{
+                num_sets++;
+
 				if (line[1] == '\t') 
             	{
                     // take in actions by dividing the line 
-                    char *program = strtok(line, " ");
+                    int nwords;
+                    char *words = strsplit(line, &nwords);
 
-                    while(program != NULL)
+                   /* while(program != NULL)
                     {
                         if(strstr(program, ".c") != NULL || 
                             strstr(program, ".h") != NULL ||
@@ -65,17 +81,32 @@ void file_process(char *file_name)
                                 curr_req++;
                             }
                         program = strtok(NULL, " ");
+                    }*/
+
+                    for(int i = 0; i < nwords; i++)
+                    {
+                        if(strcmp(words[i], "requires") != 0)
+                        {
+                            sets->actions[curr_action].num_req++;
+                            sets->actions[curr_action].requirements = (char**) realloc(sets->actions[curr_action].requirements, 
+                                                                                       sets->actions[curr_action].num_req * sizeof(char*));
+                            sets->actions[curr_action].requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
+                            sets->actions[curr_action].requirements[curr_req] = words[i];
+                            printf("%s\n", sets->actions[curr_action].requirements[curr_req]);
+                        }
                     }
             	}
                 else
                 {
                     // take in actions
-                    num_actions++; 
+                    /*num_actions++; 
                     actions = (char **)realloc(actions, num_actions * sizeof(char*));
                     actions[curr_action] = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
                     actions[curr_action] = line;
                     printf("%s\n", actions[curr_action]);
-                    curr_action++; 
+                    curr_action++; */
+
+                    sets[curr_set]->num_actions
                 }
 			
 			}		
