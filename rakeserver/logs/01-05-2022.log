@@ -1,0 +1,798 @@
+02:12:50:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:12:50:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+02:12:50:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:12:53:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:12:53:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+02:12:53:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:12:55:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44258)
+02:12:57:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:12:57:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34322)
+02:13:02:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:15:13:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:15:13:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+02:15:13:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:15:14:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:15:14:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+02:15:14:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:15:17:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44260)
+02:15:17:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:15:17:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+02:15:23:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34324)
+02:15:23:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:15:23:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+02:23:50:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:23:50:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+02:23:50:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:23:52:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+02:23:52:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+02:23:52:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+02:23:53:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44262)
+02:23:53:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:23:53:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+02:23:56:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+02:23:56:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34326)
+02:23:56:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:23:56:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+02:23:58:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+02:24:03:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44264)
+02:24:03:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:24:03:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+02:24:06:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+02:24:06:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34328)
+02:24:06:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:24:06:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+02:24:08:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+02:24:21:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44266)
+02:24:21:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:24:21:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+02:24:24:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+02:24:24:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34332)
+02:24:24:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+02:24:24:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+02:24:26:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:03:20:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:03:20:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:03:20:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:03:22:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:03:22:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:03:22:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:03:25:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44270)
+03:03:25:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:03:25:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:03:25:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34334)
+03:03:25:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:03:25:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:03:31:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:03:31:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:05:49:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:05:49:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:05:49:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:05:50:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:09:06:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:09:06:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:09:06:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:09:07:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:09:07:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:09:07:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:09:09:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44272)
+03:09:09:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34338)
+03:09:09:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:09:09:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:09:09:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:09:09:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:09:11:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:09:13:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:09:31:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:09:34:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:16:03:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:16:03:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:16:03:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:16:04:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:16:04:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:16:04:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:16:06:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44276)
+03:16:06:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:16:06:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34342)
+03:16:06:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:16:06:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:16:06:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:16:10:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:16:11:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:16:41:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44278)
+03:16:41:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:16:41:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34344)
+03:16:41:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:16:41:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:16:41:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:16:45:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:16:46:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:16:57:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:16:58:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:18:25:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:18:25:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:18:25:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:18:26:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:18:26:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:18:26:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:18:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44280)
+03:18:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34346)
+03:18:28:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:18:28:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:18:28:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:18:28:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:18:31:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:18:32:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:18:34:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:18:35:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:19:33:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:19:33:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:19:33:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:19:34:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:19:34:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:19:34:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:19:35:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44284)
+03:19:35:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:19:35:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34348)
+03:19:35:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:19:35:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:19:35:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:19:40:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:19:41:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:19:48:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:19:49:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:22:21:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:22:21:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:22:21:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:22:22:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:22:22:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:22:22:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:22:23:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44286)
+03:22:23:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34350)
+03:22:23:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:22:23:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:22:23:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:22:23:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:22:26:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:60008
+03:22:28:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to port:50008
+03:22:33:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:22:34:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:25:18:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:25:18:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:25:18:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:25:20:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:25:20:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:25:20:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:25:21:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44288)
+03:25:21:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:25:21:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34352)
+03:25:21:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:25:21:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:25:21:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:25:23:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:25:24:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:25:34:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:25:35:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:28:00:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:28:00:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:28:00:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:28:02:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:28:02:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:28:02:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:28:03:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44290)
+03:28:03:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34354)
+03:28:03:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:03:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:03:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:28:03:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:28:05:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:28:09:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:28:13:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:28:14:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:28:28:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:28:28:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:28:28:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:28:29:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:28:29:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:28:29:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:28:31:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44292)
+03:28:31:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:31:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34356)
+03:28:31:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:28:31:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:31:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:28:33:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:28:37:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:28:44:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44294)
+03:28:44:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:44:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34358)
+03:28:44:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:28:44:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:28:44:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+03:28:46:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:28:50:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:28:54:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:28:55:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:30:23:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:30:23:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+03:30:23:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:30:25:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+03:30:25:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+03:30:25:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+03:30:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44296)
+03:30:28:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34360)
+03:30:28:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:30:28:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:28:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:30:31:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:30:32:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:30:40:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44298)
+03:30:40:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:40:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:30:40:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34362)
+03:30:40:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:40:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:30:43:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:30:45:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:30:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44300)
+03:30:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34364)
+03:30:51:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:51:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:30:51:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:51:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:30:53:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:30:54:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:30:58:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44302)
+03:30:58:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:58:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34366)
+03:30:58:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:30:58:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:30:58:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:31:00:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:31:01:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:31:07:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44304)
+03:31:07:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34368)
+03:31:07:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:31:07:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:31:07:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:31:07:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:31:11:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:31:12:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:33:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44306)
+03:33:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34370)
+03:33:05:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:33:05:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:33:05:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:33:05:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:33:08:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:33:10:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:33:17:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44308)
+03:33:17:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:33:17:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:33:17:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34372)
+03:33:17:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:33:17:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+03:33:20:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:33:21:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:37:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44310)
+03:37:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34374)
+03:37:10:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:10:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:10:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:37:10:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+03:37:13:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:37:13:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:37:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44312)
+03:37:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34376)
+03:37:27:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:27:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:27:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+03:37:27:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:37:32:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:37:34:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:37:36:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44314)
+03:37:36:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34378)
+03:37:36:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:36:thanh-desktop-192.168.1.111:INFO:Received msg: HELLOOO FROM PYTHON CLIENT
+03:37:36:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+03:37:36:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+03:37:38:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+03:37:41:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+03:42:17:thanh-desktop-192.168.1.111:INFO:Interrupted.
+03:42:20:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:19:25:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:19:25:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:19:25:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:19:26:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:19:26:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:19:26:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:19:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44320)
+04:19:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44320)
+04:19:27:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:19:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34382)
+04:19:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34382)sending from ('127.0.0.1', 34382)
+04:19:27:thanh-desktop-192.168.1.111:INFO:sleep for: 9
+04:19:32:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+04:19:36:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+04:22:33:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44322)
+04:22:33:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34386)
+04:22:33:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:22:33:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:22:33:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:22:33:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+04:22:35:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+04:22:36:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+04:24:49:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44324)
+04:24:49:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34388)
+04:24:58:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:24:58:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:24:58:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+04:24:58:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:25:03:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:60008
+04:25:05:thanh-desktop-192.168.1.111:INFO:Received msg: Thank you for connecting to 127.0.0.1:50008
+04:25:56:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:25:57:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:26:04:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:26:04:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:26:04:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:26:06:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:26:06:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:26:06:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:26:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44326)
+04:26:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34390)
+04:26:25:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:26:25:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:26:25:thanh-desktop-192.168.1.111:INFO:sleep for: 9
+04:26:25:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+04:26:28:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:26:29:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:27:03:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:27:03:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:27:03:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:27:04:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:27:04:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:27:04:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:27:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44328)
+04:27:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34392)
+04:27:16:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:27:16:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:27:16:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:27:16:thanh-desktop-192.168.1.111:INFO:sleep for: 8
+04:27:17:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:27:17:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:27:38:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:27:38:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:27:38:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:27:41:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:27:41:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:27:41:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:27:44:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44330)
+04:27:44:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34394)
+04:27:46:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:27:46:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:27:46:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:27:46:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:27:49:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:27:51:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:28:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44334)
+04:28:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34396)
+04:28:09:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:28:09:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:28:09:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:28:09:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+04:28:11:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:28:14:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:30:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44336)
+04:30:28:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34398)
+04:30:35:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:30:35:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:30:35:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:30:35:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:30:38:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:30:38:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:31:43:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44338)
+04:31:43:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44338)
+04:31:43:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34400)
+04:31:43:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:31:43:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34400)
+04:31:43:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+04:31:46:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:31:50:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:32:22:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34402)
+04:32:22:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44340)
+04:32:22:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34402)
+04:32:22:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44340)
+04:32:22:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+04:32:22:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:32:25:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:32:26:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:32:39:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44342)
+04:32:39:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34404)
+04:32:39:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44342)
+04:32:39:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:32:39:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34404)
+04:32:39:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:32:42:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:32:42:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:32:47:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44344)
+04:32:47:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44344)
+04:32:47:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:32:47:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34406)
+04:32:47:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34406)
+04:32:47:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:32:50:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:32:52:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:33:35:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44346)
+04:33:35:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34408)
+04:33:35:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44346)
+04:33:35:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:33:35:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34408)
+04:33:35:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+04:33:38:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:33:42:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:34:15:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34412)
+04:34:15:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44348)
+04:34:15:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44348)
+04:34:15:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34412)
+04:34:15:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:34:15:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:34:18:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:34:20:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:34:29:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44350)
+04:34:29:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34414)
+04:34:29:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44350)
+04:34:29:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:34:29:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34414)
+04:34:29:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+04:34:32:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:34:35:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:36:00:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34416)
+04:36:00:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44352)
+04:36:00:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34416)sending from ('127.0.0.1', 34416)
+04:36:00:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44352)sending from ('127.0.0.1', 44352)
+04:36:00:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:36:00:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:36:03:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:36:05:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:36:23:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44354)
+04:36:23:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34418)
+04:36:23:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44354)sending from ('127.0.0.1', 44354)
+04:36:23:thanh-desktop-192.168.1.111:INFO:sleep for: 9
+04:36:25:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:36:25:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+04:36:28:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:36:32:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:36:44:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:36:45:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:36:50:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:36:50:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:36:50:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:36:53:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:36:53:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:36:53:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:37:15:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44356)
+04:37:15:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34420)
+04:37:15:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44356)
+04:37:15:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+04:37:17:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:37:17:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+04:37:17:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:37:19:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:38:18:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44358)
+04:38:18:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34422)
+04:38:23:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:38:23:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:38:23:thanh-desktop-192.168.1.111:INFO:sleep for: 8
+04:38:23:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+04:38:30:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:38:31:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:44:49:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44360)
+04:44:49:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34424)
+04:45:05:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:45:05:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:45:05:thanh-desktop-192.168.1.111:INFO:sleep for: 8
+04:45:05:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+04:45:07:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:45:08:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:46:46:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:46:46:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:46:46:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:46:48:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:46:48:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:46:48:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:46:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44364)
+04:46:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34426)
+04:47:06:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:47:06:thanh-desktop-192.168.1.111:INFO:Received msg: 
+04:47:06:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:47:06:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+04:47:08:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+04:47:11:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:47:15:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:47:16:thanh-desktop-192.168.1.111:INFO:Interrupted.
+04:58:52:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:58:52:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+04:58:52:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:58:55:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+04:58:55:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+04:58:55:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+04:58:57:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44366)
+04:58:57:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34430)
+04:58:57:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44366)
+04:58:57:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+04:58:57:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34430)
+04:58:57:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+04:59:02:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+04:59:03:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:12:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44368)
+05:12:08:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34434)
+05:12:08:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44368)
+05:12:08:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34434)
+05:12:08:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:12:08:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+05:12:11:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:12:13:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:13:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44370)
+05:13:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44370)
+05:13:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34436)
+05:13:10:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:13:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34436)
+05:13:10:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+05:13:15:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:13:16:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:13:48:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44372)
+05:13:48:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34438)
+05:13:48:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44372)
+05:13:48:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34438)
+05:13:48:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:13:48:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:13:50:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:13:51:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:14:33:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34440)
+05:14:33:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34440)
+05:14:33:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+05:14:33:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44374)
+05:14:33:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44374)
+05:14:33:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:14:38:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:14:39:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:16:17:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44376)
+05:16:17:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34442)
+05:16:17:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44376)
+05:16:17:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:16:17:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34442)
+05:16:17:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:16:19:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:16:20:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:17:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44378)
+05:17:05:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44378)
+05:17:05:thanh-desktop-192.168.1.111:INFO:sleep for: 8
+05:17:05:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34444)
+05:17:05:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34444)
+05:17:05:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:17:08:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:17:13:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:18:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44380)
+05:18:10:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34446)
+05:18:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44380)
+05:18:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34446)
+05:18:10:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:18:10:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:18:13:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:18:14:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:18:41:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44382)
+05:18:41:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34448)
+05:18:41:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44382)
+05:18:41:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:18:41:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34448)
+05:18:41:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:18:44:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:18:44:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:18:53:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44384)
+05:18:53:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34450)
+05:18:53:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44384)
+05:18:53:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34450)
+05:18:53:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:18:53:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:18:56:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:18:57:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:20:45:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44386)
+05:20:45:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44386)
+05:20:45:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:20:45:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34452)
+05:20:45:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34452)
+05:20:45:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+05:20:50:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:20:51:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:21:22:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:21:22:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:22:56:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:22:56:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:22:56:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:22:57:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:22:57:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:22:57:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:22:58:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44388)
+05:22:58:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34454)
+05:22:58:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34454)
+05:22:58:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44388)
+05:22:58:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:22:58:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+05:23:00:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:23:06:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:23:25:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:23:25:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:23:25:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:23:26:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:23:26:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:23:26:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:23:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44390)
+05:23:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34456)
+05:23:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44390)
+05:23:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34456)
+05:23:27:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:23:27:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:23:33:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:23:33:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:23:41:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:23:42:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:30:21:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:30:21:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:30:21:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:30:24:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:30:24:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:30:24:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:30:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44392)
+05:30:27:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34460)
+05:30:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44392)
+05:30:27:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34460)
+05:30:52:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:30:52:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:33:01:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:33:01:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:33:01:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:33:03:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:33:03:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:33:03:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:33:04:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44394)
+05:33:04:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34462)
+05:33:04:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34462)
+05:33:04:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44394)
+05:33:04:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:33:04:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+05:33:06:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:33:11:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:33:37:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:33:39:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:33:57:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:33:57:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:33:57:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:33:58:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:33:58:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:33:58:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:34:00:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44396)
+05:34:00:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34464)
+05:34:00:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44396)
+05:34:00:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34464)
+05:34:00:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:34:00:thanh-desktop-192.168.1.111:INFO:sleep for: 6
+05:34:04:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:34:06:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:34:31:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:34:31:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:34:48:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:34:48:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:34:48:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:34:50:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:34:50:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:34:50:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:34:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44398)
+05:34:51:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44398)
+05:34:51:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34466)
+05:34:51:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:34:51:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34466)
+05:34:51:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:34:53:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:50008
+05:34:53:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to 127.0.0.1:60008
+05:35:13:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:35:14:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:41:02:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:41:02:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:41:02:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:41:04:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:41:04:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:41:04:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:41:06:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44400)
+05:41:06:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34468)
+05:41:06:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44400)
+05:41:06:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:41:06:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34468)
+05:41:06:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:41:08:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:41:08:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34468)
+05:41:09:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:41:09:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44400)
+05:41:42:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:41:42:thanh-desktop-192.168.1.111:INFO:Received msg: 
+05:41:42:thanh-desktop-192.168.1.111:INFO:Received msg: 
+05:41:42:thanh-desktop-192.168.1.111:INFO:Received msg: 
+05:41:42:thanh-desktop-192.168.1.111:INFO:sleep for: 3
+05:41:44:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:41:50:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:41:50:thanh-desktop-192.168.1.111:INFO:Socket is binded to 60008
+05:41:50:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:41:52:thanh-desktop-192.168.1.111:INFO:Port succesfully created!
+05:41:52:thanh-desktop-192.168.1.111:INFO:Socket is binded to 50008
+05:41:52:thanh-desktop-192.168.1.111:INFO:Socket is listening on 127.0.0.1...
+05:41:54:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 44402)
+05:41:54:thanh-desktop-192.168.1.111:INFO:Got a connection from ('127.0.0.1', 34470)
+05:41:54:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:41:54:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:41:54:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:41:54:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:41:56:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:41:56:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:41:56:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:41:56:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:41:56:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:41:56:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:41:58:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:41:58:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:41:58:thanh-desktop-192.168.1.111:INFO:sleep for: 8
+05:42:00:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:00:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:00:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:04:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:04:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:04:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:06:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:06:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:06:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:06:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:06:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:06:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:10:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:10:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:10:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:10:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:10:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:12:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:12:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:12:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:14:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:14:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:14:thanh-desktop-192.168.1.111:INFO:sleep for: 5
+05:42:14:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:14:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:14:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:16:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:16:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:16:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:19:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:19:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:19:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:20:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:20:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:20:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:21:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:21:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:21:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:23:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:23:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:23:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:24:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:24:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:24:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:25:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:25:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 44402)
+05:42:25:thanh-desktop-192.168.1.111:INFO:sleep for: 4
+05:42:28:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 60008)
+05:42:28:thanh-desktop-192.168.1.111:INFO:Received msg: sending from ('127.0.0.1', 34470)
+05:42:28:thanh-desktop-192.168.1.111:INFO:sleep for: 7
+05:42:29:thanh-desktop-192.168.1.111:INFO:sending: Thank you for connecting to ('127.0.0.1', 50008)
+05:42:29:thanh-desktop-192.168.1.111:INFO:Received msg: 
+05:42:29:thanh-desktop-192.168.1.111:INFO:Received msg: 
+05:42:29:thanh-desktop-192.168.1.111:INFO:sleep for: 2
+05:42:30:thanh-desktop-192.168.1.111:INFO:Interrupted.
+05:42:30:thanh-desktop-192.168.1.111:INFO:Interrupted.
