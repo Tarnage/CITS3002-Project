@@ -2,8 +2,20 @@
 #include <stdlib.h> 
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #define MAX_LINE_LENGTH 80
+
+// struct for action?
+typedef struct action
+{
+    bool is_remote;
+    char *flags; 
+    char *action; 
+
+} ACTION;
+
+ACTION *actions = (ACTION*)malloc(sizeof(ACTION));
 
 void file_process(char *file_name)
 {
