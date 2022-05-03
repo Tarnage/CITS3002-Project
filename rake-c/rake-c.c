@@ -85,18 +85,26 @@ void file_process(char *file_name)
                         program = strtok(NULL, " ");
                     }*/
 
-                    for(int i = 0; i < nwords; i++)
+                    for(int i = 0; i < nwords; ++i)
                     {
-                        printf("Iterating reqs\n");
-                        if(strcmp(words[i], "requires") != 0)
+                        printf("Iterating through requirements\n");
+                        if(strcmp(words[i], "requires") == 0)
                         {
+                            printf("Word: %s\n", words[i]);
+                        }
+                        else
+                        {
+                            printf("Word: %s\n", words[i]);
                             sets->actions[curr_action].num_req++;
+                            printf("Requirement incremented\n");
                             sets->actions[curr_action].requirements = (char**) realloc(sets->actions[curr_action].requirements, 
-                                                                                       sets->actions[curr_action].num_req * sizeof(char*));
+                                                                                        sets->actions[curr_action].num_req * sizeof(char*));
+                            printf("Requirements array reallocated\n");
                             sets->actions[curr_action].requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
+                            printf("Allocated for current program\n");
                             sets->actions[curr_action].requirements[curr_req] = words[i];
                             printf("%s\n", sets->actions[curr_action].requirements[curr_req]);
-                            curr_req++;
+                            ++curr_req;
                         }
                     }
             	}
