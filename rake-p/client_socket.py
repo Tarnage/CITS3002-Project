@@ -13,7 +13,6 @@ SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
 
-
 def usage():
 	print("Usage: ")
 
