@@ -23,7 +23,6 @@ typedef struct action_set
 } ACTION_SET;
 
 
-
 void file_process(char *file_name)
 {
     FILE *fp = fopen(file_name, "r");
@@ -127,6 +126,7 @@ void file_process(char *file_name)
                         if(strstr(words[i], "remote-"))
                         {
                             sets[curr_set].actions[curr_action].is_remote = 1;
+                            //TODO remove the word "remote-" 
                         }
                     }
 
