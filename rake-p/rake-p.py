@@ -6,13 +6,7 @@ file = open('Rakefile', 'r')
 # Arrays
 array_action_sets = []
 array_actions = []
-# array_port_numbers = []
-# array_host_names = []
-# one_tab_numbers = []
-# two_tab_numbers = []
-
-one_tab_single_array = []
-array_number_actions = []
+array_required = []
 
 # Counters
 count = 0
@@ -20,18 +14,6 @@ action_set_counter = 0
 port_number_counter = 0
 host_name_counter = 0
 action_n_counter = 0
-
-
-# def cleanArray(input_array):
-#     print("One_Tab FIRST{}".format(input_array))
-#     # Remove double array created
-#     input_array = input_array[0]
-#     print("One_Tab Second{}".format(input_array))
-#     while("" in input_array):
-#         input_array.remove("")
-
-#     print("One_Tab{}".format(input_array))
-
 
 for line in file.readlines():
     # with open('Rakefile') as file:
@@ -51,13 +33,14 @@ for line in file.readlines():
             one_tab_array = line.split()
 
             array_actions.append(one_tab_array)
-            print("	One Tab (Client)ADD{}: {}\n".format(
-                count, array_actions))
+            # print("	One Tab{}: {}\n".format(count, array_actions))
 
             #  2 tabs
         if (line[1] == '\t'):
             two_tab_array = line.split()
-            print("		Two Tabs-{}: {}".format(count, two_tab_array))
+            array_required.append(two_tab_array)
+
+            print("		Two Tabs{}: {}".format(count, array_required))
 
         # Port and Hosts
         if(line[0] != '\t' and line[1] != '\t' and line[0] != 'a'):
@@ -76,7 +59,6 @@ for line in file.readlines():
 
         # ActionSets
         if(line[0] != '\t' and line[1] != '\t' and line[0] == 'a'):
-            # print("Actionset-{}: {}".format(count, line.split()))
             array_action_sets.append(line)
             print("ActionSet!!!! {}".format(array_action_sets))
             action_set_counter += 1
