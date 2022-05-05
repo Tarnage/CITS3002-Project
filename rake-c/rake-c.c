@@ -137,6 +137,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
             	{
                     //num_sets++;
                     // take in actions by dividing the line 
+                    curr_action = 0;
                     curr_req = 0;
                     int nwords;
                     char **words = strsplit(line, &nwords);
@@ -160,7 +161,6 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                             curr_req++;
                         }
                     }
-
                     printf("\n");
             	}
                 else
@@ -198,13 +198,14 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     curr_action++;
 
                 }
-                curr_action = 0;
-
+                printf("Number of actions: %d\n", sets[curr_set].num_actions);
 			}	
-            else
+            else if (strstr(line, "actionset") != NULL)
             {
                 num_sets++;
                 sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
+                curr_set = num_sets - 1;
+                printf("Current set: %d, Number of sets: %d\n", curr_set + 1, num_sets);
             }
         }
     }
@@ -259,8 +260,10 @@ int main (int argc, char *argv[])
 
     ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
     HOST *hosts = (HOST*)malloc(sizeof(HOST));
+    
 
     file_process(file_name, sets, hosts);
+    
     perform_actions(sets);
 
     return 0; 
