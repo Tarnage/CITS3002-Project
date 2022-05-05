@@ -162,7 +162,6 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     }
 
                     printf("\n");
-                    curr_set++;
             	}
                 else
                 {
@@ -207,8 +206,6 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                 num_sets++;
                 sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
             }
-
-
         }
     }
 
