@@ -115,6 +115,7 @@ void file_process(char *file_name)
                 num_sets++;
                 // ALLOCATE MEMORY TO A NEW ACTION SET
                 action_set = (ACTION**)realloc(action_set, num_sets * sizeof(ACTION*));
+                action_totals = (int*)realloc(action_totals, num_sets * sizeof(int));
                 
                 current_set = num_sets - 1;
                 // SET THE NUMBER OF ACTIONS FOR THIS ACTION SET TO ZERO
@@ -160,6 +161,8 @@ void file_process(char *file_name)
                     current_action = num_actions - 1;
                     // ALLOCATE MEMORY TO THE ACTION
                     action_set[current_set] = (ACTION*)realloc(action_set[current_set], num_actions * sizeof(ACTION));
+                    action_totals[current_set]++;
+                    printf("%d\n", action_totals[current_set]);
                     
                     int nwords = 0;
                     char **words = strsplit(line, &nwords);
@@ -197,10 +200,14 @@ void file_process(char *file_name)
 void perform_actions()
 {
     // ITERATE THROUGH THE ACTION SETS
-
     for(int i = 0; i < num_sets; i++)
     {
-        printf("%s\n", action_set[i][0].command);
+        for (int j = 0; j < action_totals[i]; j++)
+        {
+            printf("%s\n", action_set[i][j].command);
+        }
+
+
     }
 
 } 

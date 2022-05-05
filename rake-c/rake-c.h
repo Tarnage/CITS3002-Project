@@ -26,6 +26,8 @@ typedef struct _host
 ACTION  **action_set; 
 // AN ARRAY OF HOSTS
 HOST    *hosts;
+// ARRAY OF ACTION TOTALS FOR EACH SET
+int     *action_totals;
 // THE NUMBER OF HOSTS
 int num_hosts; 
 // THE NUMBER OF ACTION SETS
