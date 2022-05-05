@@ -14,7 +14,7 @@ class Action:
 		self.remote = remote
 		self.requires = requires
 		
-		
+
 def read_rake(filename):
 	'''Parse a tab seperated Rakefile
 
@@ -49,7 +49,6 @@ def read_rake(filename):
 				words = line.split()
 				if words[0] == 'PORT':
 					deafult_port = int(words[2])
-					print(deafult_port)
 				
 				# checks if line is for hosts
 				if words[0] == "HOSTS":
@@ -62,11 +61,17 @@ def read_rake(filename):
 
 				# checks single
 				if line[0] == '\t' and not line[1] == '\t':
+
+					# split by first occuernace of a '-'
 					action_split = line.split('-', 1)
-					# ignoring echo lines
+					# if len is > 1 means we have found "remote-"
 					if(len(action_split) > 1):
 						remote = action_split[0].strip() == "remote"
 						action_set.append( Action(action_split[1].strip(), remote, []) )
+					else:
+						# its a action to be performed locally
+						remote = False
+						action_set.append( Action(action_split[0].strip(), remote, []) )
 
 				# Checks if double tab
 				if line[0] == '\t' and line[1] == '\t':
@@ -75,7 +80,6 @@ def read_rake(filename):
 						last_set.requires = req_split
 						
 				if not line[0] == '\t' and "actionset" in line:
-					print(line)
 					if len(action_set) > 0:
 						action_sequence.append(action_set)
 						action_set = list()
@@ -87,6 +91,9 @@ def read_rake(filename):
 		return hosts, action_sequence
 
 def print_action_sequence(seq):
+	''' for testing
+	
+	'''
 	counter = 1
 	for sequence in seq:
 		for actions in sequence:
