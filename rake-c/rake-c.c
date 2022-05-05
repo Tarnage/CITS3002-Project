@@ -22,8 +22,31 @@ typedef struct action_set
     ACTION *actions; 
 } ACTION_SET;
 
+void remove_str(char *line, char *intended)
+{
+    int counter_line = 0;
+    int new_word_counter = 0;
 
-void file_process(char *file_name)
+
+    while(line[counter_line] != '-')
+    {
+        counter_line++;
+    }
+    
+    counter_line++;
+
+    while(line[counter_line] != '\0')
+    {
+        intended[new_word_counter] = line[counter_line];
+        
+        new_word_counter++;
+        counter_line++;
+    }
+
+    intended[new_word_counter] = '\0';
+}
+
+void file_process(char *file_name, ACTION_SET *sets)
 {
     FILE *fp = fopen(file_name, "r");
     if(fp == NULL)
@@ -39,7 +62,7 @@ void file_process(char *file_name)
         int curr_req = 0;
         int num_sets;
 
-        ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
+        // ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
         sets[curr_set].num_actions = 0;
         sets[curr_set].actions = (ACTION*)malloc(sizeof(ACTION));
         sets[curr_set].actions[curr_action].requirements = (char**)malloc(sizeof(char*));
@@ -69,23 +92,6 @@ void file_process(char *file_name)
                     int nwords;
                     char **words = strsplit(line, &nwords);
 
-                   /* while(program != NULL)
-                    {
-                        if(strstr(program, ".c") != NULL || 
-                            strstr(program, ".h") != NULL ||
-                            strstr(program, ".o") != NULL)
-                            {
-                                
-                                num_req++;
-                                requirements = (char **)realloc(requirements, num_req * sizeof(char*));
-                                requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
-                                requirements[curr_req] = program;
-                                printf("%s\n", requirements[curr_req]);
-                                curr_req++;
-                            }
-                        program = strtok(NULL, " ");
-                    }*/
-
                     for(int i = 0; i < nwords; ++i)
                     {
                         if(strcmp(words[i], "requires") == 0)
@@ -108,12 +114,6 @@ void file_process(char *file_name)
                 else
                 {
                     // take in actions
-                    /*num_actions++; 
-                    actions = (char **)realloc(actions, num_actions * sizeof(char*));
-                    actions[curr_action] = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
-                    actions[curr_action] = line;
-                    printf("%s\n", actions[curr_action]);
-                    curr_action++; */
 
                     sets[curr_set].num_actions++;
                     sets[curr_set].actions = (ACTION*)realloc(sets[curr_set].actions, 
@@ -121,18 +121,29 @@ void file_process(char *file_name)
                     
                     int nwords = 0;
                     char **words = strsplit(line, &nwords);
+
+                    char new_cmd[MAX_LINE_LENGTH] = "";
                     for (int i = 0; i < nwords; i++)
                     {
-                        if(strstr(words[i], "remote-"))
+                        if(strstr(words[i], "remote-") != NULL)
                         {
                             sets[curr_set].actions[curr_action].is_remote = 1;
-                            //TODO remove the word "remote-" 
+                            
+                            remove_str(words[i], new_cmd);
+                            
                         }
-                    }
+                        else
+                        {
+                            strcat(new_cmd, words[i]);
+                            strcat(new_cmd, " ");
+                        }
 
+                    }       
+                    
+                    //printf("%s", new_cmd);
                     sets[curr_set].actions[curr_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
-                    sets[curr_set].actions[curr_action].command = line;
-                    printf("%s\n", sets[curr_set].actions[curr_action].command);
+                    sets[curr_set].actions[curr_action].command = new_cmd;
+                    printf("%s", sets[curr_set].actions[curr_action].command);
                     curr_action++;
 
                 }
@@ -145,8 +156,19 @@ void file_process(char *file_name)
 
 int main (int argc, char *argv[])
 {
-    char* file_name = argv[1];
-    file_process(file_name);
+    char *file_name;
+    if(argc != 2)
+    {
+        file_name = "Rakefile";
+    }
+    else
+    {
+        file_name = argv[1];
+    }
+
+    ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
+    
+    file_process(file_name, sets);
 
     return 0; 
 }
