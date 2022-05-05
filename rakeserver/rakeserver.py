@@ -6,9 +6,6 @@ import os
 import socket
 import select
 import sys
-# This shorthand makes one module visible to the other
-sys.path.insert(0, '../')
-from logger_p import rakelogger
 
 SERVER_PORT = 50008
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
@@ -18,6 +15,32 @@ MAX_BYTES = 1024
 FORMAT = 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
+
+ACK_SEND = {
+	"CMD_ECHO" 			: 0,
+	"CMD_ECHOREPLY" 	: 1,
+	"CMD_QUOTE_REQUEST" : 2,
+	"CMD_QUOTE_REPLY" 	: 3,
+	"CMD_SEND_FILE" 	: 4,
+	"CMD_EXECUTE" 		: 5,
+	"CMD_RETURN_STATUS" : 6,
+	"CMD_RETURN_STDOUT" : 7,
+	"CMD_RETURN_STDERR" : 8,
+	"CMD_RETURN_FILE" 	: 9
+}
+
+ACK_RECV = {
+	0 : "CMD_ECHO",
+	1 : "CMD_ECHOREPLY",
+	2 : "CMD_QUOTE_REQUEST",
+	3 : "CMD_QUOTE_REPLY",
+	4 : "CMD_SEND_FILE",
+	5 : "CMD_EXECUTE",
+	6 : "CMD_RETURN_STATUS",
+	7 : "CMD_RETURN_STDOUT",
+	8 : "CMD_RETURN_STDERR",
+	9 : "CMD_RETURN_FILE"
+}
 
 
 def usage():
@@ -37,45 +60,57 @@ def blocking_socket(host, port):
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		logger.info("Port succesfully created!")
+		print("Port succesfully created!")
 	except socket.error as err:
-		logger.warning( f'socket creation failed with error {err}' )
+		print( f'socket creation failed with error {err}' )
 
 	# BIND SOCKET TO PORT
 	sd.bind( (host, port) )
-	logger.info( f'Socket is binded to {port}' )
+	print( f'Socket is binded to {port}' )
 
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
-	logger.info( f"Socket is listening on {host}..." )
+	print( f"Socket is listening on {host}..." )
 	
 	while True:
 
 		try:
 			# ESTABLISH CONNECTION WITH CLIENT
 			conn, addr = sd.accept()
-			logger.info( f'Got a connection from {addr}' )
+			print( f'Got a connection from {addr}' )
 
 			# RECIEVE DATA
 			data = conn.recv(MAX_BYTES).decode(FORMAT)
-			logger.info( f'Received msg: {data}' )
+			print( f'Received msg: {data}' )
 
 			# SLEEP
 			rand = random.randint(1, 10)
 			timer = os.getpid() % rand + 2
-			logger.info( f'sleep for: {timer}' )
+			print( f'sleep for: {timer}' )
 			time.sleep(timer)
 
 			# SEND DATA BACK
 			send_data = f'Thank you for connecting to {host}:{port}'
 			conn.send( send_data.encode(FORMAT) )
-			logger.info( f'sending: {send_data}' )
+			print( f'sending: {send_data}' )
 			
 
 		except KeyboardInterrupt:
-			logger.info('Interrupted.')
+			print('Interrupted.')
 			sd.close()
 			break
+
+
+def calculate_cost():
+	# seed for testing
+	# seed(1)
+	return random.randint(1, 10)
+
+
+def send_quote(sd):
+	sd.send(ACK_SEND["CMD_QUOTE_REPLY"].encode(FORMAT))
+	cost = calculate_cost()
+	sd.send(cost.encode(FORMAT))
 
 
 def non_blocking_socket(host, port):
@@ -90,17 +125,17 @@ def non_blocking_socket(host, port):
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		logger.info("Port succesfully created!")
+		print("Port succesfully created!")
 	except socket.error as err:
-		logger.warning( f'socket creation failed with error {err}' )
+		print( f'socket creation failed with error {err}' )
 
 	# BIND SOCKET TO PORT
 	sd.bind( (host, port) )
-	logger.info( f'Socket is binded to {port}' )
+	print( f'Socket is binded to {port}' )
 
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
-	logger.info( f"Socket is listening on {host}..." )
+	print( f"Socket is listening on {host}..." )
 
 	connection_list = [sd]
 	write_list  = []
@@ -115,7 +150,7 @@ def non_blocking_socket(host, port):
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
-					logger.info( f'Got a connection from {addr}' )
+					print( f'Got a connection from {addr}' )
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					connection_list.append(conn)
@@ -123,23 +158,25 @@ def non_blocking_socket(host, port):
 				else:
 					# RECIEVE DATA
 					data = conn.recv(MAX_BYTES).decode(FORMAT)
-					logger.info( f'Received msg: {data}' )
-
-					# GET READY TO REPLY
-					write_list.append(sock)
+					print( f'Received msg: {data}' )
+					
+					# REUQEST FOR COST QUOTE
+					if data == ACK_RECV[2]:
+						send_quote(conn)
+					
 
 			for sock in write_sockets:
 				if sock:
 					# SLEEP
 					rand = random.randint(1, 10)
 					timer = os.getpid() % rand + 2
-					logger.info( f'sleep for: {timer}' )
+					print( f'sleep for: {timer}' )
 					time.sleep(timer)
 
 					# SEND DATA BACK
 					send_data = f'Thank you for connecting to {sock.getsockname()}'
 					sock.send( send_data.encode(FORMAT) )
-					logger.info( f'sending: {send_data}' )
+					print( f'sending: {send_data}' )
 
 					# ADD SERVER BACK TO LISTENING FOR DATA
 					connection_list.append(sd)
@@ -148,7 +185,7 @@ def non_blocking_socket(host, port):
 					write_list.remove(sock)
 
 		except KeyboardInterrupt:
-			logger.warning('Interrupted.')
+			print('Interrupted.')
 			# Make sure we close sockets gracefully
 			close_sockets(read_sockets)
 			close_sockets(write_sockets)
@@ -167,9 +204,6 @@ def main(port):
 
 
 if __name__ == "__main__":
-	# INIT GLOBAL LOGGER
-	global logger
-	logger = rakelogger.init_logger()
 
 	if (len(sys.argv) == 1 or sys.argv[1].lower() == 'usage'):
 		usage()
