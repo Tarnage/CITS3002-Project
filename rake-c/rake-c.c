@@ -99,8 +99,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                 default_port = atoi(port_val);
                 
             }
-
-            if(strstr(line, "HOSTS") != NULL)
+            else if(strstr(line, "HOSTS") != NULL)
             {
                 int nhosts;
                 char host_names[MAX_LINE_LENGTH] = "";
@@ -132,17 +131,8 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     curr_host++;
                 }
             }
-
-            if(strstr(line, "actionset") != NULL && line[0] != '\t')
-            {
-                num_sets++;
-                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
-            }
-
-			if (line[0] == '\t')
+			else if (line[0] == '\t')
 			{
-                printf("Current set: %d, Number of sets: %d\n", curr_set+1, num_sets);
-
 				if (line[1] == '\t') 
             	{
                     //num_sets++;
@@ -151,6 +141,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     int nwords;
                     char **words = strsplit(line, &nwords);
 
+                    printf("Requires: ");
                     for(int i = 0; i < nwords; ++i)
                     {
                         if(strcmp(words[i], "requires") == 0)
@@ -159,20 +150,18 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                         }
                         else
                         {
-                            printf("Requirement: %s\n", words[i]);
                             sets[curr_set].actions[curr_action].num_req++;
-                            printf("Realloc\n");
                             sets[curr_set].actions[curr_action].requirements = (char**) realloc(sets[curr_set].actions[curr_action].requirements, 
                                                                                        sets[curr_set].actions[curr_action].num_req * sizeof(char*));
                            
-                            printf("Assign\n");
                             sets[curr_set].actions[curr_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
                             sets[curr_set].actions[curr_action].requirements[curr_req] = words[i];
-                            printf("%s\n", sets[curr_set].actions[curr_action].requirements[curr_req]);
+                            printf("%s ", sets[curr_set].actions[curr_action].requirements[curr_req]);
                             curr_req++;
                         }
                     }
 
+                    printf("\n");
                     curr_set++;
             	}
                 else
@@ -208,11 +197,17 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     sets[curr_set].actions[curr_action].command = new_cmd;
                     printf("%s", sets[curr_set].actions[curr_action].command);
                     curr_action++;
-                    
-			
 
                 }
+                curr_action = 0;
+
 			}	
+            else
+            {
+                num_sets++;
+                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
+            }
+
 
         }
     }
