@@ -30,6 +30,7 @@ typedef struct action_set
     ACTION *actions; 
 } ACTION_SET;
 
+int num_sets;
 void remove_str(char *line, char stop_char, char *intended)
 {
     int counter_line = 0;
@@ -67,7 +68,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
         int curr_action = 0;
 
         int curr_req = 0;
-        int num_sets;
+        
 
         sets[curr_set].num_actions = 0;
         sets[curr_set].actions = (ACTION*)malloc(sizeof(ACTION));
@@ -132,14 +133,19 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                 }
             }
 
-			if (line[0] == '\t')
-			{
+            if(strstr(line, "actionset") != NULL && line[0] != '\t')
+            {
                 num_sets++;
                 sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
-                curr_action = 0;
+            }
+
+			if (line[0] == '\t')
+			{
+                printf("Current set: %d, Number of sets: %d\n", curr_set+1, num_sets);
 
 				if (line[1] == '\t') 
             	{
+                    //num_sets++;
                     // take in actions by dividing the line 
                     curr_req = 0;
                     int nwords;
@@ -153,16 +159,21 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                         }
                         else
                         {
-                            sets->actions[curr_action].num_req++;
-                            sets->actions[curr_action].requirements = (char**) realloc(sets->actions[curr_action].requirements, 
-                                                                                       sets->actions[curr_action].num_req * sizeof(char*));
+                            printf("Requirement: %s\n", words[i]);
+                            sets[curr_set].actions[curr_action].num_req++;
+                            printf("Realloc\n");
+                            sets[curr_set].actions[curr_action].requirements = (char**) realloc(sets[curr_set].actions[curr_action].requirements, 
+                                                                                       sets[curr_set].actions[curr_action].num_req * sizeof(char*));
                            
-                            sets->actions[curr_action].requirements[curr_req] = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
-                            sets->actions[curr_action].requirements[curr_req] = words[i];
-                            printf("%s\n", sets->actions[curr_action].requirements[curr_req]);
-                            ++curr_req;
+                            printf("Assign\n");
+                            sets[curr_set].actions[curr_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
+                            sets[curr_set].actions[curr_action].requirements[curr_req] = words[i];
+                            printf("%s\n", sets[curr_set].actions[curr_action].requirements[curr_req]);
+                            curr_req++;
                         }
                     }
+
+                    curr_set++;
             	}
                 else
                 {
@@ -192,22 +203,53 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                         }
 
                     }       
-                    
+                    strcat(new_cmd, "\0");
                     sets[curr_set].actions[curr_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
                     sets[curr_set].actions[curr_action].command = new_cmd;
                     printf("%s", sets[curr_set].actions[curr_action].command);
                     curr_action++;
+                    
+			
 
                 }
-			
-			}		
+			}	
+
         }
     }
 
 }
 
-void perform_actions(ACTION_SET *sets, HOST* hosts)
+void perform_actions(ACTION_SET *sets)
 {
+
+    //ITERATE THROUGH THE ACTION SET
+    for(int i = 0; i < num_sets; i++)
+    {
+        printf("Current set\n");
+        ACTION_SET current_set = sets[i];
+        printf("Getting actions\n");
+        ACTION *current_actions = current_set.actions;
+
+        printf("Iterating\n");
+        printf("%d\n", sets[i].num_actions);
+        for (int j = 0; j < sets[i].num_actions; j++)
+        {
+            printf("Current action\n");
+            ACTION current_action = *current_actions; 
+            printf("iterating req\n");
+            for (int k = 0; k < current_action.num_req; k++)
+            {
+                printf("requirements\n");
+                if(fopen(current_action.requirements[k], "r") == NULL)
+                {
+                    printf("Invalid\n");
+                    break;
+                }
+            }
+        }
+    }
+
+
 
 }
 
@@ -227,7 +269,7 @@ int main (int argc, char *argv[])
     HOST *hosts = (HOST*)malloc(sizeof(HOST));
 
     file_process(file_name, sets, hosts);
-    // perform_actions()
+    perform_actions(sets);
 
     return 0; 
 }
