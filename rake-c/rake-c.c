@@ -1,36 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h> 
-#include <string.h>
-#include <ctype.h>
-#include "strsplit.c"
+#include "rake-c.h"
 
 #define MAX_LINE_LENGTH 80
 
-// HOST STRUCT
-typedef struct host
-{
-    char *name;
-    int port;
-} HOST;
+ACTION**    action_set  =   NULL;
+HOST*       hosts       =   NULL;
+int         num_hosts   =   0;
 
-// STRUCT FOR ACTION
-typedef struct action
-{
-    int is_remote;
-    char *command; 
-    int num_req;
-    char **requirements; 
-
-} ACTION;
-
-// STRUCT FOR ACTION SETS
-typedef struct action_set
-{
-    int num_actions;
-    ACTION *actions; 
-} ACTION_SET;
-
-int num_sets;
 void remove_str(char *line, char stop_char, char *intended)
 {
     int counter_line = 0;
@@ -55,7 +30,7 @@ void remove_str(char *line, char stop_char, char *intended)
     intended[new_word_counter] = '\0';
 }
 
-void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
+void file_process(char *file_name)
 {
     FILE *fp = fopen(file_name, "r");
     if(fp == NULL)
@@ -64,23 +39,17 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
     }
     else
     {
-        int curr_set = 0;
-        int curr_action = 0;
-
-        int curr_req = 0;
-        
-
-        sets[curr_set].num_actions = 0;
-        sets[curr_set].actions = (ACTION*)malloc(sizeof(ACTION));
-        sets[curr_set].actions[curr_action].requirements = (char**)malloc(sizeof(char*));
-        sets[curr_set].actions[curr_action].num_req = 0;
-
+        // LINE VARIABLE FOR READING
         char line[MAX_LINE_LENGTH] = "";
-        
-        int default_port = 0;
-        int curr_host = 0;
-        int cust_port = 0;
-        // int num_hosts = 0;
+
+        // DEFAULT PORT
+        int default_port; 
+
+        // THE CURRENT SET
+        int current_set;
+
+        // THE CURRENT ACTION
+        int current_action;
 
         // READ AND PARSE FILES LINE BY LINE
         while(fgets(line, MAX_LINE_LENGTH, fp))
@@ -89,7 +58,8 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
             {
                 continue;
             }
-
+            
+            // CHECK IF THE LINE GIVES THE DEFAULT PORT NUMBER
             if(strstr(line, "PORT") != NULL)
             {
                 // Grab default port value
@@ -99,6 +69,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                 default_port = atoi(port_val);
                 
             }
+            // CHECK IF THE LINE GIVES THE HOST NAMES
             else if(strstr(line, "HOSTS") != NULL)
             {
                 int nhosts;
@@ -108,68 +79,87 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
 
                 for (int i = 0; i < nhosts; i++)
                 {
+                    
                     hosts = (HOST*)realloc(hosts, nhosts * sizeof(HOST));
+                    // CHECK IF HOST NAME HAS ASSOCIATED PORT
                     if(strstr(host_name_list[i], ":") != NULL)
                     {
-                        // get custom port value
+                        // SPLIT THE LINE BY THE DELIMITER ":"
                         char *token = strtok(host_name_list[i], ":");
-                        hosts[curr_host].name = (char*)malloc(sizeof(char));
-                        hosts[curr_host].name = token;
+                        
+                        hosts[num_hosts].name = (char*)malloc(sizeof(char));
+                        hosts[num_hosts].name = token;
+                        
                         token = strtok(NULL, ":");
-                        cust_port = atoi(token);
-                        hosts[curr_host].port = cust_port;
+                        
+                        int cust_port = atoi(token);
+                        hosts[num_hosts].port = cust_port;
                     }
                     else
                     {
                         // default
-                        hosts[curr_host].name = (char*)malloc(sizeof(char));
-                        hosts[curr_host].name = host_name_list[i];
-                        hosts[curr_host].port = default_port;
+                        hosts[num_hosts].name = (char*)malloc(sizeof(char));
+                        hosts[num_hosts].name = host_name_list[i];
+                        hosts[num_hosts].port = default_port;
                         
                     }
-                    printf("%s: %d\n", hosts[curr_host].name, hosts[curr_host].port);
-                    curr_host++;
+                    printf("%s: %d\n", hosts[num_hosts].name, hosts[num_hosts].port);
+                    num_hosts++;
+                    printf("Hosts found: %d\n", num_hosts);
                 }
+            } 
+            // CHECK IF THE LINE IS INDICATING AN INCOMING ACTION SET
+            else if (strstr(line, "action") && line[0] != '\t')
+            {
+                // INCREMENT THE NUMBER OF ACTION SETS
+                num_sets++;
+                // ALLOCATE MEMORY TO A NEW ACTION SET
+                action_set = (ACTION**)realloc(action_set, num_sets * sizeof(ACTION*));
+                
+                current_set = num_sets - 1;
+                // SET THE NUMBER OF ACTIONS FOR THIS ACTION SET TO ZERO
+                num_actions = 0;
             }
+            // CHECK IF IT IS EITHER AN ACTION OR A LIST OF REQUIREMENTS
 			else if (line[0] == '\t')
 			{
+                // CHECK IF REQUIREMENT
 				if (line[1] == '\t') 
             	{
-                    //num_sets++;
-                    // take in actions by dividing the line 
-                    curr_action = 0;
-                    curr_req = 0;
+                    int num_req;
+                    int curr_req; 
                     int nwords;
                     char **words = strsplit(line, &nwords);
 
                     printf("Requires: ");
                     for(int i = 0; i < nwords; ++i)
                     {
+                        // IF THE WORD CONTAINS "REQUIRES"
                         if(strcmp(words[i], "requires") == 0)
                         {
                             continue;
                         }
                         else
                         {
-                            sets[curr_set].actions[curr_action].num_req++;
-                            sets[curr_set].actions[curr_action].requirements = (char**) realloc(sets[curr_set].actions[curr_action].requirements, 
-                                                                                       sets[curr_set].actions[curr_action].num_req * sizeof(char*));
-                           
-                            sets[curr_set].actions[curr_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
-                            sets[curr_set].actions[curr_action].requirements[curr_req] = words[i];
-                            printf("%s ", sets[curr_set].actions[curr_action].requirements[curr_req]);
+                            num_req++;
+                            action_set[current_set][current_action].requirements = (char**)realloc(action_set[current_set][current_action].requirements, num_req * sizeof(char*));
+                            action_set[current_set][current_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
+                            action_set[current_set][current_action].requirements[curr_req] = words[i];
+                            printf("%s ", action_set[current_set][current_action].requirements[curr_req]);
                             curr_req++;
                         }
                     }
+                    curr_req = 0;
+                    num_req = 0;
                     printf("\n");
             	}
+                // OTHERWISE, ACTION
                 else
                 {
-                    // take in actions
-
-                    sets[curr_set].num_actions++;
-                    sets[curr_set].actions = (ACTION*)realloc(sets[curr_set].actions, 
-                                                              sets[curr_set].num_actions * sizeof(ACTION));
+                    num_actions++;
+                    current_action = num_actions - 1;
+                    // ALLOCATE MEMORY TO THE ACTION
+                    action_set[current_set] = (ACTION*)realloc(action_set[current_set], num_actions * sizeof(ACTION));
                     
                     int nwords = 0;
                     char **words = strsplit(line, &nwords);
@@ -179,7 +169,7 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
                     {
                         if(strstr(words[i], "remote-") != NULL)
                         {
-                            sets[curr_set].actions[curr_action].is_remote = 1;
+                            action_set[current_set][current_action].is_remote = 1;
                             
                             remove_str(words[i], '-', new_cmd);
                             
@@ -192,26 +182,18 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
 
                     }       
                     strcat(new_cmd, "\0");
-                    sets[curr_set].actions[curr_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
-                    sets[curr_set].actions[curr_action].command = new_cmd;
-                    printf("%s", sets[curr_set].actions[curr_action].command);
-                    curr_action++;
+                    action_set[current_set][current_action].command = (char*)malloc(strlen(new_cmd) * sizeof(char));
+                    action_set[current_set][current_action].command = new_cmd;
+                    printf("%s", action_set[current_set][current_action].command);
 
                 }
-                printf("Number of actions: %d\n", sets[curr_set].num_actions);
 			}	
-            else if (strstr(line, "actionset") != NULL)
-            {
-                num_sets++;
-                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
-                curr_set = num_sets - 1;
-                printf("Current set: %d, Number of sets: %d\n", curr_set + 1, num_sets);
-            }
         }
     }
 
 }
 
+/*
 void perform_actions(ACTION_SET *sets)
 {
 
@@ -244,7 +226,7 @@ void perform_actions(ACTION_SET *sets)
 
 
 
-}
+} */
 
 int main (int argc, char *argv[])
 {
@@ -257,14 +239,11 @@ int main (int argc, char *argv[])
     {
         file_name = argv[1];
     }
-
-    ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
-    HOST *hosts = (HOST*)malloc(sizeof(HOST));
     
 
-    file_process(file_name, sets, hosts);
+    file_process(file_name);
     
-    perform_actions(sets);
+    // perform_actions(sets);
 
     return 0; 
 }
