@@ -109,7 +109,7 @@ void file_process(char *file_name)
                 }
             } 
             // CHECK IF THE LINE IS INDICATING AN INCOMING ACTION SET
-            else if (strstr(line, "action") && line[0] != '\t')
+            else if (strstr(line, "actionset") != NULL  && line[0] != '\t')
             {
                 // INCREMENT THE NUMBER OF ACTION SETS
                 num_sets++;
@@ -193,40 +193,17 @@ void file_process(char *file_name)
 
 }
 
-/*
-void perform_actions(ACTION_SET *sets)
-{
 
-    //ITERATE THROUGH THE ACTION SET
+void perform_actions()
+{
+    // ITERATE THROUGH THE ACTION SETS
+
     for(int i = 0; i < num_sets; i++)
     {
-        printf("Current set\n");
-        ACTION_SET current_set = sets[i];
-        printf("Getting actions\n");
-        ACTION *current_actions = current_set.actions;
-
-        printf("Iterating\n");
-        printf("%d\n", sets[i].num_actions);
-        for (int j = 0; j < sets[i].num_actions; j++)
-        {
-            printf("Current action\n");
-            ACTION current_action = *current_actions; 
-            printf("iterating req\n");
-            for (int k = 0; k < current_action.num_req; k++)
-            {
-                printf("requirements\n");
-                if(fopen(current_action.requirements[k], "r") == NULL)
-                {
-                    printf("Invalid\n");
-                    break;
-                }
-            }
-        }
+        printf("%s\n", action_set[i][0].command);
     }
 
-
-
-} */
+} 
 
 int main (int argc, char *argv[])
 {
@@ -243,7 +220,7 @@ int main (int argc, char *argv[])
 
     file_process(file_name);
     
-    // perform_actions(sets);
+    perform_actions();
 
     return 0; 
 }

@@ -36,8 +36,10 @@ int num_actions;
 
 
 // FUNCTIONS
-extern  void file_process(char *);
+extern  void    file_process(char *);
 
-extern  void remove_str(char*, char, char*);
+extern  void    remove_str(char*, char, char*);
+
+extern  void    perform_actions();
 
 #endif
