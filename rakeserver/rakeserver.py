@@ -108,9 +108,9 @@ def calculate_cost():
 
 
 def send_quote(sd):
-	sd.send(ACK_SEND["CMD_QUOTE_REPLY"].encode(FORMAT))
+	sd.send(str(ACK_SEND["CMD_QUOTE_REPLY"]).encode(FORMAT))
 	cost = calculate_cost()
-	sd.send(cost.encode(FORMAT))
+	sd.send(str(cost).encode(FORMAT))
 
 
 def non_blocking_socket(host, port):
@@ -157,21 +157,18 @@ def non_blocking_socket(host, port):
 
 				else:
 					# RECIEVE DATA
-					data = conn.recv(MAX_BYTES).decode(FORMAT)
+					data = sock.recv(MAX_BYTES).decode(FORMAT)
 					print( f'Received msg: {data}' )
 					
 					# REUQEST FOR COST QUOTE
-					if data == ACK_RECV[2]:
-						send_quote(conn)
+					if int(data) == ACK_SEND["CMD_QUOTE_REQUEST"]:
+						send_quote(sock)
+						write_list.append(sock)
+						connection_list.remove(sock)
 					
 
 			for sock in write_sockets:
 				if sock:
-					# SLEEP
-					rand = random.randint(1, 10)
-					timer = os.getpid() % rand + 2
-					print( f'sleep for: {timer}' )
-					time.sleep(timer)
 
 					# SEND DATA BACK
 					send_data = f'Thank you for connecting to {sock.getsockname()}'

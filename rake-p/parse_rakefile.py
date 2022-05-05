@@ -87,7 +87,7 @@ def read_rake(filename):
 		# append last action_set tot action_sequence
 		action_sequence.append(action_set)
 
-		print_action_sequence(action_sequence)
+		#print_action_sequence(action_sequence)
 		return hosts, action_sequence
 
 def print_action_sequence(seq):

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from curses.ascii import isdigit
+from unicodedata import digit
 import parse_rakefile
 import sys
 import socket
@@ -51,7 +53,7 @@ def create_socket(host, port):
 		print( f'socket creation failed with error {err}' )
 	
 	print( f'connecting to {host}:{port}...' )
-	#sd.connect( (host, port) )
+	sd.connect( (host, port) )
 
 	return sd
 
@@ -63,8 +65,9 @@ def close_sockets(sockets):
 
 def send_request(sd, ack_type):
 	if ack_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
-		print("Sending cost request...")
-		sd.send(ack_type.encode(FORMAT))
+		print("Sending cost request... of type {ack_type}")
+		sd.send(str(ack_type).encode(FORMAT))
+		return sd
 
 
 def execute(sockets, actions):
@@ -77,11 +80,13 @@ def execute(sockets, actions):
 			# is a remote command
 			else:
 			# broadcast command
-
+				sockets_list = []
 				write_list = []
+				
+				waiting_for_quote = []
 
 				for sd in sockets:
-					write_list.append(sd)
+					write_list.append(send_request(sd, ACK_SEND["CMD_QUOTE_REQUEST"]))
 
 				while True:
 					try:
@@ -94,19 +99,22 @@ def execute(sockets, actions):
 							if sock:
 								print( f'{sock.getsockname()}:receiving...' )
 								data_recv = sock.recv( MAX_BYTES ).decode( FORMAT )
-								
+								print(f"data recieved {data_recv}")
 								if data_recv == ACK_SEND["CMD_QUOTE_REPLY"]:
-									
-									continue
+									waiting_for_quote.append(sock)
+							
+							for waiting in waiting_for_quote:
+								if sock == waiting:
+									quote = sock.recv( MAX_BYTES ).decode( FORMAT )
+									quote = int(quote)
+									print(f"Quote recvieved {quote}")
+
 
 						
 						# SOCKETS IN write_socket ARE WAITING TO SEND DATA
 						for sock in write_sockets:
-							print("entered write lists")
 							if sock:
-								# SEND DATA
-								send_request(sock, ACK_SEND["CMD_QUOTE_REQUEST"])
-								
+								print("entered write lists")
 								# MAKE SURE TO REMOVE SOCKETS FROM write_list ONCE SOCKET HAS SENT DATA
 								write_list.remove(sock)
 
@@ -117,22 +125,22 @@ def execute(sockets, actions):
 						close_sockets(write_sockets)
 						close_sockets(error_sockets)
 						break
-					except Exception as err:
-						print( f'ERROR occurred in {execute.__name__} with code: {err}' )
-						break
+					# except Exception as err:
+					# 	print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+					# 	break
 	
 
 
 def main(argv):
-	print(argv)
 	hosts, actions = parse_rakefile.read_rake(argv[1])
 
 	socket_lists = list()
 
 	for key in hosts:
 		socket_lists.append(create_socket(key, hosts[key]))
+		print(key, hosts[key])
 
-	execute(hosts, actions)
+	execute(socket_lists, actions)
 	
 
 if __name__ == "__main__":
