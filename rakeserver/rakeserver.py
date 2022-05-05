@@ -6,6 +6,7 @@ import os
 import socket
 import select
 import sys
+import queue
 
 SERVER_PORT = 50008
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
@@ -22,11 +23,12 @@ ACK_SEND = {
 	"CMD_QUOTE_REQUEST" : 2,
 	"CMD_QUOTE_REPLY" 	: 3,
 	"CMD_SEND_FILE" 	: 4,
-	"CMD_EXECUTE" 		: 5,
-	"CMD_RETURN_STATUS" : 6,
-	"CMD_RETURN_STDOUT" : 7,
-	"CMD_RETURN_STDERR" : 8,
-	"CMD_RETURN_FILE" 	: 9
+	"CMD_EXECUTE_REQ"	: 5,
+	"CMD_EXECUTE" 		: 6,
+	"CMD_RETURN_STATUS" : 7,
+	"CMD_RETURN_STDOUT" : 8,
+	"CMD_RETURN_STDERR" : 9,
+	"CMD_RETURN_FILE" 	: 10
 }
 
 ACK_RECV = {
@@ -35,12 +37,14 @@ ACK_RECV = {
 	2 : "CMD_QUOTE_REQUEST",
 	3 : "CMD_QUOTE_REPLY",
 	4 : "CMD_SEND_FILE",
+	5 : "CMD_EXECUTE_REQ",
 	5 : "CMD_EXECUTE",
 	6 : "CMD_RETURN_STATUS",
 	7 : "CMD_RETURN_STDOUT",
 	8 : "CMD_RETURN_STDERR",
 	9 : "CMD_RETURN_FILE"
 }
+current_status = 0
 
 
 def usage():
@@ -108,9 +112,20 @@ def calculate_cost():
 
 
 def send_quote(sd):
-	sd.send(str(ACK_SEND["CMD_QUOTE_REPLY"]).encode(FORMAT))
-	cost = calculate_cost()
-	sd.send(str(cost).encode(FORMAT))
+	cost = str(calculate_cost())
+	print(f'Sending quote: {cost}')
+	sd.send( cost.encode(FORMAT) )
+
+
+def run_cmd(cmd):
+	global current_status
+	print(cmd)
+
+def send_ack(sd, ack_type):
+	if ack_type == ACK_SEND["CMD_QUOTE_REPLY"]:
+		print(f'Sending ack: {ACK_RECV[ack_type]}')
+		ack = str(ACK_SEND["CMD_QUOTE_REPLY"])
+		sd.send( ack.encode(FORMAT) )
 
 
 def non_blocking_socket(host, port):
@@ -137,20 +152,27 @@ def non_blocking_socket(host, port):
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"Socket is listening on {host}..." )
 
+	# SOCKETS WE EXPECT TO READ FROM
 	connection_list = [sd]
-	write_list  = []
+
+	# SOCKETS WE EXPECT TO WRITE TO
+	output  = []
+
+	# OUTGOING MESSAGE QUEUES
+	msg_queue = {}
 
 	while True:
 
 		try:
 			# GET THE LIST OF READABLE SOCKETS
-			read_sockets, write_sockets, error_sockets = select.select(connection_list, write_list, [])
-
+			read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [])
 			for sock in read_sockets:
+				print("checking connection")
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
 					print( f'Got a connection from {addr}' )
+					conn.setblocking(0)
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					connection_list.append(conn)
@@ -159,34 +181,68 @@ def non_blocking_socket(host, port):
 					# RECIEVE DATA
 					data = sock.recv(MAX_BYTES).decode(FORMAT)
 					print( f'Received msg: {data}' )
-					
-					# REUQEST FOR COST QUOTE
-					if int(data) == ACK_SEND["CMD_QUOTE_REQUEST"]:
-						send_quote(sock)
-						write_list.append(sock)
+
+					if sock in msg_queue:
+						# TODO: not enerting here
+						if msg_queue[sock] == ACK_SEND["CMD_EXECUTE"]:
+							print("ENETERED")
+							cmd = sd.recv(MAX_BYTES).decode(FORMAT)
+							run_cmd(cmd)
+
+					elif data:
+						
+						ack_type = int(data)
+
+						# REUQEST FOR COST QUOTE
+						if ack_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
+							print(f'Cost Requested')
+							msg_queue[sock] = ack_type
+							if sock not in output:
+								output.append(sock)
+						
+						# REQUEST TO RUN COMMAND
+						if ack_type == ACK_SEND["CMD_EXECUTE_REQ"]:
+							print(f'Request to execute...')
+							msg_queue[sock] = ACK_SEND["CMD_EXECUTE"]
+
+					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
+					else:
+						print(f'Closing connections')
+						if sock in output:
+							output.remove(sock)
 						connection_list.remove(sock)
-					
+						sock.close()
 
 			for sock in write_sockets:
 				if sock:
-
-					# SEND DATA BACK
-					send_data = f'Thank you for connecting to {sock.getsockname()}'
-					sock.send( send_data.encode(FORMAT) )
-					print( f'sending: {send_data}' )
-
-					# ADD SERVER BACK TO LISTENING FOR DATA
-					connection_list.append(sd)
-
+					print("entered write")
 					# REMOVE CURRENT SOCKET FROM WRITING LIST
-					write_list.remove(sock)
+					if sock in output:
+						output.remove(sock)
+
+					# SLEEP
+					rand = random.randint(1, 10)
+					timer = os.getpid() % rand + 2
+					print( f'sleep for: {timer}' )
+					time.sleep(timer)
+					
+					msg_type = msg_queue[sock]
+					print("MESS TYPE: {msg_type}")
+
+					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
+					if msg_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
+						send_ack(sock, ACK_SEND["CMD_QUOTE_REPLY"])
+						msg_queue[sock] = ACK_SEND["CMD_QUOTE_REPLY"]
+						output.append(sock)
+
+					if msg_type == ACK_SEND["CMD_QUOTE_REPLY"]:
+						send_quote(sock)
+						del msg_queue[sock]
 
 		except KeyboardInterrupt:
 			print('Interrupted.')
 			# Make sure we close sockets gracefully
-			close_sockets(read_sockets)
-			close_sockets(write_sockets)
-			close_sockets(error_sockets)
+			close_sockets(connection_list)
 			break
 
 
