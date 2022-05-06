@@ -2,9 +2,9 @@
 
 #define MAX_LINE_LENGTH 80
 
-ACTION**    action_set  =   NULL;
-HOST*       hosts       =   NULL;
-int         num_hosts   =   0;
+sets      *sets  =   NULL;
+HOST*           hosts       =   NULL;
+int             num_hosts   =   0;
 
 void remove_str(char *line, char stop_char, char *intended)
 {
@@ -114,8 +114,7 @@ void file_process(char *file_name)
                 // INCREMENT THE NUMBER OF ACTION SETS
                 num_sets++;
                 // ALLOCATE MEMORY TO A NEW ACTION SET
-                action_set = (ACTION**)realloc(action_set, num_sets * sizeof(ACTION*));
-                action_totals = (int*)realloc(action_totals, num_sets * sizeof(int));
+                sets = (ACTION**)realloc(sets, num_sets * sizeof(ACTION*));
                 
                 current_set = num_sets - 1;
                 // SET THE NUMBER OF ACTIONS FOR THIS ACTION SET TO ZERO
@@ -143,10 +142,10 @@ void file_process(char *file_name)
                         else
                         {
                             num_req++;
-                            action_set[current_set][current_action].requirements = (char**)realloc(action_set[current_set][current_action].requirements, num_req * sizeof(char*));
-                            action_set[current_set][current_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
-                            action_set[current_set][current_action].requirements[curr_req] = words[i];
-                            printf("%s ", action_set[current_set][current_action].requirements[curr_req]);
+                            sets[current_set].actions[current_action].requirements = (char**)realloc(sets[current_set].actions[current_action].requirements, num_req * sizeof(char*));
+                            sets[current_set].actions[current_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
+                            sets[current_set].actions[current_action].requirements[curr_req] = words[i];
+                            printf("%s ", sets[current_set].actions[current_action].requirements[curr_req]);
                             curr_req++;
                         }
                     }
@@ -159,9 +158,9 @@ void file_process(char *file_name)
                 {
                     num_actions++;
                     current_action = num_actions - 1;
+                    sets[current_set].count = num_actions;
                     // ALLOCATE MEMORY TO THE ACTION
-                    action_set[current_set] = (ACTION*)realloc(action_set[current_set], num_actions * sizeof(ACTION));
-                    action_totals[current_set]++;
+                    sets[current_set] = (ACTION*)realloc(sets[current_set], num_actions * sizeof(ACTION));
                     printf("%d\n", action_totals[current_set]);
                     
                     int nwords = 0;
@@ -172,7 +171,7 @@ void file_process(char *file_name)
                     {
                         if(strstr(words[i], "remote-") != NULL)
                         {
-                            action_set[current_set][current_action].is_remote = 1;
+                            sets[current_set].actions[current_action].is_remote = 1;
                             
                             remove_str(words[i], '-', new_cmd);
                             
@@ -185,9 +184,9 @@ void file_process(char *file_name)
 
                     }       
                     strcat(new_cmd, "\0");
-                    action_set[current_set][current_action].command = (char*)malloc(strlen(new_cmd) * sizeof(char));
-                    action_set[current_set][current_action].command = new_cmd;
-                    printf("%s", action_set[current_set][current_action].command);
+                    sets[current_set].actions[current_action].command = (char*)malloc(strlen(new_cmd) * sizeof(char));
+                    sets[current_set].actions[current_action].command = new_cmd;
+                    printf("%s", sets[current_set].actions[current_action].command);
 
                 }
 			}	
@@ -196,7 +195,7 @@ void file_process(char *file_name)
 
 }
 
-
+/*
 void perform_actions()
 {
     // ITERATE THROUGH THE ACTION SETS
@@ -204,13 +203,13 @@ void perform_actions()
     {
         for (int j = 0; j < action_totals[i]; j++)
         {
-            printf("%s\n", action_set[i][j].command);
+            printf("%s\n", sets[i][j].command);
         }
 
 
     }
 
-} 
+} */
 
 int main (int argc, char *argv[])
 {

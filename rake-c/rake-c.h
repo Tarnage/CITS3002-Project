@@ -20,6 +20,11 @@ typedef struct _host
     int port;
 } HOST;
 
+typedef struct _actionset
+{
+    ACTION *actions;
+    int action_totals;
+} ACTION_SET;
 // VARIABLES
 
 // AN ACTION SET IS AN ARRAY OF ACTIONS PER SET
