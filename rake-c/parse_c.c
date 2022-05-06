@@ -97,6 +97,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 }
+                num_hosts++;
             }
         }
 
@@ -147,7 +148,9 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
 }
 
 void print_hosts(HOST *hosts)
-{
+{   
+
+    // CAN ALSO ITERATE USING GLOBAL VAR num_hosts
     while (hosts != NULL)
     {
         if(hosts->name == NULL){
