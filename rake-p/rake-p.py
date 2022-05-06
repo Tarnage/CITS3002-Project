@@ -7,33 +7,47 @@ import socket
 import select
 import subprocess
 import os
+import time
+import random
 
 ACK_SEND = {
 	"CMD_ECHO" 			: 0,
 	"CMD_ECHOREPLY" 	: 1,
+
 	"CMD_QUOTE_REQUEST" : 2,
 	"CMD_QUOTE_REPLY" 	: 3,
+
 	"CMD_SEND_FILE" 	: 4,
+
 	"CMD_EXECUTE_REQ"	: 5,
 	"CMD_EXECUTE" 		: 6,
 	"CMD_RETURN_STATUS" : 7,
+
 	"CMD_RETURN_STDOUT" : 8,
 	"CMD_RETURN_STDERR" : 9,
-	"CMD_RETURN_FILE" 	: 10
+
+	"CMD_RETURN_FILE" 	: 10,
+	"CMD_EXPECT_SOMETHING" : 11
 }
 
 ACK_RECV = {
 	0 : "CMD_ECHO",
 	1 : "CMD_ECHOREPLY",
+
 	2 : "CMD_QUOTE_REQUEST",
 	3 : "CMD_QUOTE_REPLY",
+
 	4 : "CMD_SEND_FILE",
+
 	5 : "CMD_EXECUTE_REQ",
-	5 : "CMD_EXECUTE",
-	6 : "CMD_RETURN_STATUS",
-	7 : "CMD_RETURN_STDOUT",
-	8 : "CMD_RETURN_STDERR",
-	9 : "CMD_RETURN_FILE"
+	6 : "CMD_EXECUTE",
+	7 : "CMD_RETURN_STATUS",
+
+	8 : "CMD_RETURN_STDOUT",
+	9 : "CMD_RETURN_STDERR",
+
+	10: "CMD_RETURN_FILE",
+	11: "CMD_EXPECT_SOMETHING"
 }
 
 SERVER_PORT = 50009
@@ -41,6 +55,7 @@ SERVER_PORT = 50009
 SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
+TIMEOUT 		= 0.5
 
 
 lowest_host = socket.socket()
@@ -78,7 +93,7 @@ def send_datagram(sd, ack_type, payload=''):
 		print(f'sending...')
 		sd.send(str(ack_type).encode(FORMAT))
 
-	if ack_type == ACK_SEND["CMD_EXECUTE_REQ"]:
+	if ack_type == ACK_SEND["CMD_EXECUTE"]:
 		print(f'sending command....')
 		sd.send(payload.encode(FORMAT))
 
@@ -109,19 +124,22 @@ def execute(sd, ack_type, cmd=""):
 		if ack_type == ACK_SEND["CMD_EXECUTE_REQ"]:
 			msg_queue[sd] = ACK_SEND["CMD_EXECUTE_REQ"]
 			output.append(sd)
+		sd.setblocking(True)
 
 		while True:
 			try:
 				# GET THE LIST OF READABLE SOCKETS
-				read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [])
+				read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
 
 				for sock in read_sockets:
 					if sock:
+						print(f'Listening for reply')
 						# something to read
+						data = sock.recv( MAX_BYTES ).decode( FORMAT )
 						msg_type = msg_queue[sock]
 
 						if msg_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
-							data = sock.recv( MAX_BYTES ).decode( FORMAT )
+							
 							if int(data) == ACK_SEND["CMD_QUOTE_REPLY"]:
 								msg_queue[sock] = ACK_SEND["CMD_QUOTE_REPLY"]
 							else:
@@ -129,7 +147,7 @@ def execute(sd, ack_type, cmd=""):
 
 
 						if msg_type == ACK_SEND["CMD_QUOTE_REPLY"]:
-							cost = sock.recv( MAX_BYTES ).decode( FORMAT )
+							cost = data
 							print(f"Cost: {cost}")
 							get_lowest_cost(sock, int(cost))
 							connection_list.remove(sock)
@@ -137,22 +155,30 @@ def execute(sd, ack_type, cmd=""):
 							return
 						
 						if msg_type == ACK_SEND["CMD_RETURN_STATUS"]:
-							status = sock.recv( MAX_BYTES ).decode( FORMAT )
+							status = data
 							print(f"status code: {status}")
 							connection_list.remove(sock)
 							del msg_queue[sock]
 							return
-
-
 						
+						if msg_type == ACK_SEND["CMD_RETURN_STATUS"]:
+							print(f"REVIECD STATUS CODE: {data}")
+
 
 				for sock in write_sockets:
 					if sock:
 						if sock in output:
 							output.remove(sock)
 
+						# SLEEP
+						rand = random.randint(1, 10)
+						timer = os.getpid() % rand + 2
+						print( f'sleep for: {timer}' )
+						time.sleep(timer)
+
 						# something to write
 						msg_type = msg_queue[sock]
+						print(f"MESSAGE TYPE: {ACK_RECV[msg_type]}")
 
 						if msg_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
 							print(f'Sending...')
@@ -160,16 +186,16 @@ def execute(sd, ack_type, cmd=""):
 							msg_queue[sock] = ACK_SEND["CMD_QUOTE_REQUEST"]
 							connection_list.append(sock)
 						
-						if msg_type == ACK_SEND["CMD_EXECUTE_REQ"]:
+						elif msg_type == ACK_SEND["CMD_EXECUTE_REQ"]:
 							send_datagram(sd, msg_type)
 							msg_queue[sock] = ACK_SEND["CMD_EXECUTE"]
 							output.append(sock)
 						
-						if msg_type == ACK_SEND["CMD_EXECUTE"]:
+						elif msg_type == ACK_SEND["CMD_EXECUTE"]:
 							send_datagram(sd, msg_type, cmd)
 							msg_queue[sock] = ACK_SEND["CMD_RETURN_STATUS"]
+							print("Listening for status")
 							connection_list.append(sock)
-							
 
 
 			except KeyboardInterrupt:

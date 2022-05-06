@@ -16,34 +16,48 @@ MAX_BYTES = 1024
 FORMAT = 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
+TIMEOUT 		= 0.5
 
 ACK_SEND = {
 	"CMD_ECHO" 			: 0,
 	"CMD_ECHOREPLY" 	: 1,
+
 	"CMD_QUOTE_REQUEST" : 2,
 	"CMD_QUOTE_REPLY" 	: 3,
+
 	"CMD_SEND_FILE" 	: 4,
+
 	"CMD_EXECUTE_REQ"	: 5,
 	"CMD_EXECUTE" 		: 6,
 	"CMD_RETURN_STATUS" : 7,
+
 	"CMD_RETURN_STDOUT" : 8,
 	"CMD_RETURN_STDERR" : 9,
-	"CMD_RETURN_FILE" 	: 10
+
+	"CMD_RETURN_FILE" 	: 10,
+	"CMD_EXPECT_SOMETHING" : 11
 }
 
 ACK_RECV = {
 	0 : "CMD_ECHO",
 	1 : "CMD_ECHOREPLY",
+
 	2 : "CMD_QUOTE_REQUEST",
 	3 : "CMD_QUOTE_REPLY",
+
 	4 : "CMD_SEND_FILE",
+
 	5 : "CMD_EXECUTE_REQ",
-	5 : "CMD_EXECUTE",
-	6 : "CMD_RETURN_STATUS",
-	7 : "CMD_RETURN_STDOUT",
-	8 : "CMD_RETURN_STDERR",
-	9 : "CMD_RETURN_FILE"
+	6 : "CMD_EXECUTE",
+	7 : "CMD_RETURN_STATUS",
+
+	8 : "CMD_RETURN_STDOUT",
+	9 : "CMD_RETURN_STDERR",
+
+	10: "CMD_RETURN_FILE",
+	11: "CMD_EXPECT_SOMETHING"
 }
+
 current_status = 0
 
 
@@ -151,7 +165,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"Socket is listening on {host}..." )
-
+	# sd.setblocking(False)
 	# SOCKETS WE EXPECT TO READ FROM
 	connection_list = [sd]
 
@@ -165,14 +179,14 @@ def non_blocking_socket(host, port):
 
 		try:
 			# GET THE LIST OF READABLE SOCKETS
-			read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [])
+			read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
 			for sock in read_sockets:
 				print("checking connection")
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
 					print( f'Got a connection from {addr}' )
-					conn.setblocking(0)
+					conn.setblocking(False)
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					connection_list.append(conn)
@@ -180,18 +194,24 @@ def non_blocking_socket(host, port):
 				else:
 					# RECIEVE DATA
 					data = sock.recv(MAX_BYTES).decode(FORMAT)
-					print( f'Received msg: {data}' )
+
+					print(f'Is sock waiting for a reply {sock in msg_queue}')
 
 					if sock in msg_queue:
 						# TODO: not enerting here
-						if msg_queue[sock] == ACK_SEND["CMD_EXECUTE"]:
-							print("ENETERED")
-							cmd = sd.recv(MAX_BYTES).decode(FORMAT)
+						if msg_queue[sock] == ACK_SEND["CMD_EXPECT_SOMETHING"]:
+							print(2)
+							cmd = data
 							run_cmd(cmd)
+							msg_queue[sock] == ACK_SEND["CMD_RETURN_STATUS"]
+							output.append(sock)
+							connection_list.remove(sock)
 
 					elif data:
 						
 						ack_type = int(data)
+
+						print(f"ENTERED ACK TYPE {ACK_RECV[ack_type]}")
 
 						# REUQEST FOR COST QUOTE
 						if ack_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
@@ -202,8 +222,9 @@ def non_blocking_socket(host, port):
 						
 						# REQUEST TO RUN COMMAND
 						if ack_type == ACK_SEND["CMD_EXECUTE_REQ"]:
+							print(1)
 							print(f'Request to execute...')
-							msg_queue[sock] = ACK_SEND["CMD_EXECUTE"]
+							msg_queue[sock] = ACK_SEND["CMD_EXPECT_SOMETHING"]
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
 					else:
@@ -215,7 +236,7 @@ def non_blocking_socket(host, port):
 
 			for sock in write_sockets:
 				if sock:
-					print("entered write")
+					print("Entered write")
 					# REMOVE CURRENT SOCKET FROM WRITING LIST
 					if sock in output:
 						output.remove(sock)
@@ -227,7 +248,9 @@ def non_blocking_socket(host, port):
 					time.sleep(timer)
 					
 					msg_type = msg_queue[sock]
-					print("MESS TYPE: {msg_type}")
+
+					test_msg_type = ACK_RECV[msg_type]
+					print(f"WRITING TYPE: {test_msg_type}")
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
 					if msg_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
@@ -237,6 +260,12 @@ def non_blocking_socket(host, port):
 
 					if msg_type == ACK_SEND["CMD_QUOTE_REPLY"]:
 						send_quote(sock)
+						del msg_queue[sock]
+					
+					if msg_type == ACK_SEND["CMD_RETURN_STATUS"]:
+						print(3)
+						sock.send("RETURNED STATUS".encode(FORMAT))
+						print(f'Sent return status...')
 						del msg_queue[sock]
 
 		except KeyboardInterrupt:
