@@ -18,46 +18,28 @@ FORMAT = 'utf-8'
 DEFAULT_BACKLOG = 5
 TIMEOUT 		= 0.5
 
-ACK_SEND = {
-	"CMD_ECHO" 			: 0,
-	"CMD_ECHOREPLY" 	: 1,
+class Ack:
+	def __init__(self):
+		self.CMD_ECHO = 0
+		self.CMD_ECHOREPLY = 1
 
-	"CMD_QUOTE_REQUEST" : 2,
-	"CMD_QUOTE_REPLY" 	: 3,
+		self.CMD_QUOTE_REQUEST = 2
+		self.CMD_QUOTE_REPLY = 3
 
-	"CMD_SEND_FILE" 	: 4,
+		self.CMD_SEND_FILE = 4
 
-	"CMD_EXECUTE_REQ"	: 5,
-	"CMD_EXECUTE" 		: 6,
-	"CMD_RETURN_STATUS" : 7,
+		self.CMD_EXECUTE_REQ = 5
+		self.CMD_EXECUTE = 6
+		self.CMD_RETURN_STATUS = 7
 
-	"CMD_RETURN_STDOUT" : 8,
-	"CMD_RETURN_STDERR" : 9,
+		self.CMD_RETURN_STDOUT = 8
+		self.CMD_RETURN_STDERR = 9
 
-	"CMD_RETURN_FILE" 	: 10,
-	"CMD_EXPECT_SOMETHING" : 11
-}
+		self.CMD_RETURN_FILE = 10
+		self.CMD_EXPECT_SOMETHING = 11
 
-ACK_RECV = {
-	0 : "CMD_ECHO",
-	1 : "CMD_ECHOREPLY",
-
-	2 : "CMD_QUOTE_REQUEST",
-	3 : "CMD_QUOTE_REPLY",
-
-	4 : "CMD_SEND_FILE",
-
-	5 : "CMD_EXECUTE_REQ",
-	6 : "CMD_EXECUTE",
-	7 : "CMD_RETURN_STATUS",
-
-	8 : "CMD_RETURN_STDOUT",
-	9 : "CMD_RETURN_STDERR",
-
-	10: "CMD_RETURN_FILE",
-	11: "CMD_EXPECT_SOMETHING"
-}
-
+# init enum class
+ACK = Ack()
 current_status = 0
 
 
@@ -133,12 +115,13 @@ def send_quote(sd):
 
 def run_cmd(cmd):
 	global current_status
+	print(f"Executing command")
 	print(cmd)
 
 def send_ack(sd, ack_type):
-	if ack_type == ACK_SEND["CMD_QUOTE_REPLY"]:
-		print(f'Sending ack: {ACK_RECV[ack_type]}')
-		ack = str(ACK_SEND["CMD_QUOTE_REPLY"])
+	if ack_type == ACK.CMD_QUOTE_REPLY:
+		print(f'Sending ack: {ACK.CMD_QUOTE_REPLY}')
+		ack = str(ACK.CMD_QUOTE_REPLY)
 		sd.send( ack.encode(FORMAT) )
 
 
@@ -186,7 +169,7 @@ def non_blocking_socket(host, port):
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
 					print( f'Got a connection from {addr}' )
-					conn.setblocking(False)
+					conn.setblocking(True)
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					connection_list.append(conn)
@@ -198,12 +181,11 @@ def non_blocking_socket(host, port):
 					print(f'Is sock waiting for a reply {sock in msg_queue}')
 
 					if sock in msg_queue:
-						# TODO: not enerting here
-						if msg_queue[sock] == ACK_SEND["CMD_EXPECT_SOMETHING"]:
+						if msg_queue[sock] == ACK.CMD_EXPECT_SOMETHING:
 							print(2)
 							cmd = data
 							run_cmd(cmd)
-							msg_queue[sock] == ACK_SEND["CMD_RETURN_STATUS"]
+							msg_queue[sock] == ACK.CMD_RETURN_STATUS
 							output.append(sock)
 							connection_list.remove(sock)
 
@@ -211,20 +193,20 @@ def non_blocking_socket(host, port):
 						
 						ack_type = int(data)
 
-						print(f"ENTERED ACK TYPE {ACK_RECV[ack_type]}")
+						print(f"ENTERED ACK TYPE: {ack_type}")
 
 						# REUQEST FOR COST QUOTE
-						if ack_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
+						if ack_type == ACK.CMD_QUOTE_REQUEST:
 							print(f'Cost Requested')
 							msg_queue[sock] = ack_type
 							if sock not in output:
 								output.append(sock)
 						
 						# REQUEST TO RUN COMMAND
-						if ack_type == ACK_SEND["CMD_EXECUTE_REQ"]:
+						if ack_type == ACK.CMD_EXECUTE_REQ:
 							print(1)
 							print(f'Request to execute...')
-							msg_queue[sock] = ACK_SEND["CMD_EXPECT_SOMETHING"]
+							msg_queue[sock] = ACK.CMD_EXPECT_SOMETHING
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
 					else:
@@ -249,20 +231,19 @@ def non_blocking_socket(host, port):
 					
 					msg_type = msg_queue[sock]
 
-					test_msg_type = ACK_RECV[msg_type]
-					print(f"WRITING TYPE: {test_msg_type}")
+					print(f"WRITING TYPE: {msg_type}")
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
-					if msg_type == ACK_SEND["CMD_QUOTE_REQUEST"]:
-						send_ack(sock, ACK_SEND["CMD_QUOTE_REPLY"])
-						msg_queue[sock] = ACK_SEND["CMD_QUOTE_REPLY"]
+					if msg_type == ACK.CMD_QUOTE_REQUEST:
+						send_ack(sock, ACK.CMD_QUOTE_REPLY)
+						msg_queue[sock] = ACK.CMD_QUOTE_REPLY
 						output.append(sock)
 
-					if msg_type == ACK_SEND["CMD_QUOTE_REPLY"]:
+					if msg_type == ACK.CMD_QUOTE_REPLY:
 						send_quote(sock)
 						del msg_queue[sock]
 					
-					if msg_type == ACK_SEND["CMD_RETURN_STATUS"]:
+					if msg_type == ACK.CMD_RETURN_STATUS:
 						print(3)
 						sock.send("RETURNED STATUS".encode(FORMAT))
 						print(f'Sent return status...')
