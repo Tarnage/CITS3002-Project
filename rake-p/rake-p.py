@@ -35,7 +35,8 @@ class Ack:
 		self.CMD_RETURN_STDERR = 9
 
 		self.CMD_RETURN_FILE = 10
-		self.CMD_EXPECT_SOMETHING = 11
+
+		self.CMD_ACK = 11
 
 # init enum class
 ACK = Ack()
@@ -68,15 +69,15 @@ def close_sockets(sockets):
 
 def send_datagram(sd, ack_type, payload=''):
 	if ack_type == ACK.CMD_QUOTE_REQUEST:
-		print("Sending cost request...")
+		print("SENDING ACK FOR COST REQUEST ---->")
 		sd.send(str(ack_type).encode(FORMAT))
 	
-	if ack_type == ACK.CMD_EXECUTE_REQ:
-		print(f'sending...')
+	if ack_type == ACK.CMD_EXECUTE:
+		print(f'SENDING ACK FOR EXECUTE ---->')
 		sd.send(str(ack_type).encode(FORMAT))
 
-	if ack_type == ACK.CMD_EXECUTE:
-		print(f'sending command....')
+	if ack_type == ACK.CMD_RETURN_STATUS:
+		print(f'SENDING COMMANDS ---->')
 		sd.send(payload.encode(FORMAT))
 
 
@@ -90,10 +91,109 @@ def get_lowest_cost(sd, cost):
 
 
 def execute(sd, ack_type, cmd=""):
-		
-		if ack_type == ACK.CMD_QUOTE_REQUEST:
+		# SOCKETS WE EXPECT TO READ FROM
+		connection_list = []
 
-			pass
+		# SOCKETS WE EXPECT TO WRITE TO
+		output  = []
+
+		# OUTGOING MESSAGE QUEUES
+		msg_queue = {}
+
+		if ack_type == ACK.CMD_QUOTE_REQUEST:
+			msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
+			output.append(sd)
+		
+		if ack_type == ACK.CMD_EXECUTE:
+			msg_queue[sd] = ACK.CMD_EXECUTE
+			output.append(sd)
+
+		sd.setblocking(True)
+
+		while msg_queue:
+			try:
+				# GET THE LIST OF READABLE SOCKETS
+				read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
+
+				for sock in read_sockets:
+					if sock:
+						if sock in connection_list:
+							connection_list.remove(sock)
+
+						# something to read
+						data = sock.recv( MAX_BYTES ).decode( FORMAT )
+						msg_type = msg_queue[sock]
+						print(f'LISTENING FOR REPLY TYPE: {msg_type}')
+						
+						if msg_type == ACK.CMD_QUOTE_REQUEST:
+							if int(data) == ACK.CMD_QUOTE_REPLY:
+								msg_queue[sock] = ACK.CMD_QUOTE_REPLY
+								connection_list.append(sock)
+							else:
+								print(f"Recieved the wrong ACK code")
+
+
+						elif msg_type == ACK.CMD_QUOTE_REPLY:
+							cost = data
+							print(f"RECIEVED COST: {cost}")
+							get_lowest_cost(sock, int(cost))
+							del msg_queue[sock]
+							return
+						
+						elif msg_type == ACK.CMD_EXECUTE:
+							if int(data) == ACK.CMD_ACK:
+								print(f"RECIEVED ACK: {data}")
+								msg_queue[sock] = ACK.CMD_RETURN_STATUS
+								output.append(sock)
+								
+						elif msg_type == ACK.CMD_RETURN_STATUS:
+							print(f"RECIEVED STATUS CODE: {data}")
+							del msg_queue[sock]
+							return
+
+				for sock in write_sockets:
+					if sock:
+						if sock in output:
+							output.remove(sock)
+
+						# something to write
+						msg_type = msg_queue[sock]
+						print(f"SENDING MESSAGE TPYE: {msg_type}")
+
+						# SLEEP
+						rand = random.randint(1, 10)
+						timer = os.getpid() % rand + 2
+						#print( f'sleep for: {timer}' )
+						time.sleep(timer)
+
+						# SEND AN ACK FOR A QUOTE
+						if msg_type == ACK.CMD_QUOTE_REQUEST:
+							send_datagram(sd, msg_type)
+							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
+							connection_list.append(sock)
+						
+						# SEND AN ACK TO EXECUTE A COMMAND
+						elif msg_type == ACK.CMD_EXECUTE:
+							send_datagram(sd, msg_type)
+							msg_queue[sock] = ACK.CMD_EXECUTE
+							connection_list.append(sock)
+						
+						# SEND THE COMMANDS
+						elif msg_type == ACK.CMD_RETURN_STATUS:
+							send_datagram(sd, msg_type, cmd)
+							connection_list.append(sock)
+
+
+			except KeyboardInterrupt:
+				print('Interrupted. Closing sockets...')
+				# Make sure we close sockets gracefully
+				# close_sockets(read_sockets)
+				# close_sockets(write_sockets)
+				# close_sockets(error_sockets)
+				break
+			#except Exception as err:
+			# 	print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+			# 	break
 	
 
 def get_all_conn(hosts):

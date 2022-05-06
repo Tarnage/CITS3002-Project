@@ -6,6 +6,7 @@ import os
 import socket
 import select
 import sys
+import subprocess
 import queue
 
 SERVER_PORT = 50008
@@ -36,7 +37,7 @@ class Ack:
 		self.CMD_RETURN_STDERR = 9
 
 		self.CMD_RETURN_FILE = 10
-		self.CMD_EXPECT_SOMETHING = 11
+		self.CMD_ACK = 11
 
 # init enum class
 ACK = Ack()
@@ -109,19 +110,29 @@ def calculate_cost():
 
 def send_quote(sd):
 	cost = str(calculate_cost())
-	print(f'Sending quote: {cost}')
+	print(f'<---- SENDING QUOTE: {cost}')
 	sd.send( cost.encode(FORMAT) )
 
 
 def run_cmd(cmd):
 	global current_status
-	print(f"Executing command")
-	print(cmd)
+	print()
+	print(f'RUNNING COMMAND: {cmd}')
+	p = subprocess.run(cmd, shell=True)
+	print(f'COMMAND FINISHED...')
+	print()
+
+	current_status = p.returncode
 
 def send_ack(sd, ack_type):
 	if ack_type == ACK.CMD_QUOTE_REPLY:
-		print(f'Sending ack: {ACK.CMD_QUOTE_REPLY}')
+		print(f'<---- SENDING ACK: {ACK.CMD_QUOTE_REPLY}')
 		ack = str(ACK.CMD_QUOTE_REPLY)
+		sd.send( ack.encode(FORMAT) )
+	
+	if ack_type == ACK.CMD_ACK:
+		print(f'<---- SENDING ACK')
+		ack = str(ack_type)
 		sd.send( ack.encode(FORMAT) )
 
 
@@ -148,7 +159,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"Socket is listening on {host}..." )
-	# sd.setblocking(False)
+	sd.setblocking(False)
 	# SOCKETS WE EXPECT TO READ FROM
 	connection_list = [sd]
 
@@ -156,6 +167,7 @@ def non_blocking_socket(host, port):
 	output  = []
 
 	# OUTGOING MESSAGE QUEUES
+	# TRACKS WHAT ACKS SOCKETS ARE WAITING FOR
 	msg_queue = {}
 
 	while True:
@@ -163,50 +175,56 @@ def non_blocking_socket(host, port):
 		try:
 			# GET THE LIST OF READABLE SOCKETS
 			read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
+
 			for sock in read_sockets:
 				print("checking connection")
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
 					print( f'Got a connection from {addr}' )
-					conn.setblocking(True)
+					#conn.setblocking(True)
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					connection_list.append(conn)
 
 				else:
+					# REMOVE SOCKET FROM CONNECTION LIST
+					# AS WE CONNECT TO IT
+
+					if sock in connection_list:
+						connection_list.remove(sock)
+						
 					# RECIEVE DATA
 					data = sock.recv(MAX_BYTES).decode(FORMAT)
 
-					print(f'Is sock waiting for a reply {sock in msg_queue}')
-
+					# IF THE SOCKET IS IN THE msg_queue THEY ARE WAITING FOR A MESSAGE
 					if sock in msg_queue:
-						if msg_queue[sock] == ACK.CMD_EXPECT_SOMETHING:
-							print(2)
-							cmd = data
-							run_cmd(cmd)
-							msg_queue[sock] == ACK.CMD_RETURN_STATUS
+						if msg_queue[sock] == ACK.CMD_EXECUTE:
+							run_cmd(data)
+							msg_queue[sock] = ACK.CMD_RETURN_STATUS
+							print(f"after executing sock type: {msg_queue[sock]}")
 							output.append(sock)
-							connection_list.remove(sock)
 
+					# ELSE THE INITIAL CONNECTION REQUEST 
 					elif data:
 						
 						ack_type = int(data)
 
-						print(f"ENTERED ACK TYPE: {ack_type}")
+						print(f"----> RECIEVING ACK TYPE: {ack_type}")
 
-						# REUQEST FOR COST QUOTE
+						# REQUEST FOR COST QUOTE
 						if ack_type == ACK.CMD_QUOTE_REQUEST:
-							print(f'Cost Requested')
+							print(f'COST QUOTE REQUESTED')
+							# TRACK WHAT THIS WILL DO NEXT
 							msg_queue[sock] = ack_type
-							if sock not in output:
-								output.append(sock)
+							# PREPARE IT FOR WRITING
+							output.append(sock)
 						
 						# REQUEST TO RUN COMMAND
-						if ack_type == ACK.CMD_EXECUTE_REQ:
-							print(1)
-							print(f'Request to execute...')
-							msg_queue[sock] = ACK.CMD_EXPECT_SOMETHING
+						if ack_type == ACK.CMD_EXECUTE:
+							print(f'REQUEST TO EXECUTE...')
+							msg_queue[sock] = ACK.CMD_EXECUTE
+							output.append(sock)
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
 					else:
@@ -223,15 +241,14 @@ def non_blocking_socket(host, port):
 					if sock in output:
 						output.remove(sock)
 
+					msg_type = msg_queue[sock]
+					print(f"WRITING TYPE: {msg_type}")
+
 					# SLEEP
 					rand = random.randint(1, 10)
 					timer = os.getpid() % rand + 2
 					print( f'sleep for: {timer}' )
 					time.sleep(timer)
-					
-					msg_type = msg_queue[sock]
-
-					print(f"WRITING TYPE: {msg_type}")
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
 					if msg_type == ACK.CMD_QUOTE_REQUEST:
@@ -244,10 +261,15 @@ def non_blocking_socket(host, port):
 						del msg_queue[sock]
 					
 					if msg_type == ACK.CMD_RETURN_STATUS:
-						print(3)
-						sock.send("RETURNED STATUS".encode(FORMAT))
+						sock.send(str(current_status).encode(FORMAT))
 						print(f'Sent return status...')
 						del msg_queue[sock]
+
+					if msg_type == ACK.CMD_EXECUTE:
+						send_ack(sock, ACK.CMD_ACK)
+						msg_queue[sock] = ACK.CMD_EXECUTE
+						connection_list.append(sock)
+
 
 		except KeyboardInterrupt:
 			print('Interrupted.')
