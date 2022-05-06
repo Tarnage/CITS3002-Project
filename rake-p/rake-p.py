@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from curses.ascii import isdigit
 import parse_rakefile
 import sys
 import socket
@@ -38,9 +37,9 @@ class Ack:
 
 		self.CMD_ACK 			= 11
 
+# INIT GLOBALS
 # init enum class
 ACK = Ack()
-
 lowest_host = socket.socket()
 lowest_port = 0
 lowest_cost = sys.maxsize
@@ -53,11 +52,13 @@ def create_socket(host, port):
 	try:
 		sd = socket.socket()
 		print( f"Socket succesfully created! ({host}:{port})" )
+		print( f'connecting to {host}:{port}...' )
+		sd.connect( (host, port) )
 	except socket.error as err:
-		print( f'socket creation failed with error {err}' )
-	
-	print( f'connecting to {host}:{port}...' )
-	sd.connect( (host, port) )
+		if err.errno == 111:
+			sys.exit( ( f'Connection refused with error: {err}' ) )
+		else: 
+			sys.exit( f'socket creation failed with error: {err}' )
 
 	return sd
 
@@ -92,35 +93,35 @@ def get_lowest_cost(sd, cost):
 
 def execute(sd, ack_type, cmd=""):
 		# SOCKETS WE EXPECT TO READ FROM
-		connection_list = []
+		input_sockets = []
 
 		# SOCKETS WE EXPECT TO WRITE TO
-		output  = []
+		output_sockets  = []
 
 		# OUTGOING MESSAGE QUEUES
 		msg_queue = {}
 
 		if ack_type == ACK.CMD_QUOTE_REQUEST:
 			msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
-			output.append(sd)
+			output_sockets.append(sd)
 		
 		if ack_type == ACK.CMD_EXECUTE:
 			msg_queue[sd] = ACK.CMD_EXECUTE
-			output.append(sd)
+			output_sockets.append(sd)
 
 		sd.setblocking(True)
 
 		while msg_queue:
 			try:
 				# GET THE LIST OF READABLE SOCKETS
-				read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
+				read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
 
 				for sock in read_sockets:
 					if sock:
-						if sock in connection_list:
-							connection_list.remove(sock)
+						if sock in input_sockets:
+							input_sockets.remove(sock)
 
-						# something to read
+						# SOMETHING TO READ
 						data = sock.recv( MAX_BYTES ).decode( FORMAT )
 						msg_type = msg_queue[sock]
 						print(f'LISTENING FOR REPLY TYPE: {msg_type}')
@@ -128,7 +129,7 @@ def execute(sd, ack_type, cmd=""):
 						if msg_type == ACK.CMD_QUOTE_REQUEST:
 							if int(data) == ACK.CMD_QUOTE_REPLY:
 								msg_queue[sock] = ACK.CMD_QUOTE_REPLY
-								connection_list.append(sock)
+								input_sockets.append(sock)
 							else:
 								print(f"Recieved the wrong ACK code")
 
@@ -144,7 +145,7 @@ def execute(sd, ack_type, cmd=""):
 							if int(data) == ACK.CMD_ACK:
 								print(f"RECIEVED ACK: {data}")
 								msg_queue[sock] = ACK.CMD_RETURN_STATUS
-								output.append(sock)
+								output_sockets.append(sock)
 								
 						elif msg_type == ACK.CMD_RETURN_STATUS:
 							print(f"RECIEVED STATUS CODE: {data}")
@@ -153,10 +154,10 @@ def execute(sd, ack_type, cmd=""):
 
 				for sock in write_sockets:
 					if sock:
-						if sock in output:
-							output.remove(sock)
+						if sock in output_sockets:
+							output_sockets.remove(sock)
 
-						# something to write
+						# CHECK WHAT YPE OF MSG TO SEND
 						msg_type = msg_queue[sock]
 						print(f"SENDING MESSAGE TPYE: {msg_type}")
 
@@ -170,28 +171,29 @@ def execute(sd, ack_type, cmd=""):
 						if msg_type == ACK.CMD_QUOTE_REQUEST:
 							send_datagram(sd, msg_type)
 							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
-							connection_list.append(sock)
+							input_sockets.append(sock)
 						
 						# SEND AN ACK TO EXECUTE A COMMAND
 						elif msg_type == ACK.CMD_EXECUTE:
 							send_datagram(sd, msg_type)
 							msg_queue[sock] = ACK.CMD_EXECUTE
-							connection_list.append(sock)
+							input_sockets.append(sock)
 						
 						# SEND THE COMMANDS
 						elif msg_type == ACK.CMD_RETURN_STATUS:
 							send_datagram(sd, msg_type, cmd)
-							connection_list.append(sock)
-
+							input_sockets.append(sock)
 
 			except KeyboardInterrupt:
 				print('Interrupted. Closing sockets...')
-				# Make sure we close sockets gracefully
-				close_sockets(connection_list)
-				close_sockets(output)
-				break
+				# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
+				close_sockets(input_sockets)
+				close_sockets(output_sockets)
+				sys.exit()
 			except Exception as err:
 				print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+				close_sockets(input_sockets)
+				close_sockets(output_sockets)
 				break
 	
 
@@ -205,24 +207,33 @@ def get_all_conn(hosts):
 
 
 def main(argv):
+	global lowest_cost
+	global lowest_host
+	global lowest_port
 	hosts, actions = parse_rakefile.read_rake(argv[1])
+
 	for sets in actions:
 		for command in sets:
-			# do we run this command local or remote
+			# DO WE RUN THIS COMMAND LOCAL OR REMOTE
 			if not command.remote:
 				subprocess.run(command.cmd, shell=True)
-			# is a remote command
+			# IS A REMOTE COMMAND
 			else:
-				# get the lowest cost
+				# GET THE LOWEST COST
 				sockets_list = get_all_conn(hosts)
 				for sock in sockets_list:
 					execute(sock, ACK.CMD_QUOTE_REQUEST)
 
 				# print(lowest_host, lowest_port)
 				slave = create_socket(lowest_host, lowest_port)
-				# execute command on the lowest bid
+				# EXECUTE COMMAND ON THE LOWEST BID
 				execute(slave, ACK.CMD_EXECUTE, command.cmd)
-			
+		
+		# RESET lowest VARS
+		lowest_host = socket.socket()
+		lowest_port = 0
+		lowest_cost = sys.maxsize
+
 
 if __name__ == "__main__":
 	main(sys.argv)
