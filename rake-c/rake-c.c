@@ -1,8 +1,8 @@
 #include "rake-c.h"
 
-#define MAX_LINE_LENGTH 80
 
-sets      *sets  =   NULL;
+
+ACTION_SET     *sets  =   NULL;
 HOST*           hosts       =   NULL;
 int             num_hosts   =   0;
 
@@ -114,7 +114,7 @@ void file_process(char *file_name)
                 // INCREMENT THE NUMBER OF ACTION SETS
                 num_sets++;
                 // ALLOCATE MEMORY TO A NEW ACTION SET
-                sets = (ACTION**)realloc(sets, num_sets * sizeof(ACTION*));
+                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
                 
                 current_set = num_sets - 1;
                 // SET THE NUMBER OF ACTIONS FOR THIS ACTION SET TO ZERO
@@ -158,10 +158,10 @@ void file_process(char *file_name)
                 {
                     num_actions++;
                     current_action = num_actions - 1;
-                    sets[current_set].count = num_actions;
+                    sets[current_set].action_totals = num_actions;
                     // ALLOCATE MEMORY TO THE ACTION
-                    sets[current_set] = (ACTION*)realloc(sets[current_set], num_actions * sizeof(ACTION));
-                    printf("%d\n", action_totals[current_set]);
+                    sets[current_set].actions = (ACTION*)realloc(sets[current_set].actions, num_actions * sizeof(ACTION));
+                    // printf("%d\n", action_totals[current_set]);
                     
                     int nwords = 0;
                     char **words = strsplit(line, &nwords);
@@ -184,7 +184,7 @@ void file_process(char *file_name)
 
                     }       
                     strcat(new_cmd, "\0");
-                    sets[current_set].actions[current_action].command = (char*)malloc(strlen(new_cmd) * sizeof(char));
+                    sets[current_set].actions[current_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
                     sets[current_set].actions[current_action].command = new_cmd;
                     printf("%s", sets[current_set].actions[current_action].command);
 
@@ -195,21 +195,22 @@ void file_process(char *file_name)
 
 }
 
-/*
+
 void perform_actions()
 {
     // ITERATE THROUGH THE ACTION SETS
     for(int i = 0; i < num_sets; i++)
     {
-        for (int j = 0; j < action_totals[i]; j++)
+        printf("Total actions: %d\n", sets[i].action_totals);
+        for (int j = 0; j < sets[i].action_totals; j++)
         {
-            printf("%s\n", sets[i][j].command);
+            printf("%s\n", sets[i].actions[j].command);
         }
 
 
     }
 
-} */
+} 
 
 int main (int argc, char *argv[])
 {

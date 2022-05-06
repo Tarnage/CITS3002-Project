@@ -6,6 +6,10 @@
 #include <string.h>
 #include "strsplit.c"
 
+#define MAX_LINE_LENGTH 80
+#define MAX_ACTIONS 20
+#define MAX_SETS 10
+
 // STRUCTURES
 typedef struct _action
 {
@@ -28,7 +32,7 @@ typedef struct _actionset
 // VARIABLES
 
 // AN ACTION SET IS AN ARRAY OF ACTIONS PER SET
-ACTION  **action_set; 
+ACTION_SET  *sets; 
 // AN ARRAY OF HOSTS
 HOST    *hosts;
 // ARRAY OF ACTION TOTALS FOR EACH SET
