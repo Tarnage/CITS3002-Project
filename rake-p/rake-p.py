@@ -19,24 +19,24 @@ TIMEOUT 		= 0.5
 
 class Ack:
 	def __init__(self):
-		self.CMD_ECHO = 0
-		self.CMD_ECHOREPLY = 1
+		self.CMD_ECHO 			= 0
+		self.CMD_ECHOREPLY 		= 1
 
-		self.CMD_QUOTE_REQUEST = 2
-		self.CMD_QUOTE_REPLY = 3
+		self.CMD_QUOTE_REQUEST 	= 2
+		self.CMD_QUOTE_REPLY 	= 3
 
-		self.CMD_SEND_FILE = 4
+		self.CMD_SEND_FILE	 	= 4
 
-		self.CMD_EXECUTE_REQ = 5
-		self.CMD_EXECUTE = 6
-		self.CMD_RETURN_STATUS = 7
+		self.CMD_EXECUTE_REQ 	= 5
+		self.CMD_EXECUTE 		= 6
+		self.CMD_RETURN_STATUS 	= 7
 
-		self.CMD_RETURN_STDOUT = 8
-		self.CMD_RETURN_STDERR = 9
+		self.CMD_RETURN_STDOUT 	= 8
+		self.CMD_RETURN_STDERR 	= 9
 
-		self.CMD_RETURN_FILE = 10
+		self.CMD_RETURN_FILE 	= 10
 
-		self.CMD_ACK = 11
+		self.CMD_ACK 			= 11
 
 # init enum class
 ACK = Ack()
@@ -187,13 +187,12 @@ def execute(sd, ack_type, cmd=""):
 			except KeyboardInterrupt:
 				print('Interrupted. Closing sockets...')
 				# Make sure we close sockets gracefully
-				# close_sockets(read_sockets)
-				# close_sockets(write_sockets)
-				# close_sockets(error_sockets)
+				close_sockets(connection_list)
+				close_sockets(output)
 				break
-			#except Exception as err:
-			# 	print( f'ERROR occurred in {execute.__name__} with code: {err}' )
-			# 	break
+			except Exception as err:
+				print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+				break
 	
 
 def get_all_conn(hosts):
@@ -206,11 +205,7 @@ def get_all_conn(hosts):
 
 
 def main(argv):
-	global lowest_host
-	global lowest_port
-
 	hosts, actions = parse_rakefile.read_rake(argv[1])
-
 	for sets in actions:
 		for command in sets:
 			# do we run this command local or remote
@@ -222,8 +217,6 @@ def main(argv):
 				sockets_list = get_all_conn(hosts)
 				for sock in sockets_list:
 					execute(sock, ACK.CMD_QUOTE_REQUEST)
-				
-				# close_sockets(sockets_list)
 
 				# print(lowest_host, lowest_port)
 				slave = create_socket(lowest_host, lowest_port)
