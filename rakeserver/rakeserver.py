@@ -7,7 +7,6 @@ import socket
 import select
 import sys
 import subprocess
-import queue
 
 SERVER_PORT = 50008
 # BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
@@ -116,24 +115,46 @@ def send_quote(sd):
 
 def run_cmd(cmd):
 	global return_code
+
+	if not os.path.isdir("./tmp"):
+		try:
+			os.mkdir("./tmp")
+		except OSError as err:
+			sys.exit("Directory creation failed with error: {err}")
+
 	print()
 	print(f'RUNNING COMMAND: {cmd}')
-	p = subprocess.run(cmd, shell=True)
+	p = subprocess.run(cmd, shell=True, cwd='./tmp')
 	print(f'COMMAND FINISHED...')
 	print()
 
 	return_code = p.returncode
 
+
+def create_file(filename):
+	tmp = "./tmp/"
+	if not os.path.exists(filename):
+		try:
+			with open(tmp + filename, "w") as f:
+				pass
+		except OSError as err:
+			sys.exit(f'File creation failed with error: {err}')
+
+
+def write_file(filename, data):
+	tmp = "./tmp/"
+	if not os.path.exists(filename):
+		try:
+			with open(tmp + filename, "a") as f:
+				f.write(data)
+		except OSError as err:
+			sys.exit(f'File creation failed with error: {err}')
+
+
 def send_ack(sd, ack_type):
-	if ack_type == ACK.CMD_QUOTE_REPLY:
-		print(f'<---- SENDING ACK: {ACK.CMD_QUOTE_REPLY}')
-		ack = str(ACK.CMD_QUOTE_REPLY)
-		sd.send( ack.encode(FORMAT) )
-	
-	if ack_type == ACK.CMD_ACK:
-		print(f'<---- SENDING ACK')
-		ack = str(ack_type)
-		sd.send( ack.encode(FORMAT) )
+	print(f'<---- SENDING ACK')
+	ack = str(ack_type)
+	sd.send( ack.encode(FORMAT) )
 
 
 def non_blocking_socket(host, port):
@@ -149,23 +170,25 @@ def non_blocking_socket(host, port):
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		print("Port succesfully created!")
+		# BIND SOCKET TO PORT
+		sd.bind( (host, port) )
+		print( f'Socket is binded to {port}' )
 	except socket.error as err:
-		print( f'socket creation failed with error {err}' )
+		if err.errno == 98:
+			sys.exit(f'Binding failed with error: {err}')
+		else:
+			sys.exit(f'Socket creation failed with error {err}')
 
-	# BIND SOCKET TO PORT
-	sd.bind( (host, port) )
-	print( f'Socket is binded to {port}' )
 
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"Socket is listening on {host}..." )
 	sd.setblocking(False)
+
 	# SOCKETS WE EXPECT TO READ FROM
-	connection_list = [sd]
-
+	input_sockets = [sd]
 	# SOCKETS WE EXPECT TO WRITE TO
-	output  = []
-
+	output_sockets  = []
 	# OUTGOING MESSAGE QUEUES
 	# TRACKS WHAT ACKS SOCKETS ARE WAITING FOR
 	msg_queue = {}
@@ -174,25 +197,24 @@ def non_blocking_socket(host, port):
 
 		try:
 			# GET THE LIST OF READABLE SOCKETS
-			read_sockets, write_sockets, error_sockets = select.select(connection_list, output, [], TIMEOUT)
+			read_sockets, write_sockets, _ = select.select(input_sockets, output_sockets, [], TIMEOUT)
 
 			for sock in read_sockets:
-				print("checking connection")
+				print("Reading...")
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
 					print( f'Got a connection from {addr}' )
-					#conn.setblocking(True)
 
 					# ADD CONECTION TO LIST OF SOCKETS
-					connection_list.append(conn)
+					input_sockets.append(conn)
 
 				else:
 					# REMOVE SOCKET FROM CONNECTION LIST
 					# AS WE CONNECT TO IT
 
-					if sock in connection_list:
-						connection_list.remove(sock)
+					if sock in input_sockets:
+						input_sockets.remove(sock)
 						
 					# RECIEVE DATA
 					data = sock.recv(MAX_BYTES).decode(FORMAT)
@@ -203,7 +225,7 @@ def non_blocking_socket(host, port):
 							run_cmd(data)
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							print(f"after executing sock type: {msg_queue[sock]}")
-							output.append(sock)
+							output_sockets.append(sock)
 
 					# ELSE THE INITIAL CONNECTION REQUEST 
 					elif data:
@@ -218,28 +240,28 @@ def non_blocking_socket(host, port):
 							# TRACK WHAT THIS WILL DO NEXT
 							msg_queue[sock] = ack_type
 							# PREPARE IT FOR WRITING
-							output.append(sock)
+							output_sockets.append(sock)
 						
 						# REQUEST TO RUN COMMAND
 						if ack_type == ACK.CMD_EXECUTE:
 							print(f'REQUEST TO EXECUTE...')
 							msg_queue[sock] = ACK.CMD_EXECUTE
-							output.append(sock)
+							output_sockets.append(sock)
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
 					else:
 						print(f'Closing connections')
-						if sock in output:
-							output.remove(sock)
-						connection_list.remove(sock)
+						if sock in output_sockets:
+							output_sockets.remove(sock)
+						input_sockets.remove(sock)
 						sock.close()
 
 			for sock in write_sockets:
 				if sock:
-					print("Entered write")
+					print("Sending...")
 					# REMOVE CURRENT SOCKET FROM WRITING LIST
-					if sock in output:
-						output.remove(sock)
+					if sock in output_sockets:
+						output_sockets.remove(sock)
 
 					msg_type = msg_queue[sock]
 					print(f"WRITING TYPE: {msg_type}")
@@ -254,7 +276,7 @@ def non_blocking_socket(host, port):
 					if msg_type == ACK.CMD_QUOTE_REQUEST:
 						send_ack(sock, ACK.CMD_QUOTE_REPLY)
 						msg_queue[sock] = ACK.CMD_QUOTE_REPLY
-						output.append(sock)
+						output_sockets.append(sock)
 
 					if msg_type == ACK.CMD_QUOTE_REPLY:
 						send_quote(sock)
@@ -268,14 +290,14 @@ def non_blocking_socket(host, port):
 					if msg_type == ACK.CMD_EXECUTE:
 						send_ack(sock, ACK.CMD_ACK)
 						msg_queue[sock] = ACK.CMD_EXECUTE
-						connection_list.append(sock)
-
+						input_sockets.append(sock)
 
 		except KeyboardInterrupt:
-			print('Interrupted.')
+			print('Interrupted. Closing sockets...')
 			# Make sure we close sockets gracefully
-			close_sockets(connection_list)
-			break
+			close_sockets(input_sockets)
+			close_sockets(output_sockets)
+			sys.exit()
 
 
 def close_sockets(sockets):
