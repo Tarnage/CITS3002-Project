@@ -161,10 +161,10 @@ def execute(sd, ack_type, cmd=""):
 						print(f"SENDING MESSAGE TPYE: {msg_type}")
 
 						# SLEEP
-						rand = random.randint(1, 10)
-						timer = os.getpid() % rand + 2
-						#print( f'sleep for: {timer}' )
-						time.sleep(timer)
+						# rand = random.randint(1, 10)
+						# timer = os.getpid() % rand + 2
+						# #print( f'sleep for: {timer}' )
+						# time.sleep(timer)
 
 						# SEND AN ACK FOR A QUOTE
 						if msg_type == ACK.CMD_QUOTE_REQUEST:

@@ -41,7 +41,7 @@ class Ack:
 
 # init enum class
 ACK = Ack()
-current_status = 0
+return_code = -1
 
 
 def usage():
@@ -115,14 +115,14 @@ def send_quote(sd):
 
 
 def run_cmd(cmd):
-	global current_status
+	global return_code
 	print()
 	print(f'RUNNING COMMAND: {cmd}')
 	p = subprocess.run(cmd, shell=True)
 	print(f'COMMAND FINISHED...')
 	print()
 
-	current_status = p.returncode
+	return_code = p.returncode
 
 def send_ack(sd, ack_type):
 	if ack_type == ACK.CMD_QUOTE_REPLY:
@@ -245,10 +245,10 @@ def non_blocking_socket(host, port):
 					print(f"WRITING TYPE: {msg_type}")
 
 					# SLEEP
-					rand = random.randint(1, 10)
-					timer = os.getpid() % rand + 2
-					print( f'sleep for: {timer}' )
-					time.sleep(timer)
+					# rand = random.randint(1, 10)
+					# timer = os.getpid() % rand + 2
+					# print( f'sleep for: {timer}' )
+					# time.sleep(timer)
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
 					if msg_type == ACK.CMD_QUOTE_REQUEST:
@@ -261,7 +261,7 @@ def non_blocking_socket(host, port):
 						del msg_queue[sock]
 					
 					if msg_type == ACK.CMD_RETURN_STATUS:
-						sock.send(str(current_status).encode(FORMAT))
+						sock.send(str(return_code).encode(FORMAT))
 						print(f'Sent return status...')
 						del msg_queue[sock]
 
