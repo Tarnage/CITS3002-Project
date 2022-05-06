@@ -184,7 +184,7 @@ void file_process(char *file_name)
 
                     }       
                     strcat(new_cmd, "\0");
-                    sets[current_set].actions[current_action].command = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+                    sets[current_set].actions[current_action].command = malloc(MAX_LINE_LENGTH * sizeof(char*));
                     sets[current_set].actions[current_action].command = new_cmd;
                     printf("%s", sets[current_set].actions[current_action].command);
 
@@ -204,7 +204,7 @@ void perform_actions()
         printf("Total actions: %d\n", sets[i].action_totals);
         for (int j = 0; j < sets[i].action_totals; j++)
         {
-            printf("%s\n", sets[i].actions[j].command);
+            printf("Action: %s\n", sets[i].actions[j].command);
         }
 
 
