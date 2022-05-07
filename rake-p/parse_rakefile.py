@@ -75,9 +75,8 @@ def read_rake(filename):
 
 				# Checks if double tab
 				if line[0] == '\t' and line[1] == '\t':
-						req_split = line.split()[1:]
 						last_set = action_set[-1]
-						last_set.requires = req_split
+						last_set.requires = line.split()
 						
 				if not line[0] == '\t' and "actionset" in line:
 					if len(action_set) > 0:
