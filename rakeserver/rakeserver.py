@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import getopt
 import time
 import random
 import os
@@ -43,8 +44,16 @@ ACK = Ack()
 return_code = -1
 
 
-def usage():
-	print("Usage: ")
+def usage(prog):
+	print(f"Usage: {prog} [OPTIONS]...PORT...")
+	print("Description")
+	print("\tThe purpose of this server program is to receive source files and compile them on the local machine")
+	print("Option")
+	print("\tIf no options are used, a port number must be given as an argument\n")
+	print("\t-h\tdisplay this help and exit\n")
+	print("\t-d\twill run default hostname and default port: 50008\n")
+	print("\t-v\twill print on delivary of packets\n")
+	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request")
 
 
 def blocking_socket(host, port):
@@ -210,7 +219,7 @@ def non_blocking_socket(host, port):
 					input_sockets.append(conn)
 
 				else:
-					# REMOVE SOCKET FROM CONNECTION LIST
+					# REMOVE SOCKET FROM INPUT SOCKETS LIST
 					# AS WE CONNECT TO IT
 
 					if sock in input_sockets:
@@ -311,8 +320,31 @@ def main(port):
 
 
 if __name__ == "__main__":
+	# TODO move all this into main
+	prog = sys.argv[0][1:]
 
-	if (len(sys.argv) == 1 or sys.argv[1].lower() == 'usage'):
-		usage()
-	else:
+	if (len(sys.argv) == 2 and sys.argv[1].isnumeric()):
 		main(sys.argv[1])
+	elif (len(sys.argv) == 1):
+		usage(prog)
+		sys.exit()
+	else:
+		try:
+			opts, args = getopt.getopt(sys.argv[1:], "hdvw")
+			for o, a in opts:
+				if o == "-h":
+					usage(prog)
+					sys.exit()
+				elif o == "-v":
+					print("TODO verbose")
+				elif o == "-d":
+					print("TODO default")
+				elif o == "-w":
+					print("TODO wait")
+				else:
+					assert False, "unhandled option"
+
+		except getopt.GetoptError as err:
+			print(err)
+			usage(prog)
+		

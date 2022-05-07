@@ -133,13 +133,12 @@ def execute(sd, ack_type, cmd=""):
 							else:
 								print(f"Recieved the wrong ACK code")
 
-
 						elif msg_type == ACK.CMD_QUOTE_REPLY:
 							cost = data
 							print(f"RECIEVED COST: {cost}")
 							get_lowest_cost(sock, int(cost))
 							del msg_queue[sock]
-							return
+							
 						
 						elif msg_type == ACK.CMD_EXECUTE:
 							if int(data) == ACK.CMD_ACK:
@@ -150,7 +149,7 @@ def execute(sd, ack_type, cmd=""):
 						elif msg_type == ACK.CMD_RETURN_STATUS:
 							print(f"RECIEVED STATUS CODE: {data}")
 							del msg_queue[sock]
-							return
+							
 
 				for sock in write_sockets:
 					if sock:
