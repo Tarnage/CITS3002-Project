@@ -1,0 +1,8 @@
+
+PORT  = 6238
+HOSTS = hostname1
+
+actionset1:
+	echo starting actionset1
+	remote-cc [optional-flags] -c program.c
+		requires Test.py

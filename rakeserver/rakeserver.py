@@ -21,39 +21,43 @@ TIMEOUT 		= 0.5
 
 class Ack:
 	def __init__(self):
-		self.CMD_ECHO = 0
-		self.CMD_ECHOREPLY = 1
+		self.CMD_ECHO 			= 0
+		self.CMD_ECHOREPLY 		= 1
 
-		self.CMD_QUOTE_REQUEST = 2
-		self.CMD_QUOTE_REPLY = 3
+		self.CMD_QUOTE_REQUEST 	= 2
+		self.CMD_QUOTE_REPLY 	= 3
 
-		self.CMD_SEND_FILE = 4
+		self.CMD_SEND_REQIUREMENTS	= 4
+		self.CMD_FILE_COUNT		= 5
+		self.CMD_SEND_FILE	 	= 6
+		self.CMD_EXECUTE_REQ 	= 7
+		self.CMD_EXECUTE 		= 8
+		self.CMD_RETURN_STATUS 	= 9
 
-		self.CMD_EXECUTE_REQ = 5
-		self.CMD_EXECUTE = 6
-		self.CMD_RETURN_STATUS = 7
+		self.CMD_RETURN_STDOUT 	= 10
+		self.CMD_RETURN_STDERR 	= 11
 
-		self.CMD_RETURN_STDOUT = 8
-		self.CMD_RETURN_STDERR = 9
+		self.CMD_RETURN_FILE 	= 12
 
-		self.CMD_RETURN_FILE = 10
-		self.CMD_ACK = 11
+		self.CMD_ACK 			= 13
 
 # init enum class
 ACK = Ack()
 return_code = -1
-
+sleep = False
 
 def usage(prog):
 	print(f"Usage: {prog} [OPTIONS]...PORT...")
 	print("Description")
 	print("\tThe purpose of this server program is to receive source files and compile them on the local machine")
+	print("\tYou are able to combine opts such as -iw [IP]...[PORT] to create a socket connecting to IP:PORT and the program will wait between send requests")
 	print("Option")
 	print("\tIf no options are used, a port number must be given as an argument\n")
 	print("\t-h\tdisplay this help and exit\n")
 	print("\t-d\twill run default hostname and default port: 50008\n")
 	print("\t-v\twill print on delivary of packets\n")
-	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request")
+	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request\n")
+	print("\t-i\trequires ip and port as arguments. i.e. ./rakeserver -i 127.0.0.1 80006\n")
 
 
 def blocking_socket(host, port):
@@ -202,6 +206,20 @@ def non_blocking_socket(host, port):
 	# TRACKS WHAT ACKS SOCKETS ARE WAITING FOR
 	msg_queue = {}
 
+	# KEEP TRACK OF FILES TO SEND
+	file_count_queue = {}
+
+	# KEEP TRACK OF SOCKETS NEEDING ACKS
+	ack_queue = {}
+
+	# HAVE WE RECIEVED THE FILE NAME
+	has_filename = {}
+
+	filename = {}
+
+
+
+
 	while True:
 
 		try:
@@ -230,10 +248,31 @@ def non_blocking_socket(host, port):
 
 					# IF THE SOCKET IS IN THE msg_queue THEY ARE WAITING FOR A MESSAGE
 					if sock in msg_queue:
+						print("MESSEGE IN QUEUE")
 						if msg_queue[sock] == ACK.CMD_EXECUTE:
 							run_cmd(data)
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							print(f"after executing sock type: {msg_queue[sock]}")
+							output_sockets.append(sock)
+						
+						elif msg_queue[sock] == ACK.CMD_SEND_REQIUREMENTS:
+							print(f"SERVER IS EXPECTING: ({data}) FILES")
+							file_count_queue[sock] = int(data)
+							msg_queue[sock] = ACK.CMD_SEND_FILE
+							ack_queue[sock] = True
+							output_sockets.append(sock)
+
+						elif msg_queue[sock] == ACK.CMD_SEND_FILE:
+							#write_file()
+							if has_filename:
+								filename = filename[sock]
+								write_file(filename, data)
+							else:
+								has_filename = True
+								file_count_queue[sock] -= 1
+								filename[sock] = data
+								ack_queue[sock] = True
+								
 							output_sockets.append(sock)
 
 					# ELSE THE INITIAL CONNECTION REQUEST 
@@ -252,9 +291,14 @@ def non_blocking_socket(host, port):
 							output_sockets.append(sock)
 						
 						# REQUEST TO RUN COMMAND
-						if ack_type == ACK.CMD_EXECUTE:
+						elif ack_type == ACK.CMD_EXECUTE:
 							print(f'REQUEST TO EXECUTE...')
 							msg_queue[sock] = ACK.CMD_EXECUTE
+							output_sockets.append(sock)
+
+						elif ack_type == ACK.CMD_SEND_REQIUREMENTS:
+							print(f'REQUEST TO RECEIVE FILES...')
+							msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
 							output_sockets.append(sock)
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
@@ -276,30 +320,50 @@ def non_blocking_socket(host, port):
 					print(f"WRITING TYPE: {msg_type}")
 
 					# SLEEP
-					# rand = random.randint(1, 10)
-					# timer = os.getpid() % rand + 2
-					# print( f'sleep for: {timer}' )
-					# time.sleep(timer)
+					if sleep == True:
+						rand = random.randint(1, 10)
+						timer = os.getpid() % rand + 2
+						print( f'sleep for: {timer}' )
+						time.sleep(timer)
+
+					if sock in ack_queue:
+						send_ack(sock, ACK.CMD_ACK)
+						input_sockets.append(sock)
+						del ack_queue[sock]
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
-					if msg_type == ACK.CMD_QUOTE_REQUEST:
+					elif msg_type == ACK.CMD_QUOTE_REQUEST:
 						send_ack(sock, ACK.CMD_QUOTE_REPLY)
 						msg_queue[sock] = ACK.CMD_QUOTE_REPLY
 						output_sockets.append(sock)
 
-					if msg_type == ACK.CMD_QUOTE_REPLY:
+					elif msg_type == ACK.CMD_QUOTE_REPLY:
 						send_quote(sock)
 						del msg_queue[sock]
 					
-					if msg_type == ACK.CMD_RETURN_STATUS:
+					elif msg_type == ACK.CMD_RETURN_STATUS:
 						sock.send(str(return_code).encode(FORMAT))
 						print(f'Sent return status...')
 						del msg_queue[sock]
 
-					if msg_type == ACK.CMD_EXECUTE:
+					elif msg_type == ACK.CMD_EXECUTE:
 						send_ack(sock, ACK.CMD_ACK)
 						msg_queue[sock] = ACK.CMD_EXECUTE
 						input_sockets.append(sock)
+
+					elif msg_type == ACK.CMD_SEND_REQIUREMENTS:
+						send_ack(sock, ACK.CMD_ACK)
+						msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
+						input_sockets.append(sock)
+
+					elif msg_type == ACK.CMD_SEND_FILE:
+						send_ack(sock, ACK.CMD_ACK)
+						if file_count_queue[sock] == 0:
+							msg_queue[sock] = ACK.CMD_EXECUTE
+							input_sockets.append(sock)
+						else:
+							pass
+
 
 		except KeyboardInterrupt:
 			print('Interrupted. Closing sockets...')
@@ -314,9 +378,9 @@ def close_sockets(sockets):
 		sock.close()
 
 
-def main(port):
+def main(ip=SERVER_HOST, port=SERVER_PORT):
 	#blocking_socket(SERVER_HOST, int(port))
-	non_blocking_socket(SERVER_HOST, int(port))
+	non_blocking_socket(ip, port)
 
 
 if __name__ == "__main__":
@@ -330,7 +394,7 @@ if __name__ == "__main__":
 		sys.exit()
 	else:
 		try:
-			opts, args = getopt.getopt(sys.argv[1:], "hdvw")
+			opts, args = getopt.getopt(sys.argv[1:], "hdvwi:")
 			for o, a in opts:
 				if o == "-h":
 					usage(prog)
@@ -340,7 +404,14 @@ if __name__ == "__main__":
 				elif o == "-d":
 					print("TODO default")
 				elif o == "-w":
-					print("TODO wait")
+					sleep = True
+				elif o == "-i":
+					if len(args) == 1:
+						main(ip=a, port=int(args[0]))
+					else:
+						print("Error 2 arguments are required")
+						usage(prog)
+						sys.exit()
 				else:
 					assert False, "unhandled option"
 

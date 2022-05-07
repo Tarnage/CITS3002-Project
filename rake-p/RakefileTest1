@@ -7,6 +7,6 @@ HOSTS = hostname1
 
 actionset1:
 	remote-echo starting actionset1
-
+		
 actionset2:
 	echo starting actionset2

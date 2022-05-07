@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from flask import send_file
 import parse_rakefile
 import sys
 import socket
@@ -24,18 +25,19 @@ class Ack:
 		self.CMD_QUOTE_REQUEST 	= 2
 		self.CMD_QUOTE_REPLY 	= 3
 
-		self.CMD_SEND_FILE	 	= 4
+		self.CMD_SEND_REQIUREMENTS	= 4
+		self.CMD_FILE_COUNT		= 5
+		self.CMD_SEND_FILE	 	= 6
+		self.CMD_EXECUTE_REQ 	= 7
+		self.CMD_EXECUTE 		= 8
+		self.CMD_RETURN_STATUS 	= 9
 
-		self.CMD_EXECUTE_REQ 	= 5
-		self.CMD_EXECUTE 		= 6
-		self.CMD_RETURN_STATUS 	= 7
+		self.CMD_RETURN_STDOUT 	= 10
+		self.CMD_RETURN_STDERR 	= 11
 
-		self.CMD_RETURN_STDOUT 	= 8
-		self.CMD_RETURN_STDERR 	= 9
+		self.CMD_RETURN_FILE 	= 12
 
-		self.CMD_RETURN_FILE 	= 10
-
-		self.CMD_ACK 			= 11
+		self.CMD_ACK 			= 13
 
 # INIT GLOBALS
 # init enum class
@@ -68,7 +70,7 @@ def close_sockets(sockets):
 		sock.close()
 
 
-def send_datagram(sd, ack_type, payload=''):
+def send_datagram(sd, ack_type, payload=None):
 	if ack_type == ACK.CMD_QUOTE_REQUEST:
 		print("SENDING ACK FOR COST REQUEST ---->")
 		sd.send(str(ack_type).encode(FORMAT))
@@ -81,6 +83,18 @@ def send_datagram(sd, ack_type, payload=''):
 		print(f'SENDING COMMANDS ---->')
 		sd.send(payload.encode(FORMAT))
 
+	if ack_type == ACK.CMD_SEND_REQIUREMENTS:
+		print(f'SENDING CMD_SEND_REQIUREMENTS ---->')
+		sd.send(str(ack_type).encode(FORMAT))
+
+	if ack_type == ACK.CMD_FILE_COUNT:
+		print(f'SENDING FILE COUNT {payload} ---->')
+		sd.send(str(payload).encode(FORMAT))
+
+	if ack_type == ACK.CMD_SEND_FILE:
+		print(f'SENDING FILE NAME ({payload}) ---->')
+		sd.send(str(payload).encode(FORMAT))
+
 
 def get_lowest_cost(sd, cost):
 	global lowest_cost
@@ -91,7 +105,13 @@ def get_lowest_cost(sd, cost):
 		lowest_host, lowest_port = sd.getpeername()
 
 
-def execute(sd, ack_type, cmd=""):
+def send_req_file(sd, filename):
+	print(f'SENDING FILE ---->')
+	with open(filename) as data:
+		sd.send(data.read().encode(FORMAT))
+
+
+def execute(sd, ack_type, cmd=None):
 		# SOCKETS WE EXPECT TO READ FROM
 		input_sockets = []
 
@@ -101,15 +121,28 @@ def execute(sd, ack_type, cmd=""):
 		# OUTGOING MESSAGE QUEUES
 		msg_queue = {}
 
+		# KEEP TRACK OF FILES TO SEND
+		file_count_queue = {}
+
+		file_to_send = {}
+
+		curr_name_sent = False
+
 		if ack_type == ACK.CMD_QUOTE_REQUEST:
-			msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
-			output_sockets.append(sd)
+			for s in sd:
+				msg_queue[s] = ACK.CMD_QUOTE_REQUEST
+				output_sockets.append(s)
+				s.setblocking(True)
 		
+		# MIGHT NOT NEED THIS
 		if ack_type == ACK.CMD_EXECUTE:
 			msg_queue[sd] = ACK.CMD_EXECUTE
 			output_sockets.append(sd)
 
-		sd.setblocking(True)
+		if ack_type == ACK.CMD_SEND_REQIUREMENTS:
+			msg_queue[sd] = ACK.CMD_SEND_REQIUREMENTS
+			output_sockets.append(sd)
+		
 
 		while msg_queue:
 			try:
@@ -126,12 +159,18 @@ def execute(sd, ack_type, cmd=""):
 						msg_type = msg_queue[sock]
 						print(f'LISTENING FOR REPLY TYPE: {msg_type}')
 						
+						# TODO: cmd req should send a ack before waiting for reply
+						# right now it skips the reply and just waits
+						# this can cause an error when the server sends msgs quickly 
 						if msg_type == ACK.CMD_QUOTE_REQUEST:
 							if int(data) == ACK.CMD_QUOTE_REPLY:
 								msg_queue[sock] = ACK.CMD_QUOTE_REPLY
 								input_sockets.append(sock)
 							else:
-								print(f"Recieved the wrong ACK code")
+								print(f"Recieved the wrong ACK code from {sock.getpeername()} got--->{data}")
+								del msg_queue[sock]
+								sock.close()
+
 
 						elif msg_type == ACK.CMD_QUOTE_REPLY:
 							cost = data
@@ -149,8 +188,28 @@ def execute(sd, ack_type, cmd=""):
 						elif msg_type == ACK.CMD_RETURN_STATUS:
 							print(f"RECIEVED STATUS CODE: {data}")
 							del msg_queue[sock]
-							
+						
+						elif msg_type == ACK.CMD_SEND_REQIUREMENTS:
+							if int(data) == ACK.CMD_ACK:
+								print(f"RECIEVED ACK: {data}")
+								msg_queue[sock] = ACK.CMD_FILE_COUNT
+								output_sockets.append(sock)
 
+						elif msg_type == ACK.CMD_SEND_FILE:
+							if int(data) == ACK.CMD_ACK:
+								if file_count_queue[sock] != 0:
+									index = file_count_queue[sock]
+									data = cmd.requires[index]
+									file_to_send[sock] = data
+									output_sockets.append(sock)
+								else:
+									msg_queue[sock] = ACK.CMD_EXECUTE
+									del file_count_queue[sock]
+							else:
+								print("Something went wrong while waiting for acks for files")
+								sys.exit()
+
+							
 				for sock in write_sockets:
 					if sock:
 						if sock in output_sockets:
@@ -158,7 +217,7 @@ def execute(sd, ack_type, cmd=""):
 
 						# CHECK WHAT YPE OF MSG TO SEND
 						msg_type = msg_queue[sock]
-						print(f"SENDING MESSAGE TPYE: {msg_type}")
+						print(f"SENDING MESSAGE TYPE: {msg_type}")
 
 						# SLEEP
 						# rand = random.randint(1, 10)
@@ -168,20 +227,49 @@ def execute(sd, ack_type, cmd=""):
 
 						# SEND AN ACK FOR A QUOTE
 						if msg_type == ACK.CMD_QUOTE_REQUEST:
-							send_datagram(sd, msg_type)
+							send_datagram(sock, msg_type)
 							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
 							input_sockets.append(sock)
 						
 						# SEND AN ACK TO EXECUTE A COMMAND
 						elif msg_type == ACK.CMD_EXECUTE:
-							send_datagram(sd, msg_type)
+							send_datagram(sock, msg_type)
 							msg_queue[sock] = ACK.CMD_EXECUTE
 							input_sockets.append(sock)
 						
 						# SEND THE COMMANDS
 						elif msg_type == ACK.CMD_RETURN_STATUS:
-							send_datagram(sd, msg_type, cmd)
+							send_datagram(sock, msg_type, cmd)
 							input_sockets.append(sock)
+						
+						# SEND AN ACK TO RECEIVE FILES
+						elif msg_type == ACK.CMD_SEND_REQIUREMENTS:
+							send_datagram(sock, msg_type)
+							input_sockets.append(sock)
+
+						elif msg_type == ACK.CMD_FILE_COUNT:
+							data = len(cmd.requires)-1 # -1 because first index is the requires string
+							file_count_queue[sock] = data # NUMBER OF FILES TO SEND
+							msg_queue[sock] = ACK.CMD_SEND_FILE
+							send_datagram(sock, msg_type, data)
+							input_sockets.append(sock)
+
+						elif msg_type == ACK.CMD_SEND_FILE:
+							index = file_count_queue[sock]
+							data = cmd.requires[index]
+
+							# HAVE WE SENT THE FILE NAME YET
+							if not curr_name_sent:
+								send_datagram(sd, msg_type, data)
+								curr_name_sent = True
+							else:
+								send_req_file(sd, data)
+								file_count_queue[sock] -= 1
+
+							input_sockets.append(sock)
+							
+
+								
 
 			except KeyboardInterrupt:
 				print('Interrupted. Closing sockets...')
@@ -220,13 +308,20 @@ def main(argv):
 			else:
 				# GET THE LOWEST COST
 				sockets_list = get_all_conn(hosts)
-				for sock in sockets_list:
-					execute(sock, ACK.CMD_QUOTE_REQUEST)
+				execute(sockets_list, ACK.CMD_QUOTE_REQUEST)
 
-				# print(lowest_host, lowest_port)
+				# EXECUTE COMMANNDS WITH THIS SOCKET
 				slave = create_socket(lowest_host, lowest_port)
+
+				# FIRST CHECK REQUIRED FILES
+				# SECOND SEND REQUIRED FILES
+				# THIRDLY RECIEVE RETURN CODE
+				# RECIEVE OUTPUT FILE
+				# END
+				execute(slave, ACK.CMD_SEND_REQIUREMENTS, command)
+
 				# EXECUTE COMMAND ON THE LOWEST BID
-				execute(slave, ACK.CMD_EXECUTE, command.cmd)
+				#execute(slave, ACK.CMD_EXECUTE, command.cmd)
 		
 		# RESET lowest VARS
 		lowest_host = socket.socket()
