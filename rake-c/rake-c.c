@@ -68,7 +68,11 @@ void file_process(char *file_name, ACTION_SET *sets, HOST *hosts)
         int curr_action = 0;
 
         int curr_req = 0;
+<<<<<<< HEAD
         
+=======
+        int num_sets = 0;
+>>>>>>> origin/master
 
         sets[curr_set].num_actions = 0;
         sets[curr_set].actions = (ACTION*)malloc(sizeof(ACTION));
