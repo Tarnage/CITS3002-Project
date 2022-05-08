@@ -105,4 +105,9 @@ def print_action_sequence(seq):
 
 
 if __name__ == "__main__":
-	read_rake(sys.argv[1])
+
+	if len(sys.argv) == 2:
+		read_rake(sys.argv[1])
+	else:
+		read_rake("Rakefile")
+		
