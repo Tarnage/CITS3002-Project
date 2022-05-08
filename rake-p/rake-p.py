@@ -42,9 +42,8 @@ class Ack:
 # INIT GLOBALS
 # init enum class
 ACK = Ack()
-lowest_host = socket.socket()
-lowest_port = 0
-lowest_cost = sys.maxsize
+
+cost_list = list()
 
 def usage():
 	print("Usage: ")
@@ -96,14 +95,22 @@ def send_datagram(sd, ack_type, payload=None):
 		sd.send(str(payload).encode(FORMAT))
 
 
-def get_lowest_cost(sd, cost):
-	global lowest_cost
-	global lowest_host
-	global lowest_port
-	if cost < lowest_cost:
-		lowest_cost = int(cost)
-		lowest_host, lowest_port = sd.getpeername()
+def get_lowest_cost():
+	lowest_cost = sys.maxsize
+	result = tuple()
 
+	for i in cost_list:
+		if i[0] < lowest_cost:
+			lowest_cost = i[0]
+			result = i[1]
+
+	return result
+
+
+def add_cost_tuple(sd, cost):
+	global cost_list
+	ip_port = sd.getpeername()
+	cost_list.append((cost, ip_port))
 
 def send_req_file(sd, filename):
 	print(f'SENDING FILE ---->')
@@ -132,7 +139,7 @@ def execute(sd, ack_type, cmd=None):
 			for s in sd:
 				msg_queue[s] = ACK.CMD_QUOTE_REQUEST
 				output_sockets.append(s)
-				s.setblocking(True)
+				s.setblocking(False)
 		
 		# MIGHT NOT NEED THIS
 		if ack_type == ACK.CMD_EXECUTE:
@@ -155,28 +162,19 @@ def execute(sd, ack_type, cmd=None):
 							input_sockets.remove(sock)
 
 						# SOMETHING TO READ
-						data = sock.recv( MAX_BYTES ).decode( FORMAT )
+						datagram = sock.recv( MAX_BYTES ).decode( FORMAT ).split()
+						datagram_type = int(datagram[0])
+
 						msg_type = msg_queue[sock]
 						print(f'LISTENING FOR REPLY TYPE: {msg_type}')
-						
-						# TODO: cmd req should send a ack before waiting for reply
-						# right now it skips the reply and just waits
-						# this can cause an error when the server sends msgs quickly 
-						if msg_type == ACK.CMD_QUOTE_REQUEST:
-							if int(data) == ACK.CMD_QUOTE_REPLY:
-								msg_queue[sock] = ACK.CMD_QUOTE_REPLY
-								input_sockets.append(sock)
-							else:
-								print(f"Recieved the wrong ACK code from {sock.getpeername()} got--->{data}")
-								del msg_queue[sock]
-								sock.close()
 
 
-						elif msg_type == ACK.CMD_QUOTE_REPLY:
-							cost = data
+						if datagram_type == ACK.CMD_QUOTE_REPLY:
+							cost = int(datagram[1])
 							print(f"RECIEVED COST: {cost}")
-							get_lowest_cost(sock, int(cost))
+							add_cost_tuple(sock, cost)
 							del msg_queue[sock]
+							sock.close()
 							
 						
 						elif msg_type == ACK.CMD_EXECUTE:
@@ -294,12 +292,11 @@ def get_all_conn(hosts):
 
 
 def main(argv):
-	global lowest_cost
-	global lowest_host
-	global lowest_port
 	hosts, actions = parse_rakefile.read_rake(argv[1])
 
 	for sets in actions:
+		# ADDRESS OF LOWEST BID
+		slave_addr = tuple()
 		for command in sets:
 			# DO WE RUN THIS COMMAND LOCAL OR REMOTE
 			if not command.remote:
@@ -310,23 +307,21 @@ def main(argv):
 				sockets_list = get_all_conn(hosts)
 				execute(sockets_list, ACK.CMD_QUOTE_REQUEST)
 
+				slave_addr = get_lowest_cost()
 				# EXECUTE COMMANNDS WITH THIS SOCKET
-				slave = create_socket(lowest_host, lowest_port)
+				slave = create_socket(slave_addr[0], slave_addr[1])
 
 				# FIRST CHECK REQUIRED FILES
 				# SECOND SEND REQUIRED FILES
 				# THIRDLY RECIEVE RETURN CODE
 				# RECIEVE OUTPUT FILE
 				# END
-				execute(slave, ACK.CMD_SEND_REQIUREMENTS, command)
+				#execute(slave, ACK.CMD_SEND_REQIUREMENTS, command)
 
 				# EXECUTE COMMAND ON THE LOWEST BID
 				#execute(slave, ACK.CMD_EXECUTE, command.cmd)
 		
-		# RESET lowest VARS
-		lowest_host = socket.socket()
-		lowest_port = 0
-		lowest_cost = sys.maxsize
+
 
 
 if __name__ == "__main__":

@@ -47,6 +47,7 @@ def read_rake(filename):
 
 				# check if line is for port
 				words = line.split()
+				print(line)
 				if words[0] == 'PORT':
 					deafult_port = int(words[2])
 				
