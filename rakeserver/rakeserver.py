@@ -30,16 +30,19 @@ class Ack:
 		self.CMD_SEND_REQIUREMENTS	= 4
 		self.CMD_FILE_COUNT		= 5
 		self.CMD_SEND_FILE	 	= 6
-		self.CMD_EXECUTE_REQ 	= 7
-		self.CMD_EXECUTE 		= 8
-		self.CMD_RETURN_STATUS 	= 9
+		self.CMD_SEND_SIZE		= 7
+		self.CMD_SEND_NAME		= 8
 
-		self.CMD_RETURN_STDOUT 	= 10
-		self.CMD_RETURN_STDERR 	= 11
+		self.CMD_EXECUTE_REQ 	= 9
+		self.CMD_EXECUTE 		= 10
+		self.CMD_RETURN_STATUS 	= 11
 
-		self.CMD_RETURN_FILE 	= 12
+		self.CMD_RETURN_STDOUT 	= 12
+		self.CMD_RETURN_STDERR 	= 13
 
-		self.CMD_ACK 			= 13
+		self.CMD_RETURN_FILE 	= 14
+
+		self.CMD_ACK 			= 15
 
 # init enum class
 ACK = Ack()
@@ -130,16 +133,20 @@ def send_quote(sd):
 	sd.send( datagram.encode(FORMAT) )
 
 
-def run_cmd(cmd):
-	global return_code
-
+def check_temp_dir():
+	''' Helper to make sure temp dir exists if not create one
+	
+	'''
 	if not os.path.isdir("./tmp"):
 		try:
 			os.mkdir("./tmp")
 		except OSError as err:
 			sys.exit("Directory creation failed with error: {err}")
 
-	print()
+
+def run_cmd(cmd):
+	check_temp_dir()
+	global return_code
 	print(f'RUNNING COMMAND: {cmd}')
 	p = subprocess.run(cmd, shell=True, cwd='./tmp')
 	print(f'COMMAND FINISHED...')
@@ -148,30 +155,36 @@ def run_cmd(cmd):
 	return_code = p.returncode
 
 
-def create_file(filename):
-	tmp = "./tmp/"
-	if not os.path.exists(filename):
-		try:
-			with open(tmp + filename, "w") as f:
-				pass
-		except OSError as err:
-			sys.exit(f'File creation failed with error: {err}')
 
-
-def write_file(filename, data):
+def write_file(sd, filename, size, data):
+	check_temp_dir()
 	tmp = "./tmp/"
-	if not os.path.exists(filename):
-		try:
-			with open(tmp + filename, "a") as f:
-				f.write(data)
-		except OSError as err:
-			sys.exit(f'File creation failed with error: {err}')
+	try:
+		with open(tmp + filename, "a") as f:
+			f.write(data)
+			current = os.path.getsize(tmp + filename)
+			size_left = current - size
+
+			while size_left > 0:
+				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
+				size_left -= MAX_BYTES
+
+	except OSError as err:
+		sys.exit(f'File creation failed with error: {err}')
 
 
 def send_ack(sd, ack_type):
 	print(f'<---- SENDING ACK')
 	ack = str(ack_type)
 	sd.send( ack.encode(FORMAT) )
+
+
+def send_return_status(sd):
+	# TODO: BrokenPipe Errno 32 wont completely send msg
+	print(f"<-------- SENDING RETURN STATUS ({return_code})")
+	sigma = str(ACK.CMD_RETURN_STATUS)
+	payload = str(return_code)
+	sd.send(f'{sigma} {payload}'.encode(FORMAT))
 
 
 def non_blocking_socket(host, port):
@@ -200,7 +213,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"Socket is listening on {host}..." )
-	sd.setblocking(False)
+	sd.setblocking(True)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -216,13 +229,11 @@ def non_blocking_socket(host, port):
 	# KEEP TRACK OF SOCKETS NEEDING ACKS
 	ack_queue = {}
 
-	# HAVE WE RECIEVED THE FILE NAME
-	has_filename = {}
-
+	# STORE FILE NAME
 	filename = {}
 
-
-
+	# STORE FILE SIZE
+	file_size = {}
 
 	while True:
 
@@ -247,63 +258,86 @@ def non_blocking_socket(host, port):
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 						
-					# RECIEVE DATA
-					data = sock.recv(MAX_BYTES).decode(FORMAT)
+					# RECIEVE DATA AND SPLIT BY THE FIRST WHITE SPACE
+					datagram = sock.recv(MAX_BYTES).decode(FORMAT).split(" ", 1)
+					print(datagram)
+					sigma = int(datagram[0])
+					
 
 					# IF THE SOCKET IS IN THE msg_queue THEY ARE WAITING FOR A MESSAGE
-					if sock in msg_queue:
-						print("MESSEGE IN QUEUE")
-						if msg_queue[sock] == ACK.CMD_EXECUTE:
-							run_cmd(data)
-							msg_queue[sock] = ACK.CMD_RETURN_STATUS
-							print(f"after executing sock type: {msg_queue[sock]}")
-							output_sockets.append(sock)
+					# if sock in msg_queue:
+					# 	print("MESSEGE IN QUEUE")
+					# 	if msg_queue[sock] == ACK.CMD_EXECUTE:
+					# 		run_cmd(payload)
+					# 		msg_queue[sock] = ACK.CMD_RETURN_STATUS
+					# 		print(f"after executing sock type: {msg_queue[sock]}")
+					# 		output_sockets.append(sock)
 						
-						elif msg_queue[sock] == ACK.CMD_SEND_REQIUREMENTS:
-							print(f"SERVER IS EXPECTING: ({data}) FILES")
-							file_count_queue[sock] = int(data)
-							msg_queue[sock] = ACK.CMD_SEND_FILE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+					# 	elif msg_queue[sock] == ACK.CMD_SEND_REQIUREMENTS:
+					# 		print(f"SERVER IS EXPECTING: ({payload}) FILES")
+					# 		file_count_queue[sock] = int(payload)
+					# 		msg_queue[sock] = ACK.CMD_SEND_FILE
+					# 		ack_queue[sock] = True
+					# 		output_sockets.append(sock)
 
-						elif msg_queue[sock] == ACK.CMD_SEND_FILE:
-							#write_file()
-							if has_filename:
-								filename = filename[sock]
-								write_file(filename, data)
-							else:
-								has_filename = True
-								file_count_queue[sock] -= 1
-								filename[sock] = data
-								ack_queue[sock] = True
+					# 	elif msg_queue[sock] == ACK.CMD_SEND_FILE:
+					# 		#write_file()
+					# 		if has_filename:
+					# 			filename = filename[sock]
+					# 			write_file(filename, payload)
+					# 		else:
+					# 			has_filename = True
+					# 			file_count_queue[sock] -= 1
+					# 			filename[sock] = payload
+					# 			ack_queue[sock] = True
 								
-							output_sockets.append(sock)
+					# 		output_sockets.append(sock)
 
 					# ELSE THE INITIAL CONNECTION REQUEST 
-					elif data:
-						
-						data_gram = data.split()
-						ack_type = int(data_gram[0])
+					if sigma > 0:
 
-						print(f"----> RECIEVING ACK TYPE: {ack_type}")
+						print(f"----> RECIEVING ACK TYPE: {sigma}")
 
 						# REQUEST FOR COST QUOTE
-						if ack_type == ACK.CMD_QUOTE_REQUEST:
+						if sigma == ACK.CMD_QUOTE_REQUEST:
 							print(f'COST QUOTE REQUESTED')
 							# TRACK WHAT THIS WILL DO NEXT
-							msg_queue[sock] = ack_type
+							msg_queue[sock] = sigma
 							# PREPARE IT FOR WRITING
 							output_sockets.append(sock)
 						
 						# REQUEST TO RUN COMMAND
-						elif ack_type == ACK.CMD_EXECUTE:
-							print(f'REQUEST TO EXECUTE...')
-							msg_queue[sock] = ACK.CMD_EXECUTE
+						elif sigma == ACK.CMD_EXECUTE:
+							payload = datagram[1]
+							print(f'REQUEST TO EXECUTE...{payload}')
+							run_cmd(payload)
+							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							output_sockets.append(sock)
 
-						elif ack_type == ACK.CMD_SEND_REQIUREMENTS:
-							print(f'REQUEST TO RECEIVE FILES...')
-							msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
+						# elif sigma == ACK.CMD_SEND_REQIUREMENTS:
+						# 	print(f'REQUEST TO RECEIVE FILES...')
+						# 	msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
+						# 	output_sockets.append(sock)
+
+						elif sigma == ACK.CMD_SEND_NAME:
+							payload = datagram[1]
+							filename[sock] = payload
+							msg_queue[sock] = ACK.CMD_SEND_SIZE
+							ack_queue[sock] = True
+							output_sockets.append(sock)
+
+						elif sigma == ACK.CMD_SEND_SIZE:
+							payload = datagram[1]
+							file_size[sock] = int(payload)
+							msg_queue[sock] = ACK.CMD_SEND_FILE
+							ack_queue[sock] = True
+							output_sockets.append(sock)
+						
+						elif sigma == ACK.CMD_SEND_FILE:
+							payload = datagram[1]
+							write_file(sd, filename[sock], file_size[sock], payload)
+							msg_queue[sock] = ACK.CMD_EXECUTE
+							ack_queue[sock] = True
 							output_sockets.append(sock)
 
 					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
@@ -344,19 +378,19 @@ def non_blocking_socket(host, port):
 						sock.close()
 					
 					elif msg_type == ACK.CMD_RETURN_STATUS:
-						sock.send(str(return_code).encode(FORMAT))
+						send_return_status(sd)
 						print(f'Sent return status...')
 						del msg_queue[sock]
 
-					elif msg_type == ACK.CMD_EXECUTE:
-						send_ack(sock, ACK.CMD_ACK)
-						msg_queue[sock] = ACK.CMD_EXECUTE
-						input_sockets.append(sock)
+					# elif msg_type == ACK.CMD_EXECUTE:
+					# 	send_ack(sock, ACK.CMD_ACK)
+					# 	msg_queue[sock] = ACK.CMD_EXECUTE
+					# 	input_sockets.append(sock)
 
-					elif msg_type == ACK.CMD_SEND_REQIUREMENTS:
-						send_ack(sock, ACK.CMD_ACK)
-						msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
-						input_sockets.append(sock)
+					# elif msg_type == ACK.CMD_SEND_REQIUREMENTS:
+					# 	send_ack(sock, ACK.CMD_ACK)
+					# 	msg_queue[sock] = ACK.CMD_SEND_REQIUREMENTS
+					# 	input_sockets.append(sock)
 
 					elif msg_type == ACK.CMD_SEND_FILE:
 						send_ack(sock, ACK.CMD_ACK)
