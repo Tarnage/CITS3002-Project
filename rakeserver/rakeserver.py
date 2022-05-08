@@ -77,6 +77,8 @@ def blocking_socket(host, port):
 	except socket.error as err:
 		print( f'socket creation failed with error {err}' )
 
+	# AVOIDS THE PORT ALREADY IN USE ERROR []
+	sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	# BIND SOCKET TO PORT
 	sd.bind( (host, port) )
 	print( f'Socket is binded to {port}' )
@@ -121,9 +123,11 @@ def calculate_cost():
 
 
 def send_quote(sd):
+	ack = str(ACK.CMD_QUOTE_REPLY)
 	cost = str(calculate_cost())
-	print(f'<---- SENDING QUOTE: {cost}')
-	sd.send( cost.encode(FORMAT) )
+	datagram = f'{ack} {cost}'
+	print(f'<---- SENDING QUOTE: {datagram}')
+	sd.send( datagram.encode(FORMAT) )
 
 
 def run_cmd(cmd):
@@ -278,7 +282,8 @@ def non_blocking_socket(host, port):
 					# ELSE THE INITIAL CONNECTION REQUEST 
 					elif data:
 						
-						ack_type = int(data)
+						data_gram = data.split()
+						ack_type = int(data_gram[0])
 
 						print(f"----> RECIEVING ACK TYPE: {ack_type}")
 
@@ -333,13 +338,10 @@ def non_blocking_socket(host, port):
 
 					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
 					elif msg_type == ACK.CMD_QUOTE_REQUEST:
-						send_ack(sock, ACK.CMD_QUOTE_REPLY)
-						msg_queue[sock] = ACK.CMD_QUOTE_REPLY
-						output_sockets.append(sock)
-
-					elif msg_type == ACK.CMD_QUOTE_REPLY:
 						send_quote(sock)
 						del msg_queue[sock]
+						# SEND REPLY AND CLOSE THE CONNECTION
+						sock.close()
 					
 					elif msg_type == ACK.CMD_RETURN_STATUS:
 						sock.send(str(return_code).encode(FORMAT))
