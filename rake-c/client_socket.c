@@ -51,6 +51,7 @@ int client_socket(char *host, int port) {
     exit(EXIT_SUCCESS);
 }
 
+/*
 int main()
 {   
     time_t now = time(NULL);
@@ -65,4 +66,4 @@ int main()
     //client_socket(SERVER_HOST, SERVER_PORT);
 
     return 0;
-}
+} */

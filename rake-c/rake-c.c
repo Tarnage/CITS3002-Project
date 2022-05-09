@@ -1,216 +1,18 @@
 #include "rake-c.h"
 
-
-
-ACTION_SET     *sets  =   NULL;
-HOST*           hosts       =   NULL;
-int             num_hosts   =   0;
-
-void remove_str(char *line, char stop_char, char *intended)
+void perform_actions(ACTION_SET *action_set)
 {
-    int counter_line = 0;
-    int new_word_counter = 0;
-
-
-    while(line[counter_line] != stop_char)
+    printf("Number of sets: %d\n", num_sets);
+    for (int i = 0; i < num_sets; i++)
     {
-        counter_line++;
-    }
-    
-    counter_line++;
-
-    while(line[counter_line] != '\0')
-    {
-        intended[new_word_counter] = line[counter_line];
-        
-        new_word_counter++;
-        counter_line++;
-    }
-
-    intended[new_word_counter] = '\0';
-}
-
-void file_process(char *file_name)
-{
-    FILE *fp = fopen(file_name, "r");
-    if(fp == NULL)
-    {
-        fprintf(stderr, "Invalid file\n");
-    }
-    else
-    {
-        // LINE VARIABLE FOR READING
-        char line[MAX_LINE_LENGTH] = "";
-
-        // DEFAULT PORT
-        int default_port; 
-
-        // THE CURRENT SET
-        int current_set;
-
-        // THE CURRENT ACTION
-        int current_action;
-
-        // READ AND PARSE FILES LINE BY LINE
-        while(fgets(line, MAX_LINE_LENGTH, fp))
+        printf("Number of actions: %d\n", action_set[i].action_totals);
+        for (int j = 0; j < action_set[i].action_totals; j++)
         {
-            if (line[0] == '#')
-            {
-                continue;
-            }
             
-            // CHECK IF THE LINE GIVES THE DEFAULT PORT NUMBER
-            if(strstr(line, "PORT") != NULL)
-            {
-                // Grab default port value
-                char port_val[MAX_LINE_LENGTH] = "";
-                remove_str(line, '=', port_val);
-
-                default_port = atoi(port_val);
-                
-            }
-            // CHECK IF THE LINE GIVES THE HOST NAMES
-            else if(strstr(line, "HOSTS") != NULL)
-            {
-                int nhosts;
-                char host_names[MAX_LINE_LENGTH] = "";
-                remove_str(line, '=', host_names);
-                char **host_name_list = strsplit(host_names, &nhosts);
-
-                for (int i = 0; i < nhosts; i++)
-                {
-                    
-                    hosts = (HOST*)realloc(hosts, nhosts * sizeof(HOST));
-                    // CHECK IF HOST NAME HAS ASSOCIATED PORT
-                    if(strstr(host_name_list[i], ":") != NULL)
-                    {
-                        // SPLIT THE LINE BY THE DELIMITER ":"
-                        char *token = strtok(host_name_list[i], ":");
-                        
-                        hosts[num_hosts].name = (char*)malloc(sizeof(char));
-                        hosts[num_hosts].name = token;
-                        
-                        token = strtok(NULL, ":");
-                        
-                        int cust_port = atoi(token);
-                        hosts[num_hosts].port = cust_port;
-                    }
-                    else
-                    {
-                        // default
-                        hosts[num_hosts].name = (char*)malloc(sizeof(char));
-                        hosts[num_hosts].name = host_name_list[i];
-                        hosts[num_hosts].port = default_port;
-                        
-                    }
-                    printf("%s: %d\n", hosts[num_hosts].name, hosts[num_hosts].port);
-                    num_hosts++;
-                    printf("Hosts found: %d\n", num_hosts);
-                }
-            } 
-            // CHECK IF THE LINE IS INDICATING AN INCOMING ACTION SET
-            else if (strstr(line, "actionset") != NULL  && line[0] != '\t')
-            {
-                // INCREMENT THE NUMBER OF ACTION SETS
-                num_sets++;
-                // ALLOCATE MEMORY TO A NEW ACTION SET
-                sets = (ACTION_SET*)realloc(sets, num_sets * sizeof(ACTION_SET));
-                
-                current_set = num_sets - 1;
-                // SET THE NUMBER OF ACTIONS FOR THIS ACTION SET TO ZERO
-                num_actions = 0;
-            }
-            // CHECK IF IT IS EITHER AN ACTION OR A LIST OF REQUIREMENTS
-			else if (line[0] == '\t')
-			{
-                // CHECK IF REQUIREMENT
-				if (line[1] == '\t') 
-            	{
-                    int num_req;
-                    int curr_req; 
-                    int nwords;
-                    char **words = strsplit(line, &nwords);
-
-                    printf("Requires: ");
-                    for(int i = 0; i < nwords; ++i)
-                    {
-                        // IF THE WORD CONTAINS "REQUIRES"
-                        if(strcmp(words[i], "requires") == 0)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            num_req++;
-                            sets[current_set].actions[current_action].requirements = (char**)realloc(sets[current_set].actions[current_action].requirements, num_req * sizeof(char*));
-                            sets[current_set].actions[current_action].requirements[curr_req] = (char *)malloc(strlen(words[i]) * sizeof(char));
-                            sets[current_set].actions[current_action].requirements[curr_req] = words[i];
-                            printf("%s ", sets[current_set].actions[current_action].requirements[curr_req]);
-                            curr_req++;
-                        }
-                    }
-                    curr_req = 0;
-                    num_req = 0;
-                    printf("\n");
-            	}
-                // OTHERWISE, ACTION
-                else
-                {
-                    num_actions++;
-                    current_action = num_actions - 1;
-                    sets[current_set].action_totals = num_actions;
-                    // ALLOCATE MEMORY TO THE ACTION
-                    sets[current_set].actions = (ACTION*)realloc(sets[current_set].actions, num_actions * sizeof(ACTION));
-                    // printf("%d\n", action_totals[current_set]);
-                    
-                    int nwords = 0;
-                    char **words = strsplit(line, &nwords);
-
-                    char new_cmd[MAX_LINE_LENGTH] = "";
-                    for (int i = 0; i < nwords; i++)
-                    {
-                        if(strstr(words[i], "remote-") != NULL)
-                        {
-                            sets[current_set].actions[current_action].is_remote = 1;
-                            
-                            remove_str(words[i], '-', new_cmd);
-                            
-                        }
-                        else
-                        {
-                            strcat(new_cmd, words[i]);
-                            strcat(new_cmd, " ");
-                        }
-
-                    }       
-                    strcat(new_cmd, "\0");
-                    sets[current_set].actions[current_action].command = malloc(MAX_LINE_LENGTH * sizeof(char*));
-                    sets[current_set].actions[current_action].command = new_cmd;
-                    printf("%s", sets[current_set].actions[current_action].command);
-
-                }
-			}	
+            printf("%s\n", ACTION_DATA(i, j).command);
         }
     }
-
 }
-
-
-void perform_actions()
-{
-    // ITERATE THROUGH THE ACTION SETS
-    for(int i = 0; i < num_sets; i++)
-    {
-        printf("Total actions: %d\n", sets[i].action_totals);
-        for (int j = 0; j < sets[i].action_totals; j++)
-        {
-            printf("Action: %s\n", sets[i].actions[j].command);
-        }
-
-
-    }
-
-} 
 
 int main (int argc, char *argv[])
 {
@@ -225,9 +27,12 @@ int main (int argc, char *argv[])
     }
     
 
-    file_process(file_name);
+    file_process(file_name, action_set, hosts);
     
-    perform_actions();
+    print_hosts(hosts);
+    print_action_sets(action_set);
+
+    perform_actions(action_set);
 
     return 0; 
 }

@@ -5,16 +5,13 @@ extern  char    *strdup(const char *str);
 #endif
 
 
-#define ACTION_DATA(i,j)     action_set[i].actions[j]
+
 //----------------------------------------------
-// GLOBALS
-int num_hosts       = 0;
-int num_actions     = 0;
-int num_sets        = 0;
 
 
 
-char *trimwhitespace(char *str)
+
+char *trim_whitespace(char *str)
 {
     char *end;
 
@@ -131,7 +128,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 else
                 {
                     ACTION_DATA(num_sets-1, action_index).is_remote = -1;
-                    char *buffer = trimwhitespace(line);
+                    char *buffer = trim_whitespace(line);
                     ACTION_DATA(num_sets-1, action_index).command = strdup(buffer);
                 }
                 action_set[num_sets-1].action_totals++;
@@ -192,25 +189,4 @@ void print_action_sets(ACTION_SET *sets)
         
     }
     
-}
-
-int main (int argc, char *argv[])
-{
-    char *file_name;
-    if(argc != 2)
-    {
-        file_name = "Rakefile";
-    }
-    else
-    {
-        file_name = argv[1];
-    }
-
-    ACTION_SET action_set[MAX_ACTIONS];
-    HOST       hosts  [MAX_HOSTS];
-    file_process(file_name, action_set, hosts);
-
-    print_action_sets(action_set);
-
-    return 0; 
 }
