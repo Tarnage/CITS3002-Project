@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import getopt
+import shutil
 import time
 import random
 import os
@@ -65,6 +66,7 @@ class FileStats():
 ACK = Ack()
 return_code = -1
 sleep = False
+remove_temp = False
 
 def usage(prog):
 	print(f"Usage: {prog} [OPTIONS]...PORT...")
@@ -78,6 +80,8 @@ def usage(prog):
 	print("\t-v\twill print on delivary of packets\n")
 	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request\n")
 	print("\t-i\trequires ip and port as arguments. i.e. ./rakeserver -i 127.0.0.1 80006\n")
+	print("\t-r\twill remove temporary files and folders created during the connection of a client\n")
+
 
 
 def blocking_socket(host, port):
@@ -144,11 +148,28 @@ def calculate_cost():
 
 def send_quote(sd):
 	ack = ACK.CMD_QUOTE_REPLY.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	cost = calculate_cost().to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	cost = calculate_cost()
 	print(f'<---- SENDING QUOTE: {cost}')
+	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( ack )
 	sd.sendall( cost )
 
+
+def rm_client_files(sd):
+	'''Helper called at the end of the connection to remove temp files and folders
+
+		Args:
+			sd(socket): Used to get the name of the directory
+	'''
+	raddr = sd.getpeername()
+	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	dir = f"./tmp/{peer_dir}/"
+
+	if os.path.isdir(f"./tmp/{peer_dir}"):
+		try:
+			shutil.rmtree(dir, ignore_errors=True)
+		except OSError as err:
+			sys.exit("Error occured while deleting temp directory: {err}")
 
 def check_temp_dir(peer_dir):
 	''' Helper to make sure temp dir exists if not create one
@@ -216,16 +237,19 @@ def scan_dir(dir):
 
 
 def write_file(sd, filename, size):
+
+	#TODO: peer dir gets reused to remove the dir maybe put in a dict 
 	raddr = sd.getpeername()
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
 	tmp = f"./tmp/{peer_dir}/"
 	try:
-		with open(tmp + filename, "a") as f:
-			size_left = size
-			while size_left > 0:
-				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
-				size_left -= MAX_BYTES
+		with open(tmp + filename, "w") as f:
+			buffer = ""
+			while len(buffer) < size:
+				buffer += sd.recv(MAX_BYTES).decode(FORMAT)
+				
+			f.write(buffer)
 
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
@@ -235,14 +259,6 @@ def send_ack(sd, ack_type):
 	print(f'<---- SENDING ACK')
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send( ack )
-
-
-# def send_return_status(sd):
-# 	print(f"<-------- SENDING RETURN STATUS ({return_code})")
-# 	sigma = str(ACK.CMD_RETURN_STATUS)
-# 	payload = str(return_code)
-# 	print(f'{sigma} {payload}')
-# 	sd.send(f'{sigma} {payload}'.encode(FORMAT))
 
 
 def send_filename(sd, file_attr):
@@ -272,6 +288,7 @@ def send_file(sd, file_attr):
 		payload = f.read()
 
 	sd.sendall( payload )
+	print(f'FILE SENT...')
 
 
 def non_blocking_socket(host, port):
@@ -300,7 +317,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(True)
+	sd.setblocking(False)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -429,9 +446,8 @@ def non_blocking_socket(host, port):
 					if sock in output_sockets:
 						output_sockets.remove(sock)
 
+					# WHAT TYPE OF MSG IS THIS SOCKET SENDING
 					msg_type = msg_queue[sock]
-
-					print(f"SENDING ACK FOR {msg_queue}")
 
 					# SLEEP
 					if sleep == True:
@@ -499,10 +515,12 @@ def non_blocking_socket(host, port):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						print("entered here")
 						file_attr = file_to_send[sock]
-						#send_ack(sock, ACK.CMD_SEND_FILE)
 						send_file(sock, file_attr)
-						input_sockets.append(sock)
-						msg_queue[sock]
+						print("CLOSING CONNECTION...")
+						del msg_queue[sock]
+						# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+						if remove_temp == True:
+							rm_client_files(sock)
 						# END OF CONNECTION
 						
 
@@ -547,6 +565,8 @@ if __name__ == "__main__":
 					print("TODO default")
 				elif o == "-w":
 					sleep = True
+				elif o == "-r":
+					remove_temp = True
 				elif o == "-i":
 					if len(args) == 1:
 						main(ip=a, port=int(args[0]))
