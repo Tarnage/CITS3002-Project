@@ -5,7 +5,6 @@ int check_file_exists(char *filename)
     struct stat buffer;
 
     int exists = stat(filename, &buffer);
-    printf("%s: %d\n", filename, exists);
     if(exists == 0)
     {
         return 1;
@@ -30,6 +29,7 @@ void perform_actions(ACTION_SET *action_set)
                 if(check_file_exists(ACTION_DATA(i,j).requirements[k]) == 0)
                 {
                     printf("File does not exist\n");
+                    exit(EXIT_FAILURE);
                 } 
             }
 

@@ -16,7 +16,7 @@ DIRT = $(wildcard *.o)
 
 .PHONY: Makefile
 
-#default all: $(TARGETS)
+#deafault all: $(TARGETS)
 
 $(PROJECT)	: $(OBJ)
 	$(C11) $(CFLAGS) -o $(PROJECT) $(OBJ)
