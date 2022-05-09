@@ -16,30 +16,36 @@ MAX_BYTES = 1024
 FORMAT = 'utf-8'
 TIMEOUT 		= 0.5
 
+# ACKS INTEGERS ARE 8 BYTES LONG
+MAX_BYTE_SIGMA = 8
+
+# USE BIG BIG_EDIAN FOR BYTE ORDER
+BIG_EDIAN = 'big'
+
 class Ack:
 	def __init__(self):
-		self.CMD_ECHO 			= 0
-		self.CMD_ECHOREPLY 		= 1
+		self.CMD_ECHO = 0
+		self.CMD_ECHOREPLY = 1
 
-		self.CMD_QUOTE_REQUEST 	= 2
-		self.CMD_QUOTE_REPLY 	= 3
+		self.CMD_QUOTE_REQUEST = 2
+		self.CMD_QUOTE_REPLY = 3
 
-		self.CMD_SEND_REQIUREMENTS	= 4
-		self.CMD_FILE_COUNT		= 5
-		self.CMD_SEND_FILE	 	= 6
-		self.CMD_SEND_SIZE		= 7
-		self.CMD_SEND_NAME		= 8
+		self.CMD_SEND_REQIUREMENTS = 4
+		self.CMD_FILE_COUNT = 5
+		self.CMD_SEND_FILE = 6
+		self.CMD_SEND_SIZE = 7
+		self.CMD_SEND_NAME = 8
 
-		self.CMD_EXECUTE_REQ 	= 9
-		self.CMD_EXECUTE 		= 10
-		self.CMD_RETURN_STATUS 	= 11
+		self.CMD_EXECUTE_REQ = 9
+		self.CMD_EXECUTE = 10
+		self.CMD_RETURN_STATUS  = 11
 
-		self.CMD_RETURN_STDOUT 	= 12
-		self.CMD_RETURN_STDERR 	= 13
+		self.CMD_RETURN_STDOUT  = 12
+		self.CMD_RETURN_STDERR  = 13
 
-		self.CMD_RETURN_FILE 	= 14
+		self.CMD_RETURN_FILE = 14
 
-		self.CMD_ACK 			= 15
+		self.CMD_ACK = 15
 
 # INIT GLOBALS
 # init enum class
@@ -72,15 +78,16 @@ def close_sockets(sockets):
 
 
 def send_datagram(sd, ack_type, payload=None):
-	sigma = str(ack_type)
+	sigma = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 
 	if ack_type == ACK.CMD_QUOTE_REQUEST:
 		print("SENDING ACK FOR COST REQUEST ---->")
-		sd.send(sigma.encode(FORMAT))
+		sd.sendall( sigma )
 	
 	elif ack_type == ACK.CMD_EXECUTE:
 		print(f'SENDING ACK FOR EXECUTE ---->')
-		sd.send(f'{sigma} {payload}'.encode(FORMAT))
+		sd.sendall( sigma )
+		sd.sendall(f'{payload}'.encode(FORMAT))
 
 
 def get_lowest_cost():
@@ -103,38 +110,39 @@ def add_cost_tuple(sd, cost):
 
 
 def send_size(sd, filename):
-	sigma = str(ACK.CMD_SEND_SIZE)
+	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	size = os.path.getsize(f'./{filename}')
-	payload = str(size)
-	sd.send(f'{sigma} {payload}'.encode(FORMAT))
+	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	sd.sendall( payload )
 
 
 def send_file_name(sd, filename):
 	print(f'SENDING FILENAME ({filename})...')
-	sigma = str(ACK.CMD_SEND_NAME)
-	sd.send(f'{sigma} {filename}'.encode(FORMAT))
+	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	sd.sendall(filename.encode(FORMAT))
 
 
 def send_req_file(sd, filename):
 	print(f'SENDING FILE ---->')
 	with open(filename, "r") as f:
-		sigma = ACK.CMD_SEND_FILE
+		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 		payload = f.read()
-		payload = f"{sigma} {payload}"
-		sd.send(payload.encode(FORMAT))
+		sd.sendall( sigma )
+		sd.sendall( payload.encode(FORMAT) )
 
 
-def write_file(sd, filename, size, data):
+def write_file(sd, filename, size):
+	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
-		with open(path, "ab") as f:
-			f.write(data)
-			current = os.path.getsize(path)
-			size_left = current - size
+		with open(path, "wb") as f:
+			buffer = b""
+			while len(buffer) < size:
+				buffer += sd.recv(MAX_BYTES)
 
-			while size_left > 0:
-				f.write(sd.recv(MAX_BYTES))
-				size_left -= MAX_BYTES
+			f.write(buffer)
 
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
@@ -143,9 +151,11 @@ def write_file(sd, filename, size, data):
 
 #TODO: dont need ack type args
 def send_ack(sd, ack_type):
-	print(f'<---- SENDING ACK')
-	ack = str(ack_type)
-	sd.send( ack.encode(FORMAT) )
+	print(f'----> SENDING ACK')
+	
+	# SEND ACK WITH FIXED BYTE ORDER AND SIZE
+	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( ack )
 
 
 def execute(sd, ack_type, cmd=None):
@@ -173,19 +183,19 @@ def execute(sd, ack_type, cmd=None):
 			for s in sd:
 				msg_queue[s] = ACK.CMD_QUOTE_REQUEST
 				output_sockets.append(s)
-				s.setblocking(False)
+				s.setblocking(True)
 		
 		if ack_type == ACK.CMD_EXECUTE:
 			msg_queue[sd] = ACK.CMD_EXECUTE
 			output_sockets.append(sd)
-			sd.setblocking(False)
+			sd.setblocking(True)
 
 		if ack_type == ACK.CMD_SEND_NAME:
 			msg_queue[sd] = ACK.CMD_SEND_NAME
 			# TRACK HOW MANY FILES TO SEND
 			file_count = len(cmd.requires)-1 # -1 because first index is the requires string
 			output_sockets.append(sd)
-			sd.setblocking(False)
+			sd.setblocking(True)
 		
 
 		while msg_queue:
@@ -201,42 +211,49 @@ def execute(sd, ack_type, cmd=None):
 							input_sockets.remove(sock)
 
 						# SOMETHING TO READ
-						datagram = sock.recv( MAX_BYTES ).decode( FORMAT ).split()
-						sigma = int(datagram[0])
+						datagram = b''
+						while len(datagram) < 8:
+							more_size = sock.recv( MAX_BYTE_SIGMA - len(datagram) )
+							if not more_size:
+								raise Exception("Short file length received")
+
+							datagram += more_size
 						
+						sigma = int.from_bytes(datagram, BIG_EDIAN)
+						
+						print(f"RECIEVED ACK TYPE {sigma}")
 						# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 						# NOW SEND THE NEXT PAYLOAD
 						if sigma == ACK.CMD_ACK:
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_QUOTE_REPLY:
-							cost = int(datagram[1])
+							cost = sock.recv(MAX_BYTE_SIGMA)
+							cost = int.from_bytes(cost, BIG_EDIAN)
 							print(f"RECIEVED COST: {cost}")
 							add_cost_tuple(sock, cost)
 							del msg_queue[sock]
 							sock.close()
 								
 						elif sigma == ACK.CMD_RETURN_STATUS:
-							r_code = int(datagram[1])
+							r_code = sock.recv(MAX_BYTES)
+							r_code = int.from_bytes(r_code, BIG_EDIAN)
 							print(f"RECIEVED STATUS CODE: {r_code}")
 
 							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SEND FROM SERVER
 							if r_code == 0:
-								send_ack(sd, ACK.CMD_ACK)
 								# EXPECT A FILE SENT FROM SERVER
-								msg_queue[sock] = ACK.CMD_SEND_FILE
+								msg_queue[sock] = ACK.CMD_SEND_NAME
 								
 							# EXECUTION FAILED WITH WARNING
 							#TODO: hand error codes
 							elif 0 < r_code < 5:
 								print("REVIEVCED A WARNING ERROR")
-								send_ack(sd, ACK.CMD_ACK)
 								msg_queue[sock] = ACK.CMD_RETURN_STDOUT
 
 							# EXECUTION HAD A FATAL ERROR
 							else:
 								print("REVIEVCED A FATAL ERROR")
-								send_ack(sd, ACK.CMD_ACK)
 								msg_queue[sock] = ACK.CMD_RETURN_STDERR
 
 							# SEND ACKS 
@@ -244,23 +261,24 @@ def execute(sd, ack_type, cmd=None):
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_SEND_NAME:
-							payload = datagram[1]
+							#TODO: fix protocol
+							payload = sock.recv(MAX_BYTES).decode(FORMAT)
 							file_to_recv[sock] = payload
 							msg_queue[sock] = ACK.CMD_SEND_SIZE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_SEND_SIZE:
-							payload = int(datagram[1])
-							file_size[sock] = payload
-							msg_queue[sock] = ACK.CMD_RECV_FILE
+							payload = sock.recv(MAX_BYTE_SIGMA)
+							file_size[sock] = int.from_bytes(payload, BIG_EDIAN)
+							msg_queue[sock] = ACK.CMD_SEND_FILE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
 						
-						elif sigma == ACK.CMD_RECV_FILE:
-							payload = datagram[1]
-							write_file(sock, file_to_recv[sock], file_size[sock], payload)
-							del filename[sock]
+						elif sigma == ACK.CMD_SEND_FILE:
+							print("RECIEVING FILE")
+							write_file(sock, file_to_recv[sock], file_size[sock])
+							del file_to_recv[sock]
 							del file_size[sock]
 							# END OF CONNECTION 
 							

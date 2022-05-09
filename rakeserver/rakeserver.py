@@ -19,30 +19,36 @@ FORMAT = 'utf-8'
 DEFAULT_BACKLOG = 5
 TIMEOUT 		= 0.5
 
+# HEADERS OR ACKS ARE 8 BYTES LONG
+MAX_BYTE_SIGMA = 8
+
+# USE BIG BIG_EDIAN FOR BYTE ORDER
+BIG_EDIAN = 'big'
+
 class Ack:
 	def __init__(self):
-		self.CMD_ECHO 			= 0
-		self.CMD_ECHOREPLY 		= 1
+		self.CMD_ECHO = 0
+		self.CMD_ECHOREPLY = 1
 
-		self.CMD_QUOTE_REQUEST 	= 2
-		self.CMD_QUOTE_REPLY 	= 3
+		self.CMD_QUOTE_REQUEST = 2
+		self.CMD_QUOTE_REPLY = 3
 
-		self.CMD_SEND_REQIUREMENTS	= 4
-		self.CMD_FILE_COUNT		= 5
-		self.CMD_SEND_FILE	 	= 6
-		self.CMD_SEND_SIZE		= 7
-		self.CMD_SEND_NAME		= 8
+		self.CMD_SEND_REQIUREMENTS = 4
+		self.CMD_FILE_COUNT = 5
+		self.CMD_SEND_FILE = 6
+		self.CMD_SEND_SIZE = 7
+		self.CMD_SEND_NAME = 8
 
-		self.CMD_EXECUTE_REQ 	= 9
-		self.CMD_EXECUTE 		= 10
-		self.CMD_RETURN_STATUS 	= 11
+		self.CMD_EXECUTE_REQ = 9
+		self.CMD_EXECUTE = 10
+		self.CMD_RETURN_STATUS  = 11
 
-		self.CMD_RETURN_STDOUT 	= 12
-		self.CMD_RETURN_STDERR 	= 13
+		self.CMD_RETURN_STDOUT  = 12
+		self.CMD_RETURN_STDERR  = 13
 
-		self.CMD_RETURN_FILE 	= 14
+		self.CMD_RETURN_FILE = 14
 
-		self.CMD_ACK 			= 15
+		self.CMD_ACK = 15
 
 
 class FileStats():
@@ -137,11 +143,11 @@ def calculate_cost():
 
 
 def send_quote(sd):
-	ack = str(ACK.CMD_QUOTE_REPLY)
-	cost = str(calculate_cost())
-	datagram = f'{ack} {cost}'
-	print(f'<---- SENDING QUOTE: {datagram}')
-	sd.send( datagram.encode(FORMAT) )
+	ack = ACK.CMD_QUOTE_REPLY.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	cost = calculate_cost().to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	print(f'<---- SENDING QUOTE: {cost}')
+	sd.sendall( ack )
+	sd.sendall( cost )
 
 
 def check_temp_dir(peer_dir):
@@ -169,22 +175,15 @@ def run_cmd(sd, cmd):
 		Returns (tuple) (int): return code ()
 	
 	'''
-	# TODO: make a subfolder in tmp named after the raddr (remote address) to have unique place for 
-	# each socket have a process running, this will make it easier to find the file we need to send back to the client.
-	# for example if multiple sockets were adding and deleting files in a single folder it might delete a file
-	# another proccess or socket needed.
 	raddr = sd.getpeername()
-	print(raddr)
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
-	global return_code
+	print(f'EXECUTE REQUEST FROM {raddr}')
 	print(f'RUNNING COMMAND: {cmd}')
 	p = subprocess.run(cmd, shell=True, cwd=f'./tmp/{peer_dir}')
 	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
-
-	print(f'FOUND NEW FILE {file_attr.filename}')
 
 	return p.returncode, file_attr
 
@@ -216,17 +215,14 @@ def scan_dir(dir):
 
 
 
-def write_file(sd, filename, size, data):
+def write_file(sd, filename, size):
 	raddr = sd.getpeername()
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
 	tmp = f"./tmp/{peer_dir}/"
 	try:
 		with open(tmp + filename, "a") as f:
-			f.write(data)
-			current = os.path.getsize(tmp + filename)
-			size_left = current - size
-
+			size_left = size
 			while size_left > 0:
 				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
 				size_left -= MAX_BYTES
@@ -237,33 +233,31 @@ def write_file(sd, filename, size, data):
 
 def send_ack(sd, ack_type):
 	print(f'<---- SENDING ACK')
-	ack = str(ack_type)
-	sd.send( ack.encode(FORMAT) )
+	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.send( ack )
 
 
-def send_return_status(sd):
-	# TODO: BrokenPipe Errno 32 wont completely send msg
-	# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
-	# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
-	# COULD BE A NON BLOCKING / SELECT() ISSUE}
-	print(f"<-------- SENDING RETURN STATUS ({return_code})")
-	sigma = str(ACK.CMD_RETURN_STATUS)
-	payload = str(return_code)
-	print(f'{sigma} {payload}')
-	sd.send(f'{sigma} {payload}'.encode(FORMAT))
+# def send_return_status(sd):
+# 	print(f"<-------- SENDING RETURN STATUS ({return_code})")
+# 	sigma = str(ACK.CMD_RETURN_STATUS)
+# 	payload = str(return_code)
+# 	print(f'{sigma} {payload}')
+# 	sd.send(f'{sigma} {payload}'.encode(FORMAT))
 
 
 def send_filename(sd, file_attr):
-	sigma = str(ACK.CMD_SEND_NAME)
+	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	payload = file_attr.filename
-	sd.send(f'{sigma} {payload}'.encode(FORMAT))
+	sd.sendall( sigma )
+	sd.sendall(payload.encode(FORMAT))
 
 
 def send_size(sd, file_attr):
-	sigma = str(ACK.CMD_SEND_SIZE)
+	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	size = file_attr.size
-	payload = str(size)
-	sd.send(f'{sigma} {payload}'.encode(FORMAT))
+	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	sd.sendall( payload )
 
 
 #TODO: DEAL WITH FILES LARGER THEN THE BUFFER SIZE
@@ -271,11 +265,13 @@ def send_size(sd, file_attr):
 def send_file(sd, file_attr):
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
-	with open(filename, "rb") as f:
-		sigma = ACK.CMD_SEND_FILE
+	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	
+	with open(filename, 'rb') as f:
 		payload = f.read()
-		sd.send(f'{sigma}  '.encode(FORMAT))
-		sd.sendall(payload)
+
+	sd.sendall( payload )
 
 
 def non_blocking_socket(host, port):
@@ -304,7 +300,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(False)
+	sd.setblocking(True)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -313,9 +309,6 @@ def non_blocking_socket(host, port):
 	# OUTGOING MESSAGE QUEUES
 	# TRACKS WHAT ACKS SOCKETS ARE WAITING FOR
 	msg_queue = {}
-
-	# KEEP TRACK OF FILES TO SEND
-	file_count_queue = {}
 
 	# KEEP TRACK OF SOCKETS NEEDING ACKS
 	ack_queue = {}
@@ -355,14 +348,22 @@ def non_blocking_socket(host, port):
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 						
-					# RECIEVE DATA AND SPLIT BY THE FIRST WHITE SPACE
-					datagram = sock.recv(MAX_BYTES).decode(FORMAT).split(" ", 1)
-					sigma = int(datagram[0])
+					# SOMETHING TO READ
+					datagram = b''
+					while len(datagram) < 8:
+						more_size = sock.recv( MAX_BYTE_SIGMA - len(datagram) )
+						if not more_size:
+							raise Exception("Short file length received")
+
+						datagram += more_size
+					
+					sigma = int.from_bytes(datagram, BIG_EDIAN)
 
 
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT 
 					if sigma == ACK.CMD_ACK:
+						print("ACK RECIEVED")
 						output_sockets.append(sock)
 
 					# ELSE THE INITIAL CONNECTION REQUEST 
@@ -380,7 +381,7 @@ def non_blocking_socket(host, port):
 						
 						# REQUEST TO RUN COMMAND
 						elif sigma == ACK.CMD_EXECUTE:
-							payload = datagram[1]
+							payload = sock.recv(MAX_BYTES).decode(FORMAT)
 							print(f'REQUEST TO EXECUTE...{payload}')
 							# STORE RETURN CODE IN DICT 
 							r_code, file_attr = run_cmd(sock, payload)
@@ -390,22 +391,23 @@ def non_blocking_socket(host, port):
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_SEND_NAME:
-							payload = datagram[1]
+							payload = sock.recv(MAX_BYTES).decode(FORMAT)
 							filename[sock] = payload
 							msg_queue[sock] = ACK.CMD_SEND_SIZE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_SEND_SIZE:
-							payload = datagram[1]
-							file_size[sock] = int(payload)
+							payload = sock.recv(MAX_BYTES)
+							payload = int.from_bytes(payload, BIG_EDIAN)
+							print(f"RECIEVED SIZE {payload}")
+							file_size[sock] = payload
 							msg_queue[sock] = ACK.CMD_SEND_FILE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
 						
 						elif sigma == ACK.CMD_SEND_FILE:
-							payload = datagram[1]
-							write_file(sock, filename[sock], file_size[sock], payload)
+							write_file(sock, filename[sock], file_size[sock])
 							del filename[sock]
 							del file_size[sock]
 							msg_queue[sock] = ACK.CMD_EXECUTE
@@ -428,7 +430,8 @@ def non_blocking_socket(host, port):
 						output_sockets.remove(sock)
 
 					msg_type = msg_queue[sock]
-					print(f"WRITING TYPE: {msg_type}")
+
+					print(f"SENDING ACK FOR {msg_queue}")
 
 					# SLEEP
 					if sleep == True:
@@ -457,9 +460,10 @@ def non_blocking_socket(host, port):
 
 						# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 						if r_code == 0:
-							sigma = str(ACK.CMD_RETURN_STATUS)
-							payload = str(r_code)
-							sock.send(f'{sigma} {payload}'.encode(FORMAT))
+							sigma = ACK.CMD_RETURN_STATUS.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+							payload = r_code.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+							sock.sendall( sigma )
+							sock.sendall( payload )
 
 							# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
 							# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
@@ -489,18 +493,18 @@ def non_blocking_socket(host, port):
 					elif msg_type == ACK.CMD_SEND_SIZE:
 						file_attr = file_to_send[sock]
 						send_size(sock, file_attr)
-						msg_queue[sock] = ACK.CMD_SEND_FILE
+						msg_queue[sock] = 6
 						input_sockets.append(sock)
 
 					elif msg_type == ACK.CMD_SEND_FILE:
+						print("entered here")
 						file_attr = file_to_send[sock]
+						#send_ack(sock, ACK.CMD_SEND_FILE)
 						send_file(sock, file_attr)
-						del msg_queue[sock]
+						input_sockets.append(sock)
+						msg_queue[sock]
 						# END OF CONNECTION
-						sock.close()
 						
-
-
 
 		except KeyboardInterrupt:
 			print('Interrupted. Closing sockets...')

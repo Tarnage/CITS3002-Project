@@ -1,5 +1,5 @@
 
-PORT  = 6328
+PORT  = 6327
 HOSTS = hostname1
 
 actionset1:
