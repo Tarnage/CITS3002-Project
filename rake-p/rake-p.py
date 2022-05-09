@@ -9,12 +9,21 @@ import os
 import time
 import random
 
+# DEFAULT PORT AND HOSTS
 SERVER_PORT = 50009
 #SERVER_HOST = '192.168.1.105'
 SERVER_HOST = '127.0.0.1'
+# MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES = 1024
+# THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
 FORMAT = 'utf-8'
+# HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
+DEFAULT_BACKLOG = 5
 TIMEOUT 		= 0.5
+# INTS OR ACKS ARE 8 BYTES LONG
+MAX_BYTE_SIGMA = 8
+# USE BIG BIG_EDIAN FOR BYTE ORDER
+BIG_EDIAN = 'big'
 
 # ACKS INTEGERS ARE 8 BYTES LONG
 MAX_BYTE_SIGMA = 8
@@ -23,6 +32,7 @@ MAX_BYTE_SIGMA = 8
 BIG_EDIAN = 'big'
 
 class Ack:
+	''' ENUM  Class'''
 	def __init__(self):
 		self.CMD_ECHO = 0
 		self.CMD_ECHOREPLY = 1
@@ -48,9 +58,8 @@ class Ack:
 		self.CMD_ACK = 15
 
 # INIT GLOBALS
-# init enum class
+# INIT ENUM CLASS
 ACK = Ack()
-
 cost_list = list()
 
 def usage():
@@ -58,6 +67,16 @@ def usage():
 
 
 def create_socket(host, port):
+	''' creates connections to given hosts on give port
+
+		Args:
+			host(str): Represents the address or ip
+			port(int): port number to connect on
+
+		Returns:
+			sd(socket): The connection object
+	
+	'''
 	try:
 		sd = socket.socket()
 		print( f"Socket succesfully created! ({host}:{port})" )
@@ -73,11 +92,23 @@ def create_socket(host, port):
 
 
 def close_sockets(sockets):
+	''' Helper to close all connections when an error ocurrs or a Interrupt
+
+		Args:
+			sockets(list): Contains a list of open sockets
+	'''
 	for sock in sockets:
 		sock.close()
 
 
 def send_datagram(sd, ack_type, payload=None):
+	''' Helper to build the datagram
+
+		Args;
+			sd(socket): connection to send the datagram
+			ack_type(int): Represents the acknowledgment type
+	
+	'''
 	sigma = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 
 	if ack_type == ACK.CMD_QUOTE_REQUEST:
@@ -89,8 +120,14 @@ def send_datagram(sd, ack_type, payload=None):
 		sd.sendall( sigma )
 		sd.sendall(f'{payload}'.encode(FORMAT))
 
-
+# TODO: DONT MAKE cost_list global but instead have it sent in 
+# as a paramter
 def get_lowest_cost():
+	'''	Chooses the best or cheapest server to continue execution
+
+		Returns:
+			result(tuple): (str):hostname, (int):port
+	'''
 	global cost_list
 	lowest_cost = sys.maxsize
 	result = tuple()
@@ -104,12 +141,26 @@ def get_lowest_cost():
 
 
 def add_cost_tuple(sd, cost):
+	''' Helper to record current 'bids' or cost from servers to continue 
+		execution with them.
+
+		Args:
+			sd(socket): Socket object with stats
+			cost(int): the bid from the server
+	'''
 	global cost_list
 	ip_port = sd.getpeername()
 	cost_list.append((cost, ip_port))
 
 
 def send_size(sd, filename):
+	''' Send file size to server. This function will use system calls
+		to find the file and return the size in bytes
+	
+		Args:
+			sd(socket): Connection to send the filename
+			filename(str): name of the file we want to send the size of.
+	'''
 	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	size = os.path.getsize(f'./{filename}')
 	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -118,6 +169,12 @@ def send_size(sd, filename):
 
 
 def send_file_name(sd, filename):
+	''' Send filename to server
+	
+		Args:
+			sd(socket): Connection to send the filename
+			filename(str): Name of file to send
+	'''
 	print(f'SENDING FILENAME ({filename})...')
 	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
@@ -125,6 +182,12 @@ def send_file_name(sd, filename):
 
 
 def send_req_file(sd, filename):
+	''' Send file contents to server
+
+		Args:
+			sd(socket): Connection to send the filename
+			filename(str): Name of file to transfer
+	'''
 	print(f'SENDING FILE ---->')
 	with open(filename, "r") as f:
 		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -134,6 +197,13 @@ def send_req_file(sd, filename):
 
 
 def write_file(sd, filename, size):
+	''' Receive binary file from server
+	
+		Args:
+			sd(socket): Connection file is being sent from
+			filename(str): Name of file
+			size(int): Total size of the file being received in bytes
+	'''
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
@@ -151,6 +221,12 @@ def write_file(sd, filename, size):
 
 #TODO: dont need ack type args
 def send_ack(sd, ack_type):
+	'''Helper sends acknowledgments to a connection
+	
+		Args:
+			sd(socket): Connection to send the acknowledgment
+			ack_type(int): integer representing the acknowledgment type
+	'''
 	print(f'----> SENDING ACK')
 	
 	# SEND ACK WITH FIXED BYTE ORDER AND SIZE
