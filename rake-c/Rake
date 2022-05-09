@@ -14,5 +14,5 @@ actionset1:
 
 actionset2:
 	echo starting actionset2
-	cc -Wall -Werror -pedantic program program.o square.o cube.o
+	cc -Wall -Werror -pedantic -o program program.o square.o cube.o
 		program.o square.o cube.o
