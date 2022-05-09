@@ -183,19 +183,19 @@ def execute(sd, ack_type, cmd=None):
 			for s in sd:
 				msg_queue[s] = ACK.CMD_QUOTE_REQUEST
 				output_sockets.append(s)
-				s.setblocking(True)
+				s.setblocking(False)
 		
 		if ack_type == ACK.CMD_EXECUTE:
 			msg_queue[sd] = ACK.CMD_EXECUTE
 			output_sockets.append(sd)
-			sd.setblocking(True)
+			sd.setblocking(False)
 
 		if ack_type == ACK.CMD_SEND_NAME:
 			msg_queue[sd] = ACK.CMD_SEND_NAME
 			# TRACK HOW MANY FILES TO SEND
 			file_count = len(cmd.requires)-1 # -1 because first index is the requires string
 			output_sockets.append(sd)
-			sd.setblocking(True)
+			sd.setblocking(False)
 		
 
 		while msg_queue:
@@ -233,6 +233,7 @@ def execute(sd, ack_type, cmd=None):
 							print(f"RECIEVED COST: {cost}")
 							add_cost_tuple(sock, cost)
 							del msg_queue[sock]
+							print("CLOSING CONNECTION...")
 							sock.close()
 								
 						elif sigma == ACK.CMD_RETURN_STATUS:
@@ -261,7 +262,6 @@ def execute(sd, ack_type, cmd=None):
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_SEND_NAME:
-							#TODO: fix protocol
 							payload = sock.recv(MAX_BYTES).decode(FORMAT)
 							file_to_recv[sock] = payload
 							msg_queue[sock] = ACK.CMD_SEND_SIZE
@@ -280,6 +280,9 @@ def execute(sd, ack_type, cmd=None):
 							write_file(sock, file_to_recv[sock], file_size[sock])
 							del file_to_recv[sock]
 							del file_size[sock]
+							print("CLOSING CONNECTION...")
+							sock.close()
+							del msg_queue[sock]
 							# END OF CONNECTION 
 							
 				for sock in write_sockets:
@@ -360,11 +363,11 @@ def execute(sd, ack_type, cmd=None):
 				close_sockets(input_sockets)
 				close_sockets(output_sockets)
 				sys.exit()
-			# except Exception as err:
-			# 	print( f'ERROR occurred in {execute.__name__} with code: {err}' )
-			# 	close_sockets(input_sockets)
-			# 	close_sockets(output_sockets)
-			# 	break
+			except Exception as err:
+				print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+				close_sockets(input_sockets)
+				close_sockets(output_sockets)
+				sys.exit()
 	
 
 def get_all_conn(hosts):
