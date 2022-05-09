@@ -17,8 +17,8 @@ int main (int argc, char *argv[])
 
     file_process(file_name, action_set, hosts);
     
-    print_hosts(hosts);
-    print_action_sets(action_set);
+    // print_hosts(hosts);
+    // print_action_sets(action_set);
 
     perform_actions(action_set);
 

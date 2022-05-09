@@ -80,7 +80,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 {
                     hosts->name = strdup(words[i]);
                     hosts->port = default_port;
-                    printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
+                    // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 } 
                 else 
@@ -91,7 +91,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     ++port;
                     hosts->name = strdup(name);
                     hosts->port = atoi(port);
-                    printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
+                    // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 }
                 num_hosts++;
@@ -138,7 +138,8 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
             {   
                 // GO BACK AN INDEX TO FILL OUT REQUIREMENTS 
                 --action_index;
-                ACTION_DATA(num_sets-1, action_index).requirements = strsplit(line, &ACTION_DATA(num_sets-1, action_index).req_count);
+                char *buffer = trim_whitespace(line);
+                ACTION_DATA(num_sets-1, action_index).requirements = strsplit(buffer, &ACTION_DATA(num_sets-1, action_index).req_count);
             }
         }
     }
