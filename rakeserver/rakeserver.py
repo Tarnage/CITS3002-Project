@@ -207,7 +207,7 @@ def write_file(sd, filename, size):
 	tmp = f"./tmp/{peer_dir}/"
 	try:
 		with open(tmp + filename, "w") as f:
-			buffer = b""
+			buffer = ""
 			while len(buffer) < size:
 				buffer += sd.recv(MAX_BYTES).decode(FORMAT)
 
