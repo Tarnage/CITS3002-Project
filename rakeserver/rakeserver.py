@@ -241,13 +241,18 @@ def send_filename(sd, file_attr):
 	sd.sendall( sigma )
 	sd.sendall(payload.encode(FORMAT))
 
-
+# TODO: add sleep for slow connections
 def recv_filename(sd):
 	datagram = b''
 	while len(datagram) < MAX_BYTE_SIGMA:
-		more_size = sd.recv( MAX_BYTE_SIGMA - len(datagram) )
-		if not more_size:
-			raise Exception("Short file length received")
+		try:
+			more_size = sd.recv( MAX_BYTE_SIGMA - len(datagram) )
+			if not more_size:
+				time.sleep(0)
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
 
 		datagram += more_size
 	
@@ -255,10 +260,11 @@ def recv_filename(sd):
 	print(f"RECIEVED SIZE {size}")
 
 	filename = b''
+
 	while len(filename) < size:
 		more_size = sd.recv( size - len(filename) )
 		if not more_size:
-			raise Exception("Short file length received")
+			time.sleep(0)
 
 		filename += more_size
 		
@@ -328,7 +334,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(0)
+	sd.setblocking(False)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
