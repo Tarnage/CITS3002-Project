@@ -3,16 +3,12 @@
 import socket
 import select
 import sys
-# This shorthand makes one module visible to the other
-sys.path.insert(0, '../')
-from logger_p import rakelogger
 
 SERVER_PORT = 50009
 #SERVER_HOST = '192.168.1.105'
 SERVER_HOST = '127.0.0.1'
 MAX_BYTES = 1024
 FORMAT = 'utf-8'
-
 
 def usage():
 	print("Usage: ")
@@ -21,19 +17,19 @@ def usage():
 def create_socket(host, port):
 	try:
 		sd = socket.socket()
-		logger.info( f"Socket succesfully created! ({host}:{port})" )
+		print( f"Socket succesfully created! ({host}:{port})" )
 
 	except socket.error as err:
-		logger.warning( f'socket creation failed with error {err}' )
+		print( f'socket creation failed with error {err}' )
 	
-	logger.info( f'connecting to {host}:{port}...' )
+	print( f'connecting to {host}:{port}...' )
 	sd.connect( (host, port) )
 
 	return sd
 
 
 def send_data(sd, data):
-	logger.info( f'sending...' )
+	print( f'sending...' )
 	sd.send(data.encode( FORMAT ))
 
 
@@ -57,21 +53,21 @@ def client_socket(host, port):
 
 			# CHECK IF SOCKETS ARE RECEIVING DATA
 			for sock in read_sockets:
-				logger.info("entered read sockets")
+				print("entered read sockets")
 				if sock:
-					logger.info( f'{sock.getsockname()}:receiving...' )
+					print( f'{sock.getsockname()}:receiving...' )
 					data_recv = sock.recv( MAX_BYTES ).decode( FORMAT )
-					logger.info( f'message: {data_recv}' )
+					print( f'message: {data_recv}' )
 					
 					# ADD SOCKET BACK TO WRITE QUEUE
 					write_list.append(sock)
 			
 			# SOCKETS IN write_socket ARE WAITING TO SEND DATA
 			for sock in write_sockets:
-				logger.info("entered write lists")
+				print("entered write lists")
 				if sock:
 					test = f'sending from {sock.getsockname()}'
-					logger.info( f"{test}" )
+					print( f"{test}" )
 
 					# SEND DATA
 					send_data(sock, test)
@@ -82,14 +78,14 @@ def client_socket(host, port):
 					
 
 		except KeyboardInterrupt:
-			logger.warning('Interrupted. Closing sockets...')
+			print('Interrupted. Closing sockets...')
 			# Make sure we close sockets gracefully
 			close_sockets(read_sockets)
 			close_sockets(write_sockets)
 			close_sockets(error_sockets)
 			break
 		except Exception as err:
-			logger.warning( f'ERROR occurred in {client_socket.__name__} with code: {err}' )
+			print( f'ERROR occurred in {client_socket.__name__} with code: {err}' )
 			break
 
 
@@ -103,9 +99,6 @@ def main(port):
 
 
 if __name__ == "__main__":
-	# INIT GLOBAL LOGGER
-	global logger
-	logger = rakelogger.init_logger()
 
 	if (len(sys.argv) == 1 or sys.argv[1].lower() == 'usage'):
 		usage()
