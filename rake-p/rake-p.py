@@ -41,7 +41,7 @@ class Ack:
 		self.CMD_QUOTE_REPLY = 3
 
 		self.CMD_SEND_REQIUREMENTS = 4
-		self.CMD_BYTE_FILE = 5
+		self.CMD_BIN_FILE = 5
 		self.CMD_SEND_FILE = 6
 		self.CMD_SEND_SIZE = 7
 		self.CMD_SEND_NAME = 8
@@ -101,24 +101,18 @@ def close_sockets(sockets):
 		sock.close()
 
 
-def send_datagram(sd, ack_type, payload=None):
-	''' Helper to build the datagram
-
+def send_cmd(sd, payload):
+	''' Helper send command to execute on remote servers
 		Args;
 			sd(socket): connection to send the datagram
 			ack_type(int): Represents the acknowledgment type
+			payload(str): command to execute
 	
 	'''
-	sigma = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-
-	if ack_type == ACK.CMD_QUOTE_REQUEST:
-		print("SENDING ACK FOR COST REQUEST ---->")
-		sd.sendall( sigma )
-	
-	elif ack_type == ACK.CMD_EXECUTE:
-		print(f'SENDING ACK FOR EXECUTE ---->')
-		sd.sendall( sigma )
-		sd.sendall(f'{payload}'.encode(FORMAT))
+	send_ack(sd, ACK.CMD_EXECUTE)
+	send_byte_size(sd, len(payload))
+	sd.sendall(payload.encode(FORMAT))
+	print(f"COMMAND SENT {payload}")
 
 # TODO: DONT MAKE cost_list global but instead have it sent in 
 # as a paramter
@@ -187,7 +181,7 @@ def send_file_name(sd, filename):
 
 
 
-def send_req_file(sd, filename):
+def send_txt_file(sd, filename):
 	''' Send file contents to server
 
 		Args:
@@ -203,7 +197,7 @@ def send_req_file(sd, filename):
 
 
 # TODO: some files being sent by the client maybe binary files use this
-def send_byte_file(sd, filename):
+def send_bin_file(sd, filename):
 	''' Transfer binary file
 	
 		Args:
@@ -222,7 +216,7 @@ def send_byte_file(sd, filename):
 	print(f'FILE SENT...')
 
 
-def write_file(sd, filename, size):
+def recv_bin_file(sd, filename, size):
 	''' Receive binary file from server
 		Args:
 			sd(socket): Connection file is being sent from
@@ -245,7 +239,6 @@ def write_file(sd, filename, size):
 		sys.exit(f'File creation failed with error: {err}')
 
 
-#TODO: dont need ack type args
 def send_ack(sd, ack_type):
 	'''Helper sends acknowledgments to a connection
 	
@@ -258,6 +251,41 @@ def send_ack(sd, ack_type):
 	# SEND ACK WITH FIXED BYTE ORDER AND SIZE
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( ack )
+
+
+def recv_byte_int(sd):
+	''' Helper to get the size of incoming payload also to get expected integers
+		Since all integers are 8 bytes
+		Args:
+			sd(socket): socket descriptor of the connection
+
+		Return:
+			result(int): The size of incoming payload
+	'''
+	size = b''
+	while len(size) < MAX_BYTE_SIGMA:
+		try:
+			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
+			if not more_size:
+				raise Exception("Short file length received")
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+		size += more_size
+
+	result = int.from_bytes(size, BIG_EDIAN)
+	return result
+
+
+def send_byte_size(sd, payload_len):
+	''' Helper to send the byte size of outgoing payload
+		Args:
+			sd(socket): socket descriptor of the connection
+	'''
+	print(f"SENDING SIZE OF PAYLOAD: {payload_len}")
+	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.send(size)
 
 
 def execute(sd, ack_type, cmd=None):
@@ -313,15 +341,7 @@ def execute(sd, ack_type, cmd=None):
 							input_sockets.remove(sock)
 
 						# SOMETHING TO READ
-						datagram = b''
-						while len(datagram) < 8:
-							more_size = sock.recv( MAX_BYTE_SIGMA - len(datagram) )
-							if not more_size:
-								raise Exception("Short file length received")
-
-							datagram += more_size
-						
-						sigma = int.from_bytes(datagram, BIG_EDIAN)
+						sigma = recv_byte_int(sock)
 						
 						print(f"RECIEVED ACK TYPE {sigma}")
 						# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
@@ -330,8 +350,7 @@ def execute(sd, ack_type, cmd=None):
 							output_sockets.append(sock)
 
 						elif sigma == ACK.CMD_QUOTE_REPLY:
-							cost = sock.recv(MAX_BYTE_SIGMA)
-							cost = int.from_bytes(cost, BIG_EDIAN)
+							cost = recv_byte_int(sock)
 							print(f"RECIEVED COST: {cost}")
 							add_cost_tuple(sock, cost)
 							del msg_queue[sock]
@@ -379,7 +398,7 @@ def execute(sd, ack_type, cmd=None):
 						
 						elif sigma == ACK.CMD_SEND_FILE:
 							print("RECIEVING FILE")
-							write_file(sock, file_to_recv[sock], file_size[sock])
+							recv_bin_file(sock, file_to_recv[sock], file_size[sock])
 							del file_to_recv[sock]
 							del file_size[sock]
 							print("CLOSING CONNECTION...")
@@ -411,7 +430,7 @@ def execute(sd, ack_type, cmd=None):
 
 						# SEND AN ACK FOR A QUOTE
 						elif msg_type == ACK.CMD_QUOTE_REQUEST:
-							send_datagram(sock, msg_type)
+							send_ack(sock, ACK.CMD_QUOTE_REQUEST)
 							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
 							input_sockets.append(sock)
 
@@ -424,7 +443,8 @@ def execute(sd, ack_type, cmd=None):
 
 							# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 							if file_count == 0:
-								send_datagram(sd, ACK.CMD_EXECUTE, cmd.cmd)
+								print(f'SENDING ACK FOR EXECUTE ---->')
+								send_cmd(sd, cmd.cmd)
 								# WHEN THEN WAIT FOR THE RETURN STATUS
 								msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							# ELSE WE HAVE MORE FILES TO SEND
@@ -443,7 +463,7 @@ def execute(sd, ack_type, cmd=None):
 						elif msg_type == ACK.CMD_SEND_FILE:
 							index = file_count
 							filename = cmd.requires[index]
-							send_req_file(sd, filename)
+							send_txt_file(sd, filename)
 							# DECREMENT THE FILE COUNT
 							file_count -= 1
 							# GET READY TO SEND THE NEXT FILE
@@ -452,7 +472,7 @@ def execute(sd, ack_type, cmd=None):
 
 						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
 						elif msg_type == ACK.CMD_EXECUTE:
-							send_datagram(sd, ACK.CMD_EXECUTE, cmd.cmd)
+							send_cmd(sd, cmd.cmd)
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							input_sockets.append(sock)
 

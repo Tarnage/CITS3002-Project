@@ -36,7 +36,7 @@ class Ack:
 		self.CMD_QUOTE_REPLY = 3
 
 		self.CMD_SEND_REQIUREMENTS = 4
-		self.CMD_BYTE_FILE = 5
+		self.CMD_BIN_FILE = 5
 		self.CMD_SEND_FILE = 6
 		self.CMD_SEND_SIZE = 7
 		self.CMD_SEND_NAME = 8
@@ -97,11 +97,10 @@ def send_quote(sd):
 		Args:
 			sd(socket): Which socket to send the quote.
 	'''
-	ack = ACK.CMD_QUOTE_REPLY.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	cost = calculate_cost()
 	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( ack )
+	send_ack(sd, ACK.CMD_QUOTE_REPLY)
 	sd.sendall( cost )
 
 
@@ -151,11 +150,12 @@ def run_cmd(sd, cmd):
 	
 	'''
 	raddr = sd.getpeername()
-	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	peer_dir = str(raddr[0]) + "." + str(raddr[1])
+	dir = str('./tmp/' + peer_dir)
 	check_temp_dir(peer_dir)
 	print(f'EXECUTE REQUEST FROM {raddr}')
 	print(f'RUNNING COMMAND: {cmd}')
-	p = subprocess.run(cmd, shell=True, cwd=f'./tmp/{peer_dir}')
+	p = subprocess.run(cmd, shell=True, cwd=dir)
 	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
@@ -192,7 +192,7 @@ def scan_dir(dir):
 	return file_attr
 
 
-def write_file(sd, filename, size):
+def recv_text_file(sd, filename, size):
 	''' Writes strings to a file. This is used to transfer source code from Client to Server
 
 		Args:
@@ -274,7 +274,7 @@ def recv_filename(sd):
 	return result
 
 
-def send_size(sd, file_attr):
+def send_file_size(sd, file_attr):
 	''' Send file size to client
 	
 		Args:
@@ -288,7 +288,7 @@ def send_size(sd, file_attr):
 	sd.sendall( payload )
 
 
-def send_file(sd, file_attr):
+def send_bin_file(sd, file_attr):
 	''' Transfer binary file
 	
 		Args:
@@ -306,6 +306,68 @@ def send_file(sd, file_attr):
 
 	sd.sendall( payload )
 	print(f'FILE SENT...')
+
+
+def recv_byte_int(sd):
+	''' Helper to get the size of incoming payload
+		Args:
+			sd(socket): socket descriptor of the connection
+
+		Return:
+			result(int): The size of incoming payload
+	'''
+	print("RECEIVING AN INT")
+	size = b''
+	while len(size) < MAX_BYTE_SIGMA:
+		try:
+			print(f"{size}entered")
+			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
+			if not more_size:
+				raise Exception("Short file length received")
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+		size += more_size
+
+	result = int.from_bytes(size, BIG_EDIAN)
+	print("returned result")
+	return result
+
+
+def send_byte_size(sd, payload_len):
+	''' Helper to send the byte size of outgoing payload
+		Args:
+			sd(socket): socket descriptor of the connection
+	'''
+	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.send(size)
+
+
+def recv_cmd(sd, size):
+	''' Helper to get the size of incoming payload
+		Args:
+			sd(socket): socket descriptor of the connection
+			size(int): the size of bytes to expect
+
+		Return:
+			result(str): The command sent from client
+	'''
+	payload = b''
+	while len(payload) < size:
+		try:
+			more_size = sd.recv( size - len(payload) )
+			if not more_size:
+				raise Exception("Short file length received")
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+		payload += more_size
+
+	result = payload.decode(FORMAT)
+	print("returned result")
+	return result
 
 
 def non_blocking_socket(host, port):
@@ -334,7 +396,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(False)
+	sd.setblocking(0)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -382,15 +444,7 @@ def non_blocking_socket(host, port):
 						input_sockets.remove(sock)
 						
 					# SOMETHING TO READ
-					datagram = b''
-					while len(datagram) < 8:
-						more_size = sock.recv( MAX_BYTE_SIGMA - len(datagram) )
-						if not more_size:
-							raise Exception("Short file length received")
-
-						datagram += more_size
-					
-					sigma = int.from_bytes(datagram, BIG_EDIAN)
+					sigma = recv_byte_int(sock)
 
 
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
@@ -414,7 +468,8 @@ def non_blocking_socket(host, port):
 						
 						# REQUEST TO RUN COMMAND
 						elif sigma == ACK.CMD_EXECUTE:
-							payload = sock.recv(MAX_BYTES).decode(FORMAT)
+							size = recv_byte_int(sock)
+							payload = recv_cmd(sock, size)
 							print(f'REQUEST TO EXECUTE...{payload}')
 							# STORE RETURN CODE IN DICT 
 							r_code, file_attr = run_cmd(sock, payload)
@@ -440,7 +495,7 @@ def non_blocking_socket(host, port):
 							output_sockets.append(sock)
 						
 						elif sigma == ACK.CMD_SEND_FILE:
-							write_file(sock, filename[sock], file_size[sock])
+							recv_text_file(sock, filename[sock], file_size[sock])
 							del filename[sock]
 							del file_size[sock]
 							msg_queue[sock] = ACK.CMD_EXECUTE
@@ -524,14 +579,14 @@ def non_blocking_socket(host, port):
 
 					elif msg_type == ACK.CMD_SEND_SIZE:
 						file_attr = file_to_send[sock]
-						send_size(sock, file_attr)
+						send_file_size(sock, file_attr)
 						msg_queue[sock] = 6
 						input_sockets.append(sock)
 
 					elif msg_type == ACK.CMD_SEND_FILE:
 						print("entered here")
 						file_attr = file_to_send[sock]
-						send_file(sock, file_attr)
+						send_bin_file(sock, file_attr)
 						print("CLOSING CONNECTION...")
 						del msg_queue[sock]
 						# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
