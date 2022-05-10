@@ -192,7 +192,7 @@ def scan_dir(dir):
 	return file_attr
 
 
-def recv_text_file(sd, filename, size):
+def recv_text_file(sd):
 	''' Writes strings to a file. This is used to transfer source code from Client to Server
 
 		Args:
@@ -205,12 +205,18 @@ def recv_text_file(sd, filename, size):
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
 	tmp = f"./tmp/{peer_dir}/"
+
+	filename = recv_filename(sd)
+	print(f"RECEIVED FILE NAME: {filename}")
+	size = recv_byte_int(sd)
+
+	buffer = ""
+	while len(buffer) < size:
+		print("reading")
+		buffer += sd.recv(size - len(buffer)).decode(FORMAT)
+
 	try:
 		with open(tmp + filename, "w") as f:
-			buffer = ""
-			while len(buffer) < size:
-				buffer += sd.recv(MAX_BYTES).decode(FORMAT)
-
 			f.write(buffer)
 
 	except OSError as err:
@@ -243,10 +249,12 @@ def send_filename(sd, file_attr):
 
 # TODO: add sleep for slow connections
 def recv_filename(sd):
-	datagram = b''
-	while len(datagram) < MAX_BYTE_SIGMA:
+
+	size = recv_byte_int(sd)
+	filename = b''
+	while len(filename) < size:
 		try:
-			more_size = sd.recv( MAX_BYTE_SIGMA - len(datagram) )
+			more_size = sd.recv( size - len(filename) )
 			if not more_size:
 				time.sleep(0)
 		except socket.error as err:
@@ -254,24 +262,10 @@ def recv_filename(sd):
 				time.sleep(0)
 				continue
 
-		datagram += more_size
-	
-	size = int.from_bytes(datagram, BIG_EDIAN)
-	print(f"RECIEVED SIZE {size}")
-
-	filename = b''
-
-	while len(filename) < size:
-		more_size = sd.recv( size - len(filename) )
-		if not more_size:
-			time.sleep(0)
-
 		filename += more_size
-		
-	result = filename.decode(FORMAT)
-	print(result)
+	
+	return filename.decode(FORMAT)
 
-	return result
 
 
 def send_file_size(sd, file_attr):
@@ -316,11 +310,9 @@ def recv_byte_int(sd):
 		Return:
 			result(int): The size of incoming payload
 	'''
-	print("RECEIVING AN INT")
 	size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
-			print(f"{size}entered")
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
 			if not more_size:
 				raise Exception("Short file length received")
@@ -331,7 +323,7 @@ def recv_byte_int(sd):
 		size += more_size
 
 	result = int.from_bytes(size, BIG_EDIAN)
-	print("returned result")
+	print(f"RECEIVED INT {result}")
 	return result
 
 
@@ -396,7 +388,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(0)
+	sd.setblocking(False)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -445,8 +437,6 @@ def non_blocking_socket(host, port):
 						
 					# SOMETHING TO READ
 					sigma = recv_byte_int(sock)
-
-
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT 
 					if sigma == ACK.CMD_ACK:
@@ -479,25 +469,23 @@ def non_blocking_socket(host, port):
 							output_sockets.append(sock)
 
 						# RECEIVE FILE NAME
-						elif sigma == ACK.CMD_SEND_NAME:
-							filename[sock] = recv_filename(sock)
-							msg_queue[sock] = ACK.CMD_SEND_SIZE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+						# elif sigma == ACK.CMD_SEND_NAME:
+						# 	filename[sock] = recv_filename(sock)
+						# 	msg_queue[sock] = ACK.CMD_SEND_SIZE
+						# 	ack_queue[sock] = True
+						# 	output_sockets.append(sock)
 
-						elif sigma == ACK.CMD_SEND_SIZE:
-							payload = sock.recv(MAX_BYTES)
-							payload = int.from_bytes(payload, BIG_EDIAN)
-							print(f"RECIEVED SIZE {payload}")
-							file_size[sock] = payload
-							msg_queue[sock] = ACK.CMD_SEND_FILE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+						# elif sigma == ACK.CMD_SEND_SIZE:
+						# 	payload = sock.recv(MAX_BYTES)
+						# 	payload = int.from_bytes(payload, BIG_EDIAN)
+						# 	print(f"RECIEVED SIZE {payload}")
+						# 	file_size[sock] = payload
+						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
+						# 	ack_queue[sock] = True
+						# 	output_sockets.append(sock)
 						
 						elif sigma == ACK.CMD_SEND_FILE:
-							recv_text_file(sock, filename[sock], file_size[sock])
-							del filename[sock]
-							del file_size[sock]
+							recv_text_file(sock)
 							msg_queue[sock] = ACK.CMD_EXECUTE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
@@ -539,6 +527,7 @@ def non_blocking_socket(host, port):
 						send_quote(sock)
 						del msg_queue[sock]
 						# SEND REPLY AND CLOSE THE CONNECTION
+						print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
 						sock.close()
 					
 					elif msg_type == ACK.CMD_RETURN_STATUS:

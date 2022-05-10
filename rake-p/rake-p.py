@@ -170,13 +170,11 @@ def send_file_name(sd, filename):
 			filename(str): Name of file to send
 	'''
 	print(f'SENDING FILENAME ({filename})...')
-	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
 
 	payload = filename.encode(FORMAT)
-	size = len(payload).to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	send_byte_size(sd, len(payload))
+	print(f"SEENT FILE SIZE {len(payload)}")
 	# SEND THE LENGTH TO EXPECT
-	sd.sendall( size )
 	sd.sendall( payload )
 
 
@@ -189,11 +187,17 @@ def send_txt_file(sd, filename):
 			filename(str): Name of file to transfer
 	'''
 	print(f'SENDING FILE ---->')
+	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	payload = ""
 	with open(filename, "r") as f:
-		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 		payload = f.read()
-		sd.sendall( sigma )
-		sd.sendall( payload.encode(FORMAT) )
+	
+	send_byte_size(sd, len(filename))
+	send_file_name(sd, filename)
+
+	send_byte_size(sd, len(payload))
+	sd.sendall( payload.encode(FORMAT) )
 
 
 # TODO: some files being sent by the client maybe binary files use this
@@ -214,6 +218,10 @@ def send_bin_file(sd, filename):
 
 	sd.sendall( payload )
 	print(f'FILE SENT...')
+
+
+def send_filename(sd, filename):
+	sd.sendall(filename.encode(FORMAT))
 
 
 def recv_bin_file(sd, filename, size):
@@ -283,9 +291,23 @@ def send_byte_size(sd, payload_len):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	print(f"SENDING SIZE OF PAYLOAD: {payload_len}")
+	#print(f"SENDING SIZE OF PAYLOAD: {payload_len}")
 	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send(size)
+
+
+def is_bin_file(filename):
+	''' Helper to ensure we send the file in the right format
+		Args:
+			filename(str): location to the file.
+	'''
+	try:
+		with open(filename, 'tr') as check_file:  # try open file in text mode
+			check_file.read()
+			return False
+	except:  # if fail then file is non-text (binary)
+		return True
+
 
 
 def execute(sd, ack_type, cmd=None):
@@ -320,8 +342,8 @@ def execute(sd, ack_type, cmd=None):
 			output_sockets.append(sd)
 			sd.setblocking(False)
 
-		if ack_type == ACK.CMD_SEND_NAME:
-			msg_queue[sd] = ACK.CMD_SEND_NAME
+		if ack_type == ACK.CMD_SEND_FILE:
+			msg_queue[sd] = ACK.CMD_SEND_FILE
 			# TRACK HOW MANY FILES TO SEND
 			file_count = len(cmd.requires)-1 # -1 because first index is the requires string
 			output_sockets.append(sd)
@@ -434,12 +456,10 @@ def execute(sd, ack_type, cmd=None):
 							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
 							input_sockets.append(sock)
 
-						elif msg_type == ACK.CMD_SEND_NAME:
+						elif msg_type == ACK.CMD_SEND_FILE:
 							# NAME OF FILE TO SEND
 							index = file_count
-							data = cmd.requires[index]
-							print(file_count)
-							print(data)
+							filename = cmd.requires[index]
 
 							# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 							if file_count == 0:
@@ -449,26 +469,31 @@ def execute(sd, ack_type, cmd=None):
 								msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							# ELSE WE HAVE MORE FILES TO SEND
 							else:
-								send_file_name(sd, data)
-								msg_queue[sock] = ACK.CMD_SEND_SIZE
+								if is_bin_file(filename):
+									send_bin_file(sd, filename)
+								else:
+									print("SENDING TEXT FILE ---->")
+									send_txt_file(sd, filename)
+								file_count -= 1
+								msg_queue[sock] = ACK.CMD_SEND_FILE
 							input_sockets.append(sock)
 						
-						elif msg_type == ACK.CMD_SEND_SIZE:
-							index = file_count
-							filename = cmd.requires[index]
-							send_size(sd, filename)
-							msg_queue[sock] = ACK.CMD_SEND_FILE
-							input_sockets.append(sock)
+						# elif msg_type == ACK.CMD_SEND_SIZE:
+						# 	index = file_count
+						# 	filename = cmd.requires[index]
+						# 	send_size(sd, filename)
+						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
+						# 	input_sockets.append(sock)
 
-						elif msg_type == ACK.CMD_SEND_FILE:
-							index = file_count
-							filename = cmd.requires[index]
-							send_txt_file(sd, filename)
-							# DECREMENT THE FILE COUNT
-							file_count -= 1
-							# GET READY TO SEND THE NEXT FILE
-							msg_queue[sock] = ACK.CMD_SEND_NAME
-							input_sockets.append(sock)
+						# elif msg_type == ACK.CMD_SEND_FILE:
+						# 	index = file_count
+						# 	filename = cmd.requires[index]
+						# 	send_txt_file(sd, filename)
+						# 	# DECREMENT THE FILE COUNT
+						# 	file_count -= 1
+						# 	# GET READY TO SEND THE NEXT FILE
+						# 	msg_queue[sock] = ACK.CMD_SEND_NAME
+						# 	input_sockets.append(sock)
 
 						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
 						elif msg_type == ACK.CMD_EXECUTE:
@@ -515,14 +540,14 @@ def main(argv):
 				execute(sockets_list, ACK.CMD_QUOTE_REQUEST)
 
 				slave_addr = get_lowest_cost()
-				print(slave_addr)
+				#print(slave_addr)
 				# EXECUTE COMMANNDS WITH THIS SOCKET
 				slave = create_socket(slave_addr[0], slave_addr[1])
 
 				print(command.requires)
 				# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
 				if len(command.requires) > 0:
-					execute(slave, ACK.CMD_SEND_NAME, command)
+					execute(slave, ACK.CMD_SEND_FILE, command)
 				# ELSE JUST RUN THE COMMAND	
 				else:
 					execute(slave, ACK.CMD_EXECUTE, command)
