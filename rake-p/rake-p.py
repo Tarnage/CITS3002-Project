@@ -178,7 +178,13 @@ def send_file_name(sd, filename):
 	print(f'SENDING FILENAME ({filename})...')
 	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
-	sd.sendall(filename.encode(FORMAT))
+
+	payload = filename.encode(FORMAT)
+	size = len(payload).to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	# SEND THE LENGTH TO EXPECT
+	sd.sendall( size )
+	sd.sendall( payload )
+
 
 
 def send_req_file(sd, filename):

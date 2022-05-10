@@ -12,8 +12,8 @@ import subprocess
 
 # DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
-#SERVER_HOST = socket.gethostbyname(socket.gethostname())
-SERVER_HOST = '127.0.0.1'
+SERVER_HOST = socket.gethostbyname(socket.gethostname())
+#SERVER_HOST = '127.0.0.1'
 # MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES = 1024
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
@@ -242,6 +242,32 @@ def send_filename(sd, file_attr):
 	sd.sendall(payload.encode(FORMAT))
 
 
+def recv_filename(sd):
+	datagram = b''
+	while len(datagram) < MAX_BYTE_SIGMA:
+		more_size = sd.recv( MAX_BYTE_SIGMA - len(datagram) )
+		if not more_size:
+			raise Exception("Short file length received")
+
+		datagram += more_size
+	
+	size = int.from_bytes(datagram, BIG_EDIAN)
+	print(f"RECIEVED SIZE {size}")
+
+	filename = b''
+	while len(filename) < size:
+		more_size = sd.recv( size - len(filename) )
+		if not more_size:
+			raise Exception("Short file length received")
+
+		filename += more_size
+		
+	result = filename.decode(FORMAT)
+	print(result)
+
+	return result
+
+
 def send_size(sd, file_attr):
 	''' Send file size to client
 	
@@ -302,7 +328,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(False)
+	sd.setblocking(0)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -391,9 +417,9 @@ def non_blocking_socket(host, port):
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							output_sockets.append(sock)
 
+						# RECEIVE FILE NAME
 						elif sigma == ACK.CMD_SEND_NAME:
-							payload = sock.recv(MAX_BYTES).decode(FORMAT)
-							filename[sock] = payload
+							filename[sock] = recv_filename(sock)
 							msg_queue[sock] = ACK.CMD_SEND_SIZE
 							ack_queue[sock] = True
 							output_sockets.append(sock)
