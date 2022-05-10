@@ -337,13 +337,13 @@ def execute(sd, ack_type, cmd=None):
 							r_code = int.from_bytes(r_code, BIG_EDIAN)
 							print(f"RECIEVED STATUS CODE: {r_code}")
 
-							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SEND FROM SERVER
+							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
 							if r_code == 0:
 								# EXPECT A FILE SENT FROM SERVER
 								msg_queue[sock] = ACK.CMD_SEND_NAME
 								
 							# EXECUTION FAILED WITH WARNING
-							#TODO: hand error codes
+							#TODO: handle error codes
 							elif 0 < r_code < 5:
 								print("REVIEVCED A WARNING ERROR")
 								msg_queue[sock] = ACK.CMD_RETURN_STDOUT
@@ -419,7 +419,7 @@ def execute(sd, ack_type, cmd=None):
 							# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 							if file_count == 0:
 								send_datagram(sd, ACK.CMD_EXECUTE, cmd.cmd)
-								# WHEN WE SEND ALL FILES WE WANT TO SEND THE EXECUTE COMMAND
+								# WHEN THEN WAIT FOR THE RETURN STATUS
 								msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							# ELSE WE HAVE MORE FILES TO SEND
 							else:
@@ -449,9 +449,6 @@ def execute(sd, ack_type, cmd=None):
 							send_datagram(sd, ACK.CMD_EXECUTE, cmd.cmd)
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							input_sockets.append(sock)
-							
-
-								
 
 			except KeyboardInterrupt:
 				print('Interrupted. Closing sockets...')
