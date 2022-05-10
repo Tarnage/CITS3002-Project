@@ -20,6 +20,8 @@ int main (int argc, char *argv[])
     // print_hosts(hosts);
     // print_action_sets(action_set);
 
+    connect_server(hosts);
+
     perform_actions(action_set);
 
     return 0; 
