@@ -206,10 +206,10 @@ def write_file(sd, filename, size):
 	check_temp_dir(peer_dir)
 	tmp = f"./tmp/{peer_dir}/"
 	try:
-		with open(tmp + filename, "wb") as f:
+		with open(tmp + filename, "w") as f:
 			buffer = b""
 			while len(buffer) < size:
-				buffer += sd.recv(MAX_BYTES)
+				buffer += sd.recv(MAX_BYTES).decode(FORMAT)
 
 			f.write(buffer)
 
