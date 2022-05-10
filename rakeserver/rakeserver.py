@@ -36,7 +36,7 @@ class Ack:
 		self.CMD_QUOTE_REPLY = 3
 
 		self.CMD_SEND_REQIUREMENTS = 4
-		self.CMD_FILE_COUNT = 5
+		self.CMD_BYTE_FILE = 5
 		self.CMD_SEND_FILE = 6
 		self.CMD_SEND_SIZE = 7
 		self.CMD_SEND_NAME = 8
@@ -190,23 +190,6 @@ def scan_dir(dir):
 				
 	file_attr = FileStats(filename, file_size, path)
 	return file_attr
-
-
-
-# def write_file(sd, filename, size):
-# 	raddr = sd.getpeername()
-# 	peer_dir = f'{raddr[0]}.{raddr[1]}'
-# 	check_temp_dir(peer_dir)
-# 	tmp = f"./tmp/{peer_dir}/"
-# 	try:
-# 		with open(tmp + filename, "a") as f:
-# 			size_left = size
-# 			while size_left > 0:
-# 				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
-# 				size_left -= MAX_BYTES
-
-# 	except OSError as err:
-# 		sys.exit(f'File creation failed with error: {err}')
 
 
 def write_file(sd, filename, size):

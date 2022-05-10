@@ -41,7 +41,7 @@ class Ack:
 		self.CMD_QUOTE_REPLY = 3
 
 		self.CMD_SEND_REQIUREMENTS = 4
-		self.CMD_FILE_COUNT = 5
+		self.CMD_BYTE_FILE = 5
 		self.CMD_SEND_FILE = 6
 		self.CMD_SEND_SIZE = 7
 		self.CMD_SEND_NAME = 8
@@ -181,17 +181,36 @@ def send_file_name(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-# def send_req_file(sd, filename):
-# 	print(f'SENDING FILE ---->')
-# 	with open(filename, "r") as f:
-# 		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-# 		payload = f.read()
-# 		sd.sendall( sigma )
-# 		sd.sendall( payload.encode(FORMAT) )
+def send_req_file(sd, filename):
+	print(f'SENDING FILE ---->')
+	with open(filename, "r") as f:
+		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+		payload = f.read()
+		sd.sendall( sigma )
+		sd.sendall( payload.encode(FORMAT) )
 
 
+# TODO: some files being sent by the client maybe binary files use this
+def send_byte_file(sd, filename):
+	''' Transfer binary file
+	
+		Args:
+			sd(socket): Connection to send the file
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
+	print(f'<-------SENDING FILE')
+	sigma = ACK.CMD_BYTE_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
+	
+	#payload = b''
+	with open(filename, 'rb') as f:
+		payload = f.read()
 
-def send_req_file(sd, filename, size):
+	sd.sendall( payload )
+	print(f'FILE SENT...')
+
+
+def write_file(sd, filename, size):
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
@@ -204,7 +223,6 @@ def send_req_file(sd, filename, size):
 
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
-
 
 
 #TODO: dont need ack type args
