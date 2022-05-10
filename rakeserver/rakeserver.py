@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import getopt
+import shutil
 import time
 import random
 import os
@@ -9,23 +10,24 @@ import select
 import sys
 import subprocess
 
+# DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
-# BEAWARE YOU MAY NEED TO EDIT /etc/hosts. TO GET PROPER LOCAL IP ADDRESS
 #SERVER_HOST = socket.gethostbyname(socket.gethostname())
 SERVER_HOST = '127.0.0.1'
+# MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES = 1024
+# THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
 FORMAT = 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
 TIMEOUT 		= 0.5
-
-# HEADERS OR ACKS ARE 8 BYTES LONG
+# INTS OR ACKS ARE 8 BYTES LONG
 MAX_BYTE_SIGMA = 8
-
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
 class Ack:
+	''' ENUM  Class'''
 	def __init__(self):
 		self.CMD_ECHO = 0
 		self.CMD_ECHOREPLY = 1
@@ -60,11 +62,12 @@ class FileStats():
 		self.size = size
 		self.path = path
 
-
-# init enum class
+# INIT ENUM CLASS
 ACK = Ack()
-return_code = -1
+
+# OPTSARGS
 sleep = False
+remove_temp = False
 
 def usage(prog):
 	print(f"Usage: {prog} [OPTIONS]...PORT...")
@@ -78,81 +81,51 @@ def usage(prog):
 	print("\t-v\twill print on delivary of packets\n")
 	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request\n")
 	print("\t-i\trequires ip and port as arguments. i.e. ./rakeserver -i 127.0.0.1 80006\n")
-
-
-def blocking_socket(host, port):
-	'''Blocking verion of the socket server program
-	Program will block while waiting for a connection
-
-	Args:
-		host (str): the ip address the server will bind
-		port (int): the port the server will bind 
-	'''	
-
-	try:
-		# AF_INET IS THE ADDRESS FAMILY IP4
-		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
-		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		print("Port succesfully created!")
-	except socket.error as err:
-		print( f'socket creation failed with error {err}' )
-
-	# AVOIDS THE PORT ALREADY IN USE ERROR []
-	sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	# BIND SOCKET TO PORT
-	sd.bind( (host, port) )
-	print( f'Socket is binded to {port}' )
-
-	# PUT THE SOCKET TO LISTEN MODE
-	sd.listen(DEFAULT_BACKLOG)
-	print( f"Socket is listening on {host}..." )
-	
-	while True:
-
-		try:
-			# ESTABLISH CONNECTION WITH CLIENT
-			conn, addr = sd.accept()
-			print( f'Got a connection from {addr}' )
-
-			# RECIEVE DATA
-			data = conn.recv(MAX_BYTES).decode(FORMAT)
-			print( f'Received msg: {data}' )
-
-			# SLEEP
-			rand = random.randint(1, 10)
-			timer = os.getpid() % rand + 2
-			print( f'sleep for: {timer}' )
-			time.sleep(timer)
-
-			# SEND DATA BACK
-			send_data = f'Thank you for connecting to {host}:{port}'
-			conn.send( send_data.encode(FORMAT) )
-			print( f'sending: {send_data}' )
-			
-
-		except KeyboardInterrupt:
-			print('Interrupted.')
-			sd.close()
-			break
+	print("\t-r\twill remove temporary files and folders created during the connection of a client\n")
 
 
 def calculate_cost():
+	''' Randomly return a number between 1-10'''
 	# seed for testing
 	# seed(1)
 	return random.randint(1, 10)
 
 
 def send_quote(sd):
+	''' Sends a random number between 1-10 to a socket
+
+		Args:
+			sd(socket): Which socket to send the quote.
+	'''
 	ack = ACK.CMD_QUOTE_REPLY.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	cost = calculate_cost().to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	cost = calculate_cost()
 	print(f'<---- SENDING QUOTE: {cost}')
+	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( ack )
 	sd.sendall( cost )
 
 
+def rm_client_files(sd):
+	'''Helper called at the end of the connection to remove temp files and folders
+
+		Args:
+			sd(socket): Used to get the name of the directory
+	'''
+	raddr = sd.getpeername()
+	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	dir = f"./tmp/{peer_dir}/"
+
+	if os.path.isdir(f"./tmp/{peer_dir}"):
+		try:
+			shutil.rmtree(dir, ignore_errors=True)
+		except OSError as err:
+			sys.exit("Error occured while deleting temp directory: {err}")
+
 def check_temp_dir(peer_dir):
 	''' Helper to make sure temp dir exists if not create one
-	
+
+		Args;
+			peer_dir(str): name of the directory to check
 	'''
 	if not os.path.isdir("./tmp"):
 		try:
@@ -166,13 +139,15 @@ def check_temp_dir(peer_dir):
 		except OSError as err:
 			sys.exit("Directory creation failed with error: {err}")
 
+
 def run_cmd(sd, cmd):
 	''' Runs the cmd sent by the client
 
 		Args:
+			sd(socket): Used to create a directory with the peers name
 			cmd(str): to be executed in the shell
 
-		Returns (tuple) (int): return code ()
+		Returns (tuple): (int)return code, (FileStat Object) 
 	
 	'''
 	raddr = sd.getpeername()
@@ -194,6 +169,9 @@ def scan_dir(dir):
 
 		Args:
 			dir(str): The directory path of the target
+
+		Return:
+			file_attr(FileStat Object): Contains file stats
 	
 	'''
 	filename = ""
@@ -232,6 +210,14 @@ def scan_dir(dir):
 
 
 def write_file(sd, filename, size):
+	''' Writes strings to a file. This is used to transfer source code from Client to Server
+
+		Args:
+			sd(socket): Clients connection
+			filename(str): Name of file being transferred
+			size(int): Total size of file being sent in bytes.
+	'''
+	#TODO: peer dir gets reused to remove the dir maybe put in a dict 
 	raddr = sd.getpeername()
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
@@ -249,20 +235,24 @@ def write_file(sd, filename, size):
 
 
 def send_ack(sd, ack_type):
+	'''Helper sends acknowledgments to a connection
+	
+		Args:
+			sd(socket): Connection to send the acknowledgment
+			ack_type(int): integer representing the acknowledgment type
+	'''
 	print(f'<---- SENDING ACK')
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send( ack )
 
 
-# def send_return_status(sd):
-# 	print(f"<-------- SENDING RETURN STATUS ({return_code})")
-# 	sigma = str(ACK.CMD_RETURN_STATUS)
-# 	payload = str(return_code)
-# 	print(f'{sigma} {payload}')
-# 	sd.send(f'{sigma} {payload}'.encode(FORMAT))
-
-
 def send_filename(sd, file_attr):
+	''' Send filename to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
 	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	payload = file_attr.filename
 	sd.sendall( sigma )
@@ -270,6 +260,12 @@ def send_filename(sd, file_attr):
 
 
 def send_size(sd, file_attr):
+	''' Send file size to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
 	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	size = file_attr.size
 	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -278,19 +274,27 @@ def send_size(sd, file_attr):
 
 
 def send_file(sd, file_attr):
+	''' Transfer binary file
+	
+		Args:
+			sd(socket): Connection to send the file
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
 	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 	
+	#payload = b''
 	with open(filename, 'rb') as f:
 		payload = f.read()
 
 	sd.sendall( payload )
+	print(f'FILE SENT...')
 
 
 def non_blocking_socket(host, port):
-	'''Non Blocking server version, server will continuously poll the socket for connection
+	'''Non Blocking server version, server will continuously poll the socket for a connection
 		
 		Args:
 		host (str): the ip address the server will bind
@@ -315,7 +319,7 @@ def non_blocking_socket(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(True)
+	sd.setblocking(False)
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = [sd]
@@ -443,9 +447,8 @@ def non_blocking_socket(host, port):
 					if sock in output_sockets:
 						output_sockets.remove(sock)
 
+					# WHAT TYPE OF MSG IS THIS SOCKET SENDING
 					msg_type = msg_queue[sock]
-
-					print(f"SENDING ACK FOR {msg_queue}")
 
 					# SLEEP
 					if sleep == True:
@@ -513,10 +516,12 @@ def non_blocking_socket(host, port):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						print("entered here")
 						file_attr = file_to_send[sock]
-						#send_ack(sock, ACK.CMD_SEND_FILE)
 						send_file(sock, file_attr)
-						input_sockets.append(sock)
-						msg_queue[sock]
+						print("CLOSING CONNECTION...")
+						del msg_queue[sock]
+						# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+						if remove_temp == True:
+							rm_client_files(sock)
 						# END OF CONNECTION
 						
 
@@ -529,12 +534,16 @@ def non_blocking_socket(host, port):
 
 
 def close_sockets(sockets):
+	''' Helper to close all connections when an error ocurrs or a Interrupt
+
+		Args:
+			sockets(list): Contains a list of open sockets
+	'''
 	for sock in sockets:
 		sock.close()
 
 
 def main(ip=SERVER_HOST, port=SERVER_PORT):
-	#blocking_socket(SERVER_HOST, int(port))
 	print(f"ESTABLISHING CONNECTION ON {ip} {port}")
 	non_blocking_socket(ip, port)
 
@@ -561,6 +570,8 @@ if __name__ == "__main__":
 					print("TODO default")
 				elif o == "-w":
 					sleep = True
+				elif o == "-r":
+					remove_temp = True
 				elif o == "-i":
 					if len(args) == 1:
 						main(ip=a, port=int(args[0]))
