@@ -182,6 +182,12 @@ def send_file_name(sd, filename):
 
 
 def send_req_file(sd, filename):
+	''' Send file contents to server
+
+		Args:
+			sd(socket): Connection to send the filename
+			filename(str): Name of file to transfer
+	'''
 	print(f'SENDING FILE ---->')
 	with open(filename, "r") as f:
 		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -211,6 +217,14 @@ def send_byte_file(sd, filename):
 
 
 def write_file(sd, filename, size):
+	''' Receive binary file from server
+		Args:
+			sd(socket): Connection file is being sent from
+			filename(str): Name of file
+			size(int): Total size of the file being received in bytes
+			sd(socket): Connection to send the file
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
