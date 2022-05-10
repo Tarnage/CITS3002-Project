@@ -215,17 +215,34 @@ def scan_dir(dir):
 
 
 
+# def write_file(sd, filename, size):
+# 	raddr = sd.getpeername()
+# 	peer_dir = f'{raddr[0]}.{raddr[1]}'
+# 	check_temp_dir(peer_dir)
+# 	tmp = f"./tmp/{peer_dir}/"
+# 	try:
+# 		with open(tmp + filename, "a") as f:
+# 			size_left = size
+# 			while size_left > 0:
+# 				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
+# 				size_left -= MAX_BYTES
+
+# 	except OSError as err:
+# 		sys.exit(f'File creation failed with error: {err}')
+
+
 def write_file(sd, filename, size):
 	raddr = sd.getpeername()
 	peer_dir = f'{raddr[0]}.{raddr[1]}'
 	check_temp_dir(peer_dir)
 	tmp = f"./tmp/{peer_dir}/"
 	try:
-		with open(tmp + filename, "a") as f:
-			size_left = size
-			while size_left > 0:
-				f.write(sd.recv(MAX_BYTES).decode(FORMAT))
-				size_left -= MAX_BYTES
+		with open(tmp + filename, "wb") as f:
+			buffer = b""
+			while len(buffer) < size:
+				buffer += sd.recv(MAX_BYTES)
+
+			f.write(buffer)
 
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
@@ -260,8 +277,6 @@ def send_size(sd, file_attr):
 	sd.sendall( payload )
 
 
-#TODO: DEAL WITH FILES LARGER THEN THE BUFFER SIZE
-# WE CAN INCREASE BUFFER TO SOMETHING LARGER BUT WONT SOLVE THE PROBLEM
 def send_file(sd, file_attr):
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
@@ -336,7 +351,6 @@ def non_blocking_socket(host, port):
 				if sock == sd:
 					# ESTABLISH CONNECTION WITH CLIENT
 					conn, addr = sd.accept()
-					print( f'Got a connection from {addr}' )
 
 					# ADD CONECTION TO LIST OF SOCKETS
 					input_sockets.append(conn)

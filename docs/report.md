@@ -4,32 +4,58 @@
 ### Explain Motivation
 Whats the problem we are trying to solve and why
 
+#
+
 ## Technology Involved
-### Explain why we are using TCP/IP over LAN opposed to UDP or HTTML
+### Explain why we are using TCP/IP over LAN opposed to UDP or HTTP
+
+#
+
+#### Good read about how to allocate buffer size
+#### https://stackoverflow.com/questions/2811006/what-is-a-good-buffer-size-for-socket-programming
+
+#### Explain that we will use the finite state machine(FSMs) concept where the conenctions are individual FSMs 
+
+#### Explain the protocol our program will use
+#### https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python
+
+#
 
 ## Desgin
 ## Why we would use a simplex connectionless service also known as unacknowledged connectionless service. compared to the others
+We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is realiable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is jsut wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea)
 
-## Good read about how to allocate buffer size
-## https://stackoverflow.com/questions/2811006/what-is-a-good-buffer-size-for-socket-programming
+### Protocol
+
+When communications are made between client and server, the client must make the initial connection, the first type of communication must be represented as an 8 byte integer followed by any number of payloads. Once the entire datagram is sent by the client, the client will be in wait mode, until an acknowledgement has been recieved from the server, then more datagrams can be sent, in the same order of an 8 byte integer followed by one or more payloads. 
+
+The 8 byte integer will prompt the server or the client what kind of payload to expect, this will set the receiving connection into a state in which it can properly accept the incoming payload. 
+
+### Encoding type
+
+Integers will be encoded into 8 bytes using the big edian byte order, where the most significant bytes will be stored first, at the lowest storage address.
+
+Strings will be endoded using the utf-8 standard, 
+
+For thought...
+actually maybe just do everything in bytes.
+We would have to send the size of the payload after ever type of communication followed by the size of payload then the payload.
 
 
-## Explain that we will use the finite state machine(FSMs) concept where the conenctions are individual FSMs 
+### Walkthrough the program
 
-## Explain the protocol our program will use
-## Should use fixed byte order instead of below
-## https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python
+1. Request for cost
+
+2. Pick the server
+
+3. Start sending files
+    1. Client first sends filename and size
+    2. Server receiving and writing txt files
+    3. Once all files are sent the client will send the execute command
+    4. Server will execute the command sent, and the reuturn status will be sent to the client. If the return staus is zero the server will initiate the protocol to send the output file, otherwise it will return the error message from executing the command.
+    5. Sending the output file, since the output file 
 
 
-when the client sends a request, the datagram must be in the form of a number representing how to deal with the payload a space and the payload, if any. Clients will send a byte stream when decoded will look something like this
+## Observations and improvements
 
-$sigma$ $d$
-
-7 [FILENAME]
-
-8 [FILESIZE]
-
-9 [FILE CONTENTS]
-
-where $sigma$ is the transition and $d$ is the payload, seperated by a space, (can be single can be more). $sigma$ will indicate what state the connection has to be in to process the payload otherwise the connection will be in an error state which should be reported and exited gracefully.
-
+## Conclusion

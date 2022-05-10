@@ -124,16 +124,28 @@ def send_file_name(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-def send_req_file(sd, filename):
-	print(f'SENDING FILE ---->')
-	with open(filename, "r") as f:
-		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-		payload = f.read()
-		sd.sendall( sigma )
-		sd.sendall( payload.encode(FORMAT) )
+# def send_req_file(sd, filename):
+# 	print(f'SENDING FILE ---->')
+# 	with open(filename, "r") as f:
+# 		sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+# 		payload = f.read()
+# 		sd.sendall( sigma )
+# 		sd.sendall( payload.encode(FORMAT) )
 
 
-def write_file(sd, filename, size):
+# def send_req_file(sd, filename):
+# 	print(f'SENDING FILE ---->')
+# 	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+# 	sd.sendall( sigma )
+	
+# 	with open(filename, 'rb') as f:
+# 		payload = f.read()
+
+# 	sd.sendall( payload )
+
+
+
+def send_req_file(sd, filename, size):
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
