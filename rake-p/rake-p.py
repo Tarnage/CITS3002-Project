@@ -472,7 +472,7 @@ def execute(sd, ack_type, cmd=None):
 def get_all_conn(hosts):
 	socket_lists = list()
 	for key in hosts:
-		socket_lists.append(create_socket(key, hosts[key]))
+		socket_lists.append(create_socket(key, int(hosts[key])))
 		print(key, hosts[key])
 	
 	return socket_lists
