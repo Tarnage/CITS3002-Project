@@ -10,8 +10,9 @@
 #include <time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
 #include "parse_c.h"
+
+#define MAX_BYTES_SIGMA 4
 
 typedef enum _cmd{
     CMD_ECHO,
@@ -32,6 +33,17 @@ typedef enum _cmd{
     CMD_ACK
 } CMD;
 
-#define MAX_BYTES_SIGMA 4
+
+//---------------------STRUCTS----------------------------------
+
+
+typedef struct _node
+{
+    int sock;
+    char *ip;
+    int port;
+    int cost;
+    struct _node *next;
+}NODE;
 
 #endif
