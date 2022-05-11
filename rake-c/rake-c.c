@@ -13,12 +13,79 @@ void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 }
 
 
-int create_conn(char *host, int port)
+void send_quote_req(int sock)
+{   
+    // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
+    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
+    int cmd  = htonl( CMD_QUOTE_REQUEST );
+
+    printf("SENDING: %i\n", cmd);
+    // SEND THE REQ
+    send(sock, &cmd, sizeof(cmd), 0);
+    printf("SENDING FOR QUOTE\n");
+
+    // BUFFER FOR THE CMD FROM SERVER - SHOULD BE CMD_QUOTE_REPLY
+    // WE WILL BE DOING THIS PART ALOT A FUNCTION WOULD BE HELPFUL
+    // SEE PYTHON VERSION FOR MORE DETS OR TALK TO TOM
+    char buffer[32];
+    int byte_count = 0; // SHOULD BE 4
+    byte_count = recv(sock, buffer, sizeof(buffer), 0);
+
+    if(byte_count == 0){
+        printf("WE DIDNT RECV ANYTHING");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("RECV: %i\n", atoi(buffer));
+
+    // CHECK WE RECV THE CORRECT ACK
+    if(atoi(buffer) != CMD_QUOTE_REPLY)
+    {
+        printf("SOMETHING WENT WRONG\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // RECV QUOTE AGAIN QUOTE IS A INT SO IT SHOULD BE 4 BYTES LONG ASWELL
+    byte_count = 0; // SHOULD BE 4
+    byte_count = recv(sock, buffer, sizeof(buffer), 0);
+
+    int quote = atoi(buffer);
+
+    printf("QUOTE RECEIVED: %i\n", quote);
+}
+
+
+void handle_conn(int sock, CMD ack_type) 
+{
+    // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
+    int queue = 1;
+
+    while (queue)
+    {   
+        switch (ack_type)
+        {
+        case CMD_QUOTE_REQUEST:
+            send_quote_req(sock);
+            close(sock);
+            queue = 0;
+            break;
+        
+        default:
+            break;
+        }
+    }
+    
+}
+
+
+int create_conn(char *host, int port, CMD ack_type)
 {   
     int sock = -1;
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port   = htons(SERVER_PORT);
+
+    printf("CONNECTING TO (%s : %i)\n", host, port);
 
     // CHECK SOCKET CREATION
     if( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
@@ -38,15 +105,11 @@ int create_conn(char *host, int port)
         exit(EXIT_FAILURE);
     }
 
-    printf("Socket Creation Successful");
-    return sock;
-}
+    printf("Socket Creation Successful\n");
 
-void handle_conn() {
-    
-    exit(EXIT_SUCCESS);
+    // PASS TO A FUNCTION TO HANDLE CONNECTIONS
+    handle_conn(sock, ack_type);
 }
-
 
 
 int main (int argc, char *argv[])
@@ -71,13 +134,9 @@ int main (int argc, char *argv[])
     //print_hosts(hosts, host_count);
     // print_action_sets(action_set, action_count);
 
-    printf("%i\n", num_hosts);
     for(int i = 0; i < num_hosts; i++)
-    {   
-        int sock = -1;
-        sock = create_conn(hosts[i].name, hosts[i].port);
-
-        printf("%d\n", sock);
+    {     
+        create_conn(hosts[i].name, hosts[i].port, CMD_QUOTE_REQUEST);
     }
 
     // perform_actions(action_set);

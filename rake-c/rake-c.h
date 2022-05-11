@@ -13,8 +13,7 @@
 
 #include "parse_c.h"
 
-enum command 
-{
+typedef enum _cmd{
     CMD_ECHO,
     CMD_ECHOREPLY,
     CMD_QUOTE_REQUEST,
@@ -31,7 +30,8 @@ enum command
     CMD_RETURN_STDERR,
     CMD_RETURN_FILE,
     CMD_ACK
-};
+} CMD;
 
+#define MAX_BYTES_SIGMA 4
 
 #endif

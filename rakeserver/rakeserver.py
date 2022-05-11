@@ -22,7 +22,7 @@ FORMAT = 'utf-8'
 DEFAULT_BACKLOG = 5
 TIMEOUT 		= 0.5
 # INTS OR ACKS ARE 8 BYTES LONG
-MAX_BYTE_SIGMA = 8
+MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
@@ -231,8 +231,9 @@ def send_ack(sd, ack_type):
 			ack_type(int): integer representing the acknowledgment type
 	'''
 	print(f'<---- SENDING ACK')
+
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.send( ack )
+	sd.sendall( ack )
 
 
 def send_filename(sd, file_attr):
@@ -426,7 +427,7 @@ def non_blocking_socket(host, port):
 					conn, addr = sd.accept()
 
 					# ADD CONECTION TO LIST OF SOCKETS
-					#input_sockets.append(conn)
+					input_sockets.append(conn)
 					print(f'CONNECTED TO :{addr}')
 
 				else:
