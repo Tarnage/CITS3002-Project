@@ -200,7 +200,7 @@ int main (int argc, char *argv[])
     //print_hosts(hosts, host_count);
     //print_action_sets(action_set, action_count);
 
-
+#define COMMAND(i,j)     action_set[i].actions[j]
     for (size_t i = 0; i < num_sets; i++)
     {   
         size_t action_count = action_set[i].action_totals;
@@ -218,8 +218,6 @@ int main (int argc, char *argv[])
                 get_all_conn(sock_cost_list, hosts);
 
                 print_sock_list(sock_cost_list);
-
-#define COMMAND(i,j)     action_set[i].actions[j]
 
                 if(COMMAND(i,j).req_count > 0)
                 {
