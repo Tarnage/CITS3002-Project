@@ -1,5 +1,6 @@
 #include "connection.h"
 
+/*
 void connect_server(HOST *hosts)
 {
     for (int i = 0; i < num_hosts; i++)
@@ -16,4 +17,24 @@ void connect_server(HOST *hosts)
     }
 
     exit(EXIT_SUCCESS);
+}*/
+
+void create_socket(char *host, int port)
+{
+    int sock_desc = 0;
+
+    struct sockaddr_in server_addr;
+
+    sock_desc = socket(AF_INET, SOCK_STREAM, 0);
+
+    // CHECK IF SOCKET WAS MADE SUCCESSFULLY
+    if(sock_desc == -1)
+    {
+        perror("Error:" );
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        printf("SOCKET CREATED\n");
+    }
 }
