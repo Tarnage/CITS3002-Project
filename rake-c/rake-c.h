@@ -30,7 +30,7 @@ enum command {
     CMD_RETURN_STDERR,
     CMD_RETURN_FILE,
     CMD_ACK
-}
+};
 
 ACTION_SET action_set[MAX_ACTIONS];
 HOST       hosts[MAX_HOSTS];
