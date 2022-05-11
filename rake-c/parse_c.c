@@ -5,14 +5,13 @@ extern  char    *strdup(const char *str);
 #endif
 
 
-#define ACTION_DATA(i,j)     action_set[i].actions[j]
-//----------------------------------------------
-// GLOBALS
-int num_hosts       = 0;
-int num_actions     = 0;
-int num_sets        = 0;
 
-char *trimwhitespace(char *str)
+//----------------------------------------------
+
+
+
+
+char *trim_whitespace(char *str)
 {
     char *end;
 
@@ -52,7 +51,6 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         {
             continue;
         }
-        
         // CHECK IF THE LINE GIVES THE DEFAULT PORT NUMBER
         if(strstr(line, "PORT") != NULL)
         {
@@ -81,7 +79,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 {
                     hosts->name = strdup(words[i]);
                     hosts->port = default_port;
-                    printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
+                    // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 } 
                 else 
@@ -92,7 +90,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     ++port;
                     hosts->name = strdup(name);
                     hosts->port = atoi(port);
-                    printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
+                    // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 }
                 num_hosts++;
@@ -127,7 +125,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 else
                 {
                     ACTION_DATA(num_sets-1, action_index).is_remote = -1;
-                    char *buffer = trimwhitespace(line);
+                    char *buffer = trim_whitespace(line);
                     ACTION_DATA(num_sets-1, action_index).command = strdup(buffer);
                 }
                 action_set[num_sets-1].action_totals++;
@@ -137,15 +135,16 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
             {   
                 // GO BACK AN INDEX TO FILL OUT REQUIREMENTS 
                 --action_index;
-                ACTION_DATA(num_sets-1, action_index).requirements = strsplit(line, &ACTION_DATA(num_sets-1, action_index).req_count);
+                char *buffer = trim_whitespace(line);
+                ACTION_DATA(num_sets-1, action_index).requirements = strsplit(buffer, &ACTION_DATA(num_sets-1, action_index).req_count);
             }
         }
     }
 }
 
-
 void print_hosts(HOST *hosts)
 {   
+
     // CAN ALSO ITERATE USING GLOBAL VAR num_hosts
     while (hosts != NULL)
     {
@@ -155,6 +154,7 @@ void print_hosts(HOST *hosts)
         printf("IP ADDR = (%s,%i)\n", hosts->name, hosts->port);
         ++hosts;
     }
+    
 }
 
 
@@ -182,27 +182,9 @@ void print_action_sets(ACTION_SET *sets)
                 }
                 printf("\n");
             }
+
         }
+        
     }
-}
-
-int main (int argc, char *argv[])
-{
-    char *file_name;
-    if(argc != 2)
-    {
-        file_name = "Rakefile";
-    }
-    else
-    {
-        file_name = argv[1];
-    }
-
-    ACTION_SET action_set[MAX_ACTIONS];
-    HOST       hosts  [MAX_HOSTS];
-    file_process(file_name, action_set, hosts);
-
-    print_action_sets(action_set);
-
-    return 0; 
+    
 }

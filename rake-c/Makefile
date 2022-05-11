@@ -1,8 +1,9 @@
 #! /usr/bin/make
 
 # defining headers
-SOURCES = $(wildcard *.c)
-HEADERS = $(wildcard *.h)
+PROJECT = rake-c
+HEADERS = $(PROJECT).h
+OBJ = client_socket.o parse_c.o rake-c.o strsplit.o execution.c connection.o
 TARGETS = $(basename $(SOURCES))
 LIBS	= logger_c.c
 
@@ -15,13 +16,13 @@ DIRT = $(wildcard *.o)
 
 .PHONY: Makefile
 
-deafault all: $(TARGETS)
+#deafault all: $(TARGETS)
 
-%: %.c
-	$(C11) $(CFLAGS) $(LIBS) $^ -o $@
+$(PROJECT)	: $(OBJ)
+	$(C11) $(CFLAGS) -o $(PROJECT) $(OBJ)
 
-%.i: %.c
-	$(C11) -E $(CFLAGS) $< | uniq > $@
+%.o: %.c $(HEADERS)
+	$(C11) $(CFLAGS) -c $<
 
 #-----------------------------------------------------------------------------
 

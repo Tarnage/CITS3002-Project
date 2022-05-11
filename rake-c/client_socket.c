@@ -46,10 +46,11 @@ void handle_conn() {
     exit(EXIT_SUCCESS);
 }
 
+/*
 int main()
 {   
     int sd = -1;
     sd = create_conn(SERVER_HOST, SERVER_PORT);
 
     return 0;
-}
+} */
