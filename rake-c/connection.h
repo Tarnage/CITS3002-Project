@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 
 #define SERVER_PORT 50009
-#define SERVER_HOST '127.0.0.1'
+#define SERVER_HOST "127.0.0.1"
 
 
 
