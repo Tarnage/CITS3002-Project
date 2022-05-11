@@ -1,5 +1,15 @@
 #include "parse_c.h"
+
+#if defined(__linux__)
+extern  char    *strdup(const char *str);
+#endif
+
+
+
 //----------------------------------------------
+
+
+
 
 char *trim_whitespace(char *str)
 {
@@ -132,7 +142,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
     }
 }
 
-void print_hosts(HOST *hosts, int size)
+void print_hosts(HOST *hosts)
 {   
 
     // CAN ALSO ITERATE USING GLOBAL VAR num_hosts
@@ -148,9 +158,9 @@ void print_hosts(HOST *hosts, int size)
 }
 
 
-void print_action_sets(ACTION_SET *sets, int size)
+void print_action_sets(ACTION_SET *sets)
 {
-    for (size_t i = 0; i < size; i++)
+    for (size_t i = 0; i < num_sets; i++)
     {   
         size_t action_count = sets[i].action_totals;
         for (size_t j = 0; j < action_count; j++)
@@ -177,11 +187,4 @@ void print_action_sets(ACTION_SET *sets, int size)
         
     }
     
-}
-
-void print_array_words(char **words, int len)
-{
-    for(int i = 0; i < len; i++){
-        printf("%s ", words[i]);
-    }
 }

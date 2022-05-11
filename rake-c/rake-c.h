@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include "logger_c.h"
-#include "parse_c.h"
-#include "structures.h"
-#include "execution.h" 
-#include "connection.h"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <time.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
-#define ACTION_DATA(i,j)     action_set[i].actions[j]
+#include "parse_c.h"
 
 enum command 
 {
@@ -32,9 +32,6 @@ enum command
     CMD_RETURN_FILE,
     CMD_ACK
 };
-
-ACTION_SET action_set[MAX_ACTIONS];
-HOST       hosts[MAX_HOSTS];
 
 
 #endif
