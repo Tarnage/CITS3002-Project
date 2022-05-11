@@ -16,35 +16,47 @@ void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 }
 
 
-void send_quote_req(int sock)
+void print_bytes(char *buffer)
 {   
-    // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
-    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
-    int cmd  = htonl( CMD_QUOTE_REQUEST );
-    printf("SENDING BYTES : %x\n", cmd);
-    // SEND THE REQ
-    send(sock, &cmd, sizeof(cmd), 0);
-    printf("SENDING FOR QUOTE\n");
+    printf("BYTES ");
+    for (int i = 0; i < 4; i++)
+    {
+        printf("%02X ", buffer[i]);
+    }
+    printf("\n");   
+}
 
-    // BUFFER FOR THE CMD FROM SERVER - SHOULD BE CMD_QUOTE_REPLY
-    // WE WILL BE DOING THIS PART ALOT A FUNCTION WOULD BE HELPFUL
-    // SEE PYTHON VERSION FOR MORE DETS OR TALK TO TOM
-    char buffer[32];
+
+int recv_int(int sock)
+{
+    uint32_t result = 0;
+    char buffer[MAX_BYTES_SIGMA];
+    bzero(buffer, MAX_BYTES_SIGMA);
     int byte_count = 0; // SHOULD BE 4
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
-    buffer[byte_count] = '\0';
-
-    printf("RECV: %s\n", buffer);
-    printf("RECV: %i BYTES\n", byte_count);
     if(byte_count == 0){
         printf("WE DIDNT RECV ANYTHING");
         exit(EXIT_FAILURE);
     }
 
-    int recv_cmd = ntohl(*buffer);
+    memcpy(&result, buffer, MAX_BYTES_SIGMA);
 
-    printf("RECV: %s\n", (buffer));
+    return ntohl(result);
+}
+
+
+void send_quote_req(int sock)
+{   
+    // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
+    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
+    int cmd  = htonl( CMD_QUOTE_REQUEST );
+
+    // SEND THE REQ
+    send(sock, &cmd, sizeof(cmd), 0);
+    printf("REQUESTING FOR QUOTE\n");
+
+    int recv_cmd = recv_int(sock);
 
     // CHECK WE RECV THE CORRECT ACK
     if(recv_cmd != CMD_QUOTE_REPLY)
@@ -54,10 +66,8 @@ void send_quote_req(int sock)
     }
 
     // RECV QUOTE AGAIN QUOTE IS A INT SO IT SHOULD BE 4 BYTES LONG ASWELL
-    byte_count = 0; // SHOULD BE 4
-    byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
-    int quote = atoi(buffer);
+    int quote = recv_int(sock);
 
     printf("QUOTE RECEIVED: %i\n", quote);
 }
