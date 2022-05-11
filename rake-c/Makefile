@@ -1,16 +1,22 @@
 #! /usr/bin/make
+UNAME := $(shell uname)
 
 # defining headers
 PROJECT = rake-c
 HEADERS = $(PROJECT).h
 OBJ = parse_c.o rake-c.o strsplit.o
 TARGETS = $(basename $(SOURCES))
-LIBS	= -lexplain #logger_c.c 
+
+ifeq ($(UNAME),Darwin)        # Mac OS X
+    LIBS =
+else
+	LIBS = -lexplain #logger_c.c 
+endif
 
 C11		= cc -std=c11
-CFLAGS 	= #-Wall -Werror -pedantic
+CFLAGS 	= -Wall -Werror -pedantic
 
-DIRT = $(wildcard *.o)
+DIRT = $(wildcard *.o) $(PROJECT)
 
 #-----------------------------------------------------------------------------
 

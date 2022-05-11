@@ -1,7 +1,9 @@
 #include "rake-c.h"
 
+#ifndef __APPLE__
 // NOT STANDARD LIB CAN INSTALL WITH sudo apt -y install libexplain-dev
 #include <libexplain/connect.h>
+#endif
 
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
@@ -145,7 +147,11 @@ int create_conn(char *host, int port)
     // CHECK CONNECTION
     int status = -1;
     if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
+#ifndef __APPLE__
         fprintf(stderr, "%s\n", explain_connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) );
+#else
+		printf("\nConnection failed!!\n");
+#endif
         exit(EXIT_FAILURE);
     }
 
