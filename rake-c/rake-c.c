@@ -157,15 +157,28 @@ void get_all_conn(NODE *list, HOST *hosts)
 }
 
 
+void print_sock_list(NODE *list)
+{   
+    int i = 0;
+    printf("CURRENT SOCKET LIST\n");
+    while(i != n_sock_list)
+    {
+        int sock = list->sock;
+        char *ip = list->ip;
+        int port = list->port;
+        //int cost = list->cost;
+
+        printf("%i: (%s:%i)\n", sock, ip, port);
+        //printf("%i: (%c:%i) %i\n", sock, ip, port, cost);
+
+        ++list;
+        ++i;
+    }
+}
+
+
 int main (int argc, char *argv[])
 {   
-    HOST hosts[MAX_HOSTS];
-    ACTION_SET action_set[MAX_ACTIONS];
-    // int host_count = 0;
-    // int action_count = 0;
-
-    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
-
     char *file_name;
     if(argc != 2)
     {
@@ -176,22 +189,18 @@ int main (int argc, char *argv[])
         file_name = argv[1];
     }
     
+    HOST hosts[MAX_HOSTS];
+    ACTION_SET action_set[MAX_ACTIONS];
+    // int host_count = 0;
+    // int action_count = 0;
+    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
+    
     init_actions(file_name, action_set, hosts);
 
     //print_hosts(hosts, host_count);
     //print_action_sets(action_set, action_count);
 
-    for(int i = 0; i < num_hosts; i++)
-    {   
-        int sock = -1;  
-        sock = create_conn(hosts[i].name, hosts[i].port);
 
-        // PASS TO A FUNCTION TO HANDLE CONNECTIONS
-        handle_conn(sock, CMD_QUOTE_REQUEST);
-    }
-
-#define COMMAND(i,j)     action_set[i].actions[j]
-    
     for (size_t i = 0; i < num_sets; i++)
     {   
         size_t action_count = action_set[i].action_totals;
@@ -207,6 +216,10 @@ int main (int argc, char *argv[])
             {   
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sock_cost_list, hosts);
+
+                print_sock_list(sock_cost_list);
+
+#define COMMAND(i,j)     action_set[i].actions[j]
 
                 if(COMMAND(i,j).req_count > 0)
                 {

@@ -314,7 +314,7 @@ def recv_byte_int(sd):
 		try:
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
 			if not more_size:
-				raise Exception("Short file length received")
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -495,7 +495,8 @@ def handle_conn(host, port):
 						print(f'Closing connections')
 						if sock in output_sockets:
 							output_sockets.remove(sock)
-						input_sockets.remove(sock)
+						if sock in input_sockets:
+							input_sockets.remove(sock)
 						sock.close()
 
 			for sock in write_sockets:
