@@ -13,7 +13,8 @@
 
 #define ACTION_DATA(i,j)     action_set[i].actions[j]
 
-enum command {
+enum command 
+{
     CMD_ECHO,
     CMD_ECHOREPLY,
     CMD_QUOTE_REQUEST,
@@ -26,7 +27,7 @@ enum command {
     CMD_EXECUTE_REQ,
     CMD_EXECUTE,
     CMD_RETURN_STATUS,
-    CMD_RETURN_STDOUT
+    CMD_RETURN_STDOUT,
     CMD_RETURN_STDERR,
     CMD_RETURN_FILE,
     CMD_ACK
