@@ -27,7 +27,7 @@ void print_bytes(char *buffer)
 }
 
 
-int recv_int(int sock)
+int recv_byte_int(int sock)
 {
     uint32_t result = 0;
     char buffer[MAX_BYTES_SIGMA];
@@ -56,7 +56,7 @@ void send_quote_req(int sock)
     send(sock, &cmd, sizeof(cmd), 0);
     printf("REQUESTING FOR QUOTE\n");
 
-    int recv_cmd = recv_int(sock);
+    int recv_cmd = recv_byte_int(sock);
 
     // CHECK WE RECV THE CORRECT ACK
     if(recv_cmd != CMD_QUOTE_REPLY)
@@ -67,7 +67,7 @@ void send_quote_req(int sock)
 
     // RECV QUOTE AGAIN QUOTE IS A INT SO IT SHOULD BE 4 BYTES LONG ASWELL
 
-    int quote = recv_int(sock);
+    int quote = recv_byte_int(sock);
 
     printf("QUOTE RECEIVED: %i\n", quote);
 }
