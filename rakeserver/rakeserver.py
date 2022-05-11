@@ -12,8 +12,8 @@ import subprocess
 
 # DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
-SERVER_HOST = socket.gethostbyname(socket.gethostname())
-#SERVER_HOST = '127.0.0.1'
+#SERVER_HOST = socket.gethostbyname(socket.gethostname())
+SERVER_HOST = '127.0.0.1'
 # MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES = 1024
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
@@ -426,7 +426,8 @@ def non_blocking_socket(host, port):
 					conn, addr = sd.accept()
 
 					# ADD CONECTION TO LIST OF SOCKETS
-					input_sockets.append(conn)
+					#input_sockets.append(conn)
+					print(f'CONNECTED TO :{addr}')
 
 				else:
 					# REMOVE SOCKET FROM INPUT SOCKETS LIST

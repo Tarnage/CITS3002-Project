@@ -1,34 +1,30 @@
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
-#include "logger_c.h"
-
-#define FILE_FORMAT  "%d-%m-%Y.log"
-#define SERVER_PORT  50006
-#define SERVER_HOST  "192.168.1.111"
+#define SERVER_PORT  6327
+#define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
 
-int client_socket(char *host, int port) {
-    int sock = 0;
 
+int create_conn(char *host, int port)
+{   
+    int sock = -1;
     struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port   = htons(SERVER_PORT);
 
-    char *msg = "Hello from C Client";
-    char buffer[MAX_BYTES] = { 0 };
-    
     // CHECK SOCKET CREATION
     if( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
         printf("\nSocket creation error\n");
         exit(EXIT_FAILURE);
     }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port   = htons(SERVER_PORT);
 
     // CONVERT IPv4 and IPv6 ADDRESSES FROM STRING TO BINARY
     if( inet_pton(AF_INET, SERVER_HOST, &serv_addr.sin_addr) <= 0 ) {
@@ -42,27 +38,18 @@ int client_socket(char *host, int port) {
         exit(EXIT_FAILURE);
     }
 
-    send(sock, msg, strlen(msg), 0);
-    printf("msg sent!!");
-    read(sock, buffer, MAX_BYTES);
-    printf("%s\n", buffer);
+    return sock;
+}
 
-    close(sock);
+void handle_conn() {
+    
     exit(EXIT_SUCCESS);
 }
 
 int main()
 {   
-    time_t now = time(NULL);
-    char file[32];
-    file[strftime(file, sizeof(file), "./logs/" FILE_FORMAT, localtime(&now))] = '\0';
-    FILE *fp;
-    fp = fopen(file, "a");
-    log_add_fp(fp, LOG_DEBUG);
-
-    log_debug("TEST");
-
-    //client_socket(SERVER_HOST, SERVER_PORT);
+    int sd = -1;
+    sd = create_conn(SERVER_HOST, SERVER_PORT);
 
     return 0;
 }
