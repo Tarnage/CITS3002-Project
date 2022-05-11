@@ -51,7 +51,6 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         {
             continue;
         }
-
         // CHECK IF THE LINE GIVES THE DEFAULT PORT NUMBER
         if(strstr(line, "PORT") != NULL)
         {
@@ -103,7 +102,6 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
             num_sets++;
         }
         
-
         // CHECK FOR TABS
         if (line[0] == '\t')
         {   
@@ -115,7 +113,6 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 if (strstr(line, "remote-") != NULL)
                 {
                     ACTION_DATA(num_sets-1, action_index).is_remote = 1;
-
                     int j = 0;
                     while (line[j] != '-')
                     {   

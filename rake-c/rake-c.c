@@ -20,6 +20,11 @@ int main (int argc, char *argv[])
     // print_hosts(hosts);
     // print_action_sets(action_set);
 
+    for(int i = 0; i < num_hosts; i++)
+    {
+        create_socket(hosts[i].name, hosts[i].port);
+    }
+
     perform_actions(action_set);
 
     return 0; 

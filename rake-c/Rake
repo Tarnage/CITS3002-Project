@@ -1,8 +1,7 @@
 # Typical Rakefile
 
 PORT = 6238
-#HOSTS = hostname1 hostname2 hostname:6333
-HOSTS = 127.0.0.1
+HOSTS = 127.0.0.1 hostname2 hostname:6333
 
 actionset1:
 	echo starting actionset1

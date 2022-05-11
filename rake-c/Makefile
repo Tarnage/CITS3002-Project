@@ -3,7 +3,7 @@
 # defining headers
 PROJECT = rake-c
 HEADERS = $(PROJECT).h
-OBJ = client_socket.o parse_c.o rake-c.o strsplit.o execution.c
+OBJ = client_socket.o parse_c.o rake-c.o strsplit.o execution.c connection.o
 TARGETS = $(basename $(SOURCES))
 LIBS	= logger_c.c
 
