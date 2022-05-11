@@ -10,7 +10,7 @@
 
 //--------------------GLOBALS-------------------
 int n_sock_list = 0;
-
+NODE *sock_cost_list;
 
 
 void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
@@ -51,6 +51,15 @@ int recv_byte_int(int sock)
 }
 
 
+void add_quote(int sock, int quote)
+{
+    NODE *tmp = sock_cost_list;
+    printf("APPENDING CURRENT QUOTE: %i\n", quote);
+    while(tmp->sock != sock) ++tmp;
+    tmp->cost = quote;
+}
+
+
 void send_quote_req(int sock)
 {   
     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
@@ -75,6 +84,8 @@ void send_quote_req(int sock)
     int quote = recv_byte_int(sock);
 
     printf("QUOTE RECEIVED: %i\n", quote);
+
+    add_quote(sock, quote);
 }
 
 
@@ -92,7 +103,7 @@ void handle_conn(int sock, CMD ack_type)
             close(sock);
             queue = 0;
             break;
-        
+
         default:
             break;
         }
@@ -166,11 +177,24 @@ void print_sock_list(NODE *list)
         int sock = list->sock;
         char *ip = list->ip;
         int port = list->port;
-        //int cost = list->cost;
+        int cost = list->cost;
 
-        printf("%i: (%s:%i)\n", sock, ip, port);
-        //printf("%i: (%c:%i) %i\n", sock, ip, port, cost);
+        //printf("%i: (%s:%i)\n", sock, ip, port);
+        printf("%i: (%s:%i) %i\n", sock, ip, port, cost);
 
+        ++list;
+        ++i;
+    }
+}
+
+
+void get_all_costs(NODE *list)
+{
+    int i = 0;
+    printf("GETTING COST FOR ALL CONNECTIONS\n");
+    while(i != n_sock_list)
+    {
+        handle_conn(list->sock, CMD_QUOTE_REQUEST);
         ++list;
         ++i;
     }
@@ -193,8 +217,8 @@ int main (int argc, char *argv[])
     ACTION_SET action_set[MAX_ACTIONS];
     // int host_count = 0;
     // int action_count = 0;
-    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
-    
+    sock_cost_list = (NODE*)malloc(sizeof(NODE));
+
     init_actions(file_name, action_set, hosts);
 
     //print_hosts(hosts, host_count);
@@ -217,6 +241,8 @@ int main (int argc, char *argv[])
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sock_cost_list, hosts);
 
+                get_all_costs(sock_cost_list);
+                
                 print_sock_list(sock_cost_list);
 
                 if(COMMAND(i,j).req_count > 0)
