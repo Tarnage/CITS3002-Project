@@ -98,9 +98,9 @@ def send_quote(sd):
 			sd(socket): Which socket to send the quote.
 	'''
 	cost = calculate_cost()
-	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	send_ack(sd, ACK.CMD_QUOTE_REPLY)
+	print(f'<---- SENDING QUOTE: {cost}')
 	sd.sendall( cost )
 
 
@@ -232,8 +232,9 @@ def send_ack(sd, ack_type):
 	'''
 	print(f'<---- SENDING ACK')
 
-	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( ack )
+	#ack = socket.htonl(ack_type)
+	print(ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN))
+	sd.send( ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN) )
 
 
 def send_filename(sd, file_attr):

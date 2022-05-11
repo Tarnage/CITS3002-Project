@@ -5,7 +5,7 @@ PROJECT = rake-c
 HEADERS = $(PROJECT).h
 OBJ = parse_c.o rake-c.o strsplit.o
 TARGETS = $(basename $(SOURCES))
-LIBS	= #logger_c.c
+LIBS	= -lexplain #logger_c.c 
 
 C11		= cc -std=c11
 CFLAGS 	= #-Wall -Werror -pedantic
@@ -19,7 +19,7 @@ DIRT = $(wildcard *.o)
 #deafault all: $(TARGETS)
 
 $(PROJECT)	: $(OBJ)
-	$(C11) $(CFLAGS) -o $(PROJECT) $(OBJ)
+	$(C11) $(CFLAGS) -o $(PROJECT) $(OBJ) $(LIBS)
 
 %.o: %.c $(HEADERS)
 	$(C11) $(CFLAGS) -c $<

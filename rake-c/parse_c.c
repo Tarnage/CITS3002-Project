@@ -67,14 +67,14 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 // IF STRING DOES NOT CONTAIN : MEANS IT HOST NEEDS DEFAULT POST
                 if( strstr(words[i], ":") == NULL )
                 {
-                    hosts->name = strdup(words[i]);
+                    hosts->name = trim_whitespace(words[i]);
                     hosts->port = default_port;
                     // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 } 
                 else 
                 {   // WE GRAB THE PORT NUMBER FROM THE STRING
-                    char *name = words[i];
+                    char *name = trim_whitespace(words[i]);
                     char *port = strstr(words[i], ":");
                     port[0] = '\0';
                     ++port;

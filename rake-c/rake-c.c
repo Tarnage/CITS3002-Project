@@ -1,5 +1,8 @@
 #include "rake-c.h"
 
+// NOT STANDARD LIB CAN INSTALL WITH sudo apt -y install libexplain-dev
+#include <libexplain/connect.h>
+
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
@@ -18,8 +21,7 @@ void send_quote_req(int sock)
     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
     // ALWAYS CONVERTS INTS TO 4 BYTES LONG
     int cmd  = htonl( CMD_QUOTE_REQUEST );
-
-    printf("SENDING: %i\n", cmd);
+    printf("SENDING BYTES : %x\n", cmd);
     // SEND THE REQ
     send(sock, &cmd, sizeof(cmd), 0);
     printf("SENDING FOR QUOTE\n");
@@ -31,15 +33,21 @@ void send_quote_req(int sock)
     int byte_count = 0; // SHOULD BE 4
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
+    buffer[byte_count] = '\0';
+
+    printf("RECV: %s\n", buffer);
+    printf("RECV: %i BYTES\n", byte_count);
     if(byte_count == 0){
         printf("WE DIDNT RECV ANYTHING");
         exit(EXIT_FAILURE);
     }
 
-    printf("RECV: %i\n", atoi(buffer));
+    int recv_cmd = ntohl(*buffer);
+
+    printf("RECV: %s\n", (buffer));
 
     // CHECK WE RECV THE CORRECT ACK
-    if(atoi(buffer) != CMD_QUOTE_REPLY)
+    if(recv_cmd != CMD_QUOTE_REPLY)
     {
         printf("SOMETHING WENT WRONG\n");
         exit(EXIT_FAILURE);
@@ -83,9 +91,10 @@ int create_conn(char *host, int port, CMD ack_type)
     int sock = -1;
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port   = htons(SERVER_PORT);
+    serv_addr.sin_port   = htons(port);
 
-    printf("CONNECTING TO (%s : %i)\n", host, port);
+
+    printf("CONNECTING TO (%s:%i)\n", host, port);
 
     // CHECK SOCKET CREATION
     if( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
@@ -94,14 +103,15 @@ int create_conn(char *host, int port, CMD ack_type)
     }
 
     // CONVERT IPv4 and IPv6 ADDRESSES FROM STRING TO BINARY
-    if( inet_pton(AF_INET, SERVER_HOST, &serv_addr.sin_addr) <= 0 ) {
+    if( inet_pton(AF_INET, host, &serv_addr.sin_addr) <= 0 ) {
         printf("\nInvaild address or address not supported\n");
         exit(EXIT_FAILURE);
     }
 
     // CHECK CONNECTION
-    if( connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0 ) {
-        printf("\nConnection Failed\n");
+    int status = -1;
+    if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
+        fprintf(stderr, "%s\n", explain_connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) );
         exit(EXIT_FAILURE);
     }
 
