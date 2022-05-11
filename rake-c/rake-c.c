@@ -13,6 +13,7 @@ int n_sock_list = 0;
 NODE *sock_cost_list;
 
 
+// FILLS STRUCTS WITH RAKEFILE CONTENTS
 void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 {
     file_process(file_name, actions, hosts);
@@ -21,6 +22,7 @@ void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 }
 
 
+// HELPER TO CHECK THAT WE RECEIVE BYTES
 void print_bytes(char *buffer)
 {   
     printf("BYTES ");
@@ -32,6 +34,8 @@ void print_bytes(char *buffer)
 }
 
 
+// USED TO RECVEIVE INTEGERS SUCH AS ENUMS FILE SIZES AND COST REQ
+// SINCE ALL INTS WILL BE 4 BYTES LONG
 int recv_byte_int(int sock)
 {
     uint32_t result = 0;
@@ -51,6 +55,7 @@ int recv_byte_int(int sock)
 }
 
 
+// HELPER TO ADD COST TO SOCK LIST 
 void add_quote(int sock, int quote)
 {
     NODE *tmp = sock_cost_list;
@@ -60,6 +65,7 @@ void add_quote(int sock, int quote)
 }
 
 
+// SEND REQ AND RECEIVE QUOTES
 void send_quote_req(int sock)
 {   
     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
@@ -89,6 +95,7 @@ void send_quote_req(int sock)
 }
 
 
+// MAIN CONNECTION HANDLER
 void handle_conn(int sock, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
@@ -112,6 +119,7 @@ void handle_conn(int sock, CMD ack_type)
 }
 
 
+// CREATES SOCKET DESCRIPTORS
 int create_conn(char *host, int port)
 {   
     int sock = -1;
@@ -147,6 +155,7 @@ int create_conn(char *host, int port)
 }
 
 
+// HELPER TO FILL OUT SOCK LIST WITH CONNECTIONS
 void get_all_conn(NODE *list, HOST *hosts)
 {   
     while(1)
@@ -168,6 +177,7 @@ void get_all_conn(NODE *list, HOST *hosts)
 }
 
 
+// FOR TESTING PRINT THE CURRENT SOCK LIST
 void print_sock_list(NODE *list)
 {   
     int i = 0;
@@ -188,6 +198,7 @@ void print_sock_list(NODE *list)
 }
 
 
+// HELPER TO LOOP OVER ALL SOCKETS IN THE LIST AND GET THE COST
 void get_all_costs(NODE *list)
 {
     int i = 0;
