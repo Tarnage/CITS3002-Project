@@ -8,6 +8,11 @@
 #define MAX_BYTES    1024
 
 
+//--------------------GLOBALS-------------------
+int n_sock_list = 0;
+
+
+
 void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 {
     file_process(file_name, actions, hosts);
@@ -96,7 +101,7 @@ void handle_conn(int sock, CMD ack_type)
 }
 
 
-int create_conn(char *host, int port, CMD ack_type)
+int create_conn(char *host, int port)
 {   
     int sock = -1;
     struct sockaddr_in serv_addr;
@@ -127,8 +132,26 @@ int create_conn(char *host, int port, CMD ack_type)
 
     printf("Socket Creation Successful\n");
 
-    // PASS TO A FUNCTION TO HANDLE CONNECTIONS
-    handle_conn(sock, ack_type);
+    return sock;
+}
+
+
+void get_all_conn(NODE *list, HOST *hosts)
+{
+    while (true)
+    {   
+        if (hosts->name == NULL)
+        {
+            break;
+        }
+        list->next = (NODE*)malloc(sizeof(NODE));
+
+        list->ip = hosts->name;
+        list->port = hosts->port;
+        list->sock = create_conn(hosts->name, hosts->port);
+        
+    }
+    
 }
 
 
@@ -138,6 +161,8 @@ int main (int argc, char *argv[])
     ACTION_SET action_set[MAX_ACTIONS];
     // int host_count = 0;
     // int action_count = 0;
+
+    NODE *sock_cost_list = (Node*)malloc(sizeof(NODE));
 
     char *file_name;
     if(argc != 2)
@@ -152,11 +177,47 @@ int main (int argc, char *argv[])
     init_actions(file_name, action_set, hosts);
 
     //print_hosts(hosts, host_count);
-    // print_action_sets(action_set, action_count);
+    //print_action_sets(action_set, action_count);
 
     for(int i = 0; i < num_hosts; i++)
-    {     
-        create_conn(hosts[i].name, hosts[i].port, CMD_QUOTE_REQUEST);
+    {   
+        int sock = -1;  
+        sock = create_conn(hosts[i].name, hosts[i].port);
+
+        // PASS TO A FUNCTION TO HANDLE CONNECTIONS
+        handle_conn(sock, CMD_QUOTE_REQUEST);
+    }
+
+#define COMMAND(i,j)     action_set[i].actions[j]
+    
+    for (size_t i = 0; i < num_sets; i++)
+    {   
+        size_t action_count = action_set[i].action_totals;
+        for (size_t j = 0; j < action_count; j++)
+        {   
+            // CHECK IF ITS A REMOTE COMMAND
+            if(COMMAND(i,j).is_remote != 1)
+            {   
+                //TODO: HANDLE LOCAL EXECUTIONS
+                continue;
+            }
+            else
+            {   
+                // TODO: GET THE LOWEST COST
+                get_all_conn(sock_cost_list, hosts);
+
+                if(COMMAND(i,j).req_count > 0)
+                {
+                    // TODO: HANDLE FILE TRANSFERS
+                }
+                else
+                {
+                    // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
+                }
+            }
+
+        }
+        
     }
 
     // perform_actions(action_set);
