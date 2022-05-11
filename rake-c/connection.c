@@ -23,8 +23,10 @@ void connect_server(HOST *hosts)
 // CREATE SOCKET AND CONNECT TO THE PORT
 void create_socket(char *host, int port)
 {
+    // SOCKET DESCRIPTOR
     int sock_desc = 0;
 
+    // SOCKET ADDRESS
     struct sockaddr_in server_addr;
 
 
@@ -44,13 +46,16 @@ void create_socket(char *host, int port)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, SERVER_HOST, &server_addr.sin_addr) <= 0)
+    printf("ADDRESS: %s\n", host);
+
+    if (inet_pton(AF_INET, host, &server_addr.sin_addr) <= 0)
     {
         printf("Address not supported\n");
         exit(EXIT_FAILURE);
     }
 
-    if(connect(sock_desc, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    printf("Connecting to: %d\n", port);
+    if( connect(sock_desc, (struct sockaddr*)&server_addr, sizeof(server_addr) ) < 0)
     {
         printf("CONNECTION FAILED\n");
         exit(EXIT_FAILURE);
