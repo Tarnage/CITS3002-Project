@@ -361,7 +361,7 @@ def recv_cmd(sd, size):
 	return result
 
 
-def non_blocking_socket(host, port):
+def handle_conn(host, port):
 	'''Non Blocking server version, server will continuously poll the socket for a connection
 		
 		Args:
@@ -604,7 +604,7 @@ def close_sockets(sockets):
 
 def main(ip=SERVER_HOST, port=SERVER_PORT):
 	print(f"ESTABLISHING CONNECTION ON {ip} {port}")
-	non_blocking_socket(ip, port)
+	handle_conn(ip, port)
 
 
 if __name__ == "__main__":

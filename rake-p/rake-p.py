@@ -310,7 +310,7 @@ def is_bin_file(filename):
 
 
 
-def execute(sd, ack_type, cmd=None):
+def handle_conn(sd, ack_type, cmd=None):
 		# SOCKETS WE EXPECT TO READ FROM
 		input_sockets = []
 
@@ -508,7 +508,7 @@ def execute(sd, ack_type, cmd=None):
 				close_sockets(output_sockets)
 				sys.exit()
 			except Exception as err:
-				print( f'ERROR occurred in {execute.__name__} with code: {err}' )
+				print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
 				close_sockets(input_sockets)
 				close_sockets(output_sockets)
 				sys.exit()
@@ -537,7 +537,7 @@ def main(argv):
 			else:
 				# GET THE LOWEST COST
 				sockets_list = get_all_conn(hosts)
-				execute(sockets_list, ACK.CMD_QUOTE_REQUEST)
+				handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
 
 				slave_addr = get_lowest_cost()
 				#print(slave_addr)
@@ -547,10 +547,10 @@ def main(argv):
 				print(command.requires)
 				# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
 				if len(command.requires) > 0:
-					execute(slave, ACK.CMD_SEND_FILE, command)
+					handle_conn(slave, ACK.CMD_SEND_FILE, command)
 				# ELSE JUST RUN THE COMMAND	
 				else:
-					execute(slave, ACK.CMD_EXECUTE, command)
+					handle_conn(slave, ACK.CMD_EXECUTE, command)
 		
 if __name__ == "__main__":
 	main(sys.argv)
