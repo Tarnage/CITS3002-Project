@@ -137,8 +137,8 @@ int create_conn(char *host, int port)
 
 
 void get_all_conn(NODE *list, HOST *hosts)
-{
-    while (true)
+{   
+    while(1)
     {   
         if (hosts->name == NULL)
         {
@@ -150,8 +150,10 @@ void get_all_conn(NODE *list, HOST *hosts)
         list->port = hosts->port;
         list->sock = create_conn(hosts->name, hosts->port);
         
+        ++n_sock_list;
+        ++list;
+        ++hosts;
     }
-    
 }
 
 
@@ -162,7 +164,7 @@ int main (int argc, char *argv[])
     // int host_count = 0;
     // int action_count = 0;
 
-    NODE *sock_cost_list = (Node*)malloc(sizeof(NODE));
+    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
 
     char *file_name;
     if(argc != 2)
