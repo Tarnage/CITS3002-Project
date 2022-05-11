@@ -37,7 +37,7 @@ void file_process(char *file_name)
         // char **actions = (char **)malloc(sizeof(char*));
 
         int curr_req = 0;
-        int num_sets;
+        int num_sets = 0;
 
         ACTION_SET *sets = (ACTION_SET*)malloc(sizeof(ACTION_SET));
         sets[curr_set].num_actions = 0;
