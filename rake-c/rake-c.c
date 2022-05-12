@@ -166,13 +166,41 @@ void recv_string(int sock, char *string, int size)
 
 }
 
+/*
+    FUNCTION: recv_bin_file
+    INPUT: sock (Integer)
+    OUTPUT: N/A
+
+    ASSERTION: RECEIVE A BINARY FILE FROM THE SERVER
+*/ 
+
 void recv_bin_file(int sock)
 {
-    int size = recv_byte_int(sock);
-    char filename[size]; 
-    recv_string(sock, filename, size);
+    // RECEIVE THE SIZE OF THE FILENAME
+    int str_size = recv_byte_int(sock);
+    char filename[str_size]; 
+
+    // RECEIVE THE FILENAME 
+    recv_string(sock, filename, str_size);
     printf("%s\n", filename);
-    // FILE *fp = fopen(filename, "wb");
+
+    // RECEIVE THE SIZE OF THE FILE
+    int file_size = recv_byte_int(sock);
+    // OPEN THE FILE
+    FILE *fp = fopen(filename, "wb");
+    
+    char buffer[file_size];
+    int byte_count = recv(sock, buffer, sizeof(buffer), 0);
+
+    if(byte_count == 0)
+    {
+        printf("WE DIDNT RECV ANYTHING");
+        exit(EXIT_FAILURE);
+    }
+
+    // RECEIVE THE FILE'S CONTENTS 
+    fwrite(buffer, file_size, 1, fp);
+
     // int size = recv_byte_int(sock);
 
 
