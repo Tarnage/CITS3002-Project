@@ -2,13 +2,13 @@
 
 ## Introduction
 ### Explain Motivation
-Whats the problem we are trying to solve and why
+This project aims to execute multiple instance of server programs on distinct (physical) computers connected using internet protocols, and each of the client programs on the computer. Implementation should not employ specific 3rd party frameworks or resources. Instead opting to use core networking functions such as (classes, methods, libraries,...) of each programming language. 
 
 #
 
 ## Technology Involved
 ### Explain why we are using TCP/IP over LAN opposed to UDP or HTTP
-
+TCP is slower but more reliable than UDP in the transference of data. TCP/IP protocol gurantees the delivery of data to the destination router with features such as deilvery acknowledgements, retransmissions, delay transmissions when the network is congested and easy error detection. The TCP/IP model also has a easier to scale client-server architecture that supports several routing protocols. (refer to diagram for example of why we require delivery acknowledgemnts)
 #
 
 #### Good read about how to allocate buffer size
@@ -23,7 +23,7 @@ Whats the problem we are trying to solve and why
 
 ## Design
 ## Why we would use a simplex connectionless service also known as unacknowledged connectionless service. compared to the others
-We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is realiable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is jsut wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea)
+We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is reliable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is just wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea)
 
 ### Protocol
 
