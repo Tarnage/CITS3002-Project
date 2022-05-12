@@ -271,11 +271,12 @@ def send_filename(sd, filename):
 			sd(socket): Connection to send the filename
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	# sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	# SEND THE SIZE OF THE NAME FIRST
-	send_byte_size(sd, len(filename))
+	payload = filename.encode(FORMAT)
+	send_byte_size(sd, len(payload))
+
 	# SEND THE ACTUAL FILE NAME
-	sd.sendall(filename.encode(FORMAT))
+	sd.sendall( payload )
 
 
 def recv_filename(sd):
@@ -306,18 +307,18 @@ def send_bin_file(sd, file_attr):
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
 	print(f'<-------SENDING FILE')
-	filename = file_attr.path
-	size = file_attr.size
-
+	path = file_attr.path
+	filename = file_attr.filename
 	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 
 	send_filename(sd, filename)
-	send_file_size(sd, size)
 
 	payload = b''
-	with open(filename, 'rb') as f:
+	with open(path, 'rb') as f:
 		payload = f.read()
+
+	send_file_size(sd, len(payload))
 
 	sd.sendall( payload )
 	print(f'FILE SENT...')
@@ -554,7 +555,7 @@ def handle_conn(host, port):
 						else:
 							pass
 
-						input_sockets.append(sock)
+						output_sockets.append(sock)
 
 					elif msg_type == ACK.CMD_RETURN_FILE:
 						print("entered here")
