@@ -35,6 +35,16 @@ void print_bytes(char *buffer)
     printf("\n");   
 }
 
+void send_byte_int(int sd, CMD ack_type)
+{
+     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
+    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
+    int cmd  = htonl( ack_type );
+
+    // SEND THE REQ
+    printf("SENDING ACK_TYPE: %d\n", ack_type);
+    send(sd, &cmd, sizeof(cmd), 0);
+}
 
 // USED TO RECVEIVE INTEGERS SUCH AS ENUMS FILE SIZES AND COST REQ
 // SINCE ALL INTS WILL BE 4 BYTES LONG
@@ -70,12 +80,8 @@ void add_quote(int sock, int quote)
 // SEND REQ AND RECEIVE QUOTES
 void send_quote_req(int sock)
 {   
-    // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
-    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
-    int cmd  = htonl( CMD_QUOTE_REQUEST );
+    send_byte_int(sock, CMD_QUOTE_REQUEST);
 
-    // SEND THE REQ
-    send(sock, &cmd, sizeof(cmd), 0);
     printf("REQUESTING FOR QUOTE\n");
 
     int recv_cmd = recv_byte_int(sock);
@@ -96,9 +102,17 @@ void send_quote_req(int sock)
     add_quote(sock, quote);
 }
 
+// SEND TEXT FILE TO SERVER
+void send_txt_file(int sd, char *filename)
+{
+    send_byte_int(sd, CMD_SEND_FILE);
+
+    send_byte_int(sd, sizeof(filename));
+}
+
 
 // MAIN CONNECTION HANDLER
-void handle_conn(int sock, CMD ack_type) 
+void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
     int queue = 1;
@@ -112,11 +126,19 @@ void handle_conn(int sock, CMD ack_type)
                 close(sock);
                 queue = 0;
                 break;
-            case CMD_SEND_REQUIREMENTS:
+            case CMD_SEND_FILE:
+                action_set->req_count--;
+                if(action_set->req_count > 0)
+                {
+                    send_txt_file(sock, action_set->requirements[action_set->req_count]);
+                }
+                close(sock);
+                queue = 0;
+                break; 
 
 
-        default:
-            break;
+            default:
+                break;
         }
     }
     
@@ -216,7 +238,7 @@ void get_all_costs(NODE *list)
     printf("GETTING COST FOR ALL CONNECTIONS\n");
     while(i != n_sock_list)
     {
-        handle_conn(list->sock, CMD_QUOTE_REQUEST);
+        handle_conn(list->sock, NULL, CMD_QUOTE_REQUEST);
         ++list;
         ++i;
     }
@@ -292,10 +314,13 @@ int main (int argc, char *argv[])
 
                 HOST *slave = get_lowest_cost(sock_cost_list);
                 printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
+                
+                int slave_sock = create_conn(slave->name, slave->port);
 
                 if(COMMAND(i,j).req_count > 0)
                 {
                     // TODO: HANDLE FILE TRANSFERS
+                    handle_conn(slave_sock, &COMMAND(i,j), CMD_SEND_FILE);
                 }
                 else
                 {
