@@ -147,21 +147,6 @@ def add_cost_tuple(sd, cost):
 	cost_list.append((cost, ip_port))
 
 
-def send_size(sd, filename):
-	''' Send file size to server. This function will use system calls
-		to find the file and return the size in bytes
-	
-		Args:
-			sd(socket): Connection to send the filename
-			filename(str): name of the file we want to send the size of.
-	'''
-	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	size = os.path.getsize(f'./{filename}')
-	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-	sd.sendall( payload )
-
-
 def send_file_name(sd, filename):
 	''' Send filename to server
 	
@@ -189,6 +174,7 @@ def send_txt_file(sd, filename):
 	print(f'SENDING FILE ---->')
 	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
+
 	payload = ""
 	with open(filename, "r") as f:
 		payload = f.read()
@@ -481,7 +467,7 @@ def handle_conn(sd, ack_type, cmd=None):
 						# elif msg_type == ACK.CMD_SEND_SIZE:
 						# 	index = file_count
 						# 	filename = cmd.requires[index]
-						# 	send_size(sd, filename)
+						# 	(sd, filename)
 						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
 						# 	input_sockets.append(sock)
 
