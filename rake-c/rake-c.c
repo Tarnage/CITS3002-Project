@@ -87,14 +87,15 @@ void handle_conn(int sock, CMD ack_type)
     {   
         switch (ack_type)
         {
-        case CMD_QUOTE_REQUEST:
-            send_quote_req(sock);
-            close(sock);
-            queue = 0;
-            break;
-        
-        default:
-            break;
+            case CMD_QUOTE_REQUEST:
+                send_quote_req(sock);
+                close(sock);
+                queue = 0;
+                break;
+            case CMD_EXECUTE:
+                // execute_cmd(sock);
+            default:
+                break;
         }
     }
     
@@ -125,12 +126,13 @@ int create_conn(char *host, int port)
 
     // CHECK CONNECTION
     int status = -1;
-    if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
+    if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) 
+    {
         fprintf(stderr, "%s\n", explain_connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) );
         exit(EXIT_FAILURE);
     }
 
-    printf("Socket Creation Successful\n");
+    printf("SOCKET CREATION SUCCESSFUL\n");
 
     return sock;
 }
@@ -144,6 +146,7 @@ void get_all_conn(NODE *list, HOST *hosts)
         {
             break;
         }
+        
         list->next = (NODE*)malloc(sizeof(NODE));
 
         list->ip = hosts->name;
@@ -162,7 +165,7 @@ int main (int argc, char *argv[])
     // int host_count = 0;
     // int action_count = 0;
 
-    NODE *sock_cost_list = (Node*)malloc(sizeof(NODE));
+    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
 
     char *file_name;
     if(argc != 2)

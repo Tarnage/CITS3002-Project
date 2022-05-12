@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include "parse_c.h"
+#include <stdbool.h>
 
 #define MAX_BYTES_SIGMA 4
 
