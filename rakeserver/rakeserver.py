@@ -120,6 +120,7 @@ def rm_client_files(sd):
 		except OSError as err:
 			sys.exit("Error occured while deleting temp directory: {err}")
 
+
 def check_temp_dir(peer_dir):
 	''' Helper to make sure temp dir exists if not create one
 
@@ -277,7 +278,6 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-# TODO: add sleep for slow connections
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
@@ -308,7 +308,7 @@ def send_bin_file(sd, file_attr):
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
 	size = file_attr.size
-	
+
 	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 
@@ -480,22 +480,6 @@ def handle_conn(host, port):
 							return_code[sock] = r_code
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							output_sockets.append(sock)
-
-						# RECEIVE FILE NAME
-						# elif sigma == ACK.CMD_SEND_NAME:
-						# 	filename[sock] = recv_filename(sock)
-						# 	msg_queue[sock] = ACK.CMD_SEND_SIZE
-						# 	ack_queue[sock] = True
-						# 	output_sockets.append(sock)
-
-						# elif sigma == ACK.CMD_SEND_SIZE:
-						# 	payload = sock.recv(MAX_BYTES)
-						# 	payload = int.from_bytes(payload, BIG_EDIAN)
-						# 	print(f"RECIEVED SIZE {payload}")
-						# 	file_size[sock] = payload
-						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
-						# 	ack_queue[sock] = True
-						# 	output_sockets.append(sock)
 						
 						elif sigma == ACK.CMD_SEND_FILE:
 							recv_text_file(sock)
@@ -570,21 +554,6 @@ def handle_conn(host, port):
 							pass
 
 						input_sockets.append(sock)
-						
-					# THE ONLY FILES A SERVER WILL SEND IS THE LATEST CREATED IN THE tmp DIR
-					# AFTER SUCCESSFUL TRANSFER THE tmp DIR SHOULD BE DELETED
-					# elif msg_type == ACK.CMD_SEND_NAME:
-					# 	file_attr = file_to_send[sock]
-					# 	send_filename(sock, file_attr)
-					# 	msg_queue[sock] = ACK.CMD_SEND_SIZE
-					# 	input_sockets.append(sock)
-						
-
-					# elif msg_type == ACK.CMD_SEND_SIZE:
-					# 	file_attr = file_to_send[sock]
-					# 	send_file_size(sock, file_attr)
-					# 	msg_queue[sock] = 6
-					# 	input_sockets.append(sock)
 
 					elif msg_type == ACK.CMD_RETURN_FILE:
 						print("entered here")

@@ -210,22 +210,42 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-def recv_bin_file(sd, filename, size):
+# TODO: add sleep for slow connections
+def recv_filename(sd):
+
+	size = recv_byte_int(sd)
+	filename = b''
+	while len(filename) < size:
+		try:
+			more_size = sd.recv( size - len(filename) )
+			if not more_size:
+				time.sleep(0)
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+
+		filename += more_size
+	
+	return filename.decode(FORMAT)
+
+
+def recv_bin_file(sd):
 	''' Receive binary file from server
 		Args:
 			sd(socket): Connection file is being sent from
-			filename(str): Name of file
-			size(int): Total size of the file being received in bytes
-			sd(socket): Connection to send the file
-			file_attr(FileStat Oject): Object contains the file stats
 	'''
+	filename = recv_filename(sd)
+
+	size = recv_byte_int(sd)
+
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
 		with open(path, "wb") as f:
 			buffer = b""
 			while len(buffer) < size:
-				buffer += sd.recv(MAX_BYTES)
+				buffer += sd.recv(size - len(buffer))
 
 			f.write(buffer)
 
@@ -373,7 +393,7 @@ def handle_conn(sd, ack_type, cmd=None):
 							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
 							if r_code == 0:
 								# EXPECT A FILE SENT FROM SERVER
-								msg_queue[sock] = ACK.CMD_SEND_NAME
+								msg_queue[sock] = ACK.CMD_RETURN_FILE
 								
 							# EXECUTION FAILED WITH WARNING
 							#TODO: handle error codes
@@ -387,28 +407,11 @@ def handle_conn(sd, ack_type, cmd=None):
 								msg_queue[sock] = ACK.CMD_RETURN_STDERR
 
 							# SEND ACKS 
-							ack_queue[sock] = True
-							output_sockets.append(sock)
-
-						elif sigma == ACK.CMD_SEND_NAME:
-							payload = sock.recv(MAX_BYTES).decode(FORMAT)
-							file_to_recv[sock] = payload
-							msg_queue[sock] = ACK.CMD_SEND_SIZE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
-
-						elif sigma == ACK.CMD_SEND_SIZE:
-							payload = sock.recv(MAX_BYTE_SIGMA)
-							file_size[sock] = int.from_bytes(payload, BIG_EDIAN)
-							msg_queue[sock] = ACK.CMD_SEND_FILE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+							input_sockets.append(sock)
 						
-						elif sigma == ACK.CMD_SEND_FILE:
+						elif sigma == ACK.CMD_RETURN_FILE:
 							print("RECIEVING FILE")
-							recv_bin_file(sock, file_to_recv[sock], file_size[sock])
-							del file_to_recv[sock]
-							del file_size[sock]
+							recv_bin_file(sock)
 							print("CLOSING CONNECTION...")
 							sock.close()
 							del msg_queue[sock]
