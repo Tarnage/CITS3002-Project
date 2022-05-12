@@ -9,7 +9,6 @@
 #define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
 
-
 //--------------------GLOBALS-------------------
 int n_sock_list = 0;
 NODE *sock_cost_list;
@@ -42,7 +41,7 @@ void send_byte_int(int sd, CMD ack_type)
     int cmd  = htonl( ack_type );
 
     // SEND THE REQ
-    printf("SENDING INTEGER: %d\n", ack_type);
+    printf("SENDING BYTE: %d\n", ack_type);
     send(sd, &cmd, sizeof(cmd), 0);
 }
 
@@ -57,7 +56,7 @@ int recv_byte_int(int sock)
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
     if(byte_count == 0){
-        printf("WE DIDNT RECV ANYTHING");
+        printf("INTEGER NOT RECEIVED\n");
         exit(EXIT_FAILURE);
     }
 	uint32_t result = 0;
@@ -136,18 +135,17 @@ void send_txt_file(int sd, char *filename)
         char buffer[size]; 
         
         fread(buffer, size, 1, fp);
-        printf("%s\n", buffer);
+        // printf("%s\n", buffer);
         send_byte_int(sd, size);
         send(sd, buffer, size, 0);
-        printf("SENT SUCCESSFULLY\n");
         // exit(EXIT_SUCCESS);
     }
+
+    fclose(fp);
 }
 
 void recv_string(int sock, char *string, int size)
 {
-    
-    
     char buffer[size]; 
 
     int byte_count = 0; 
@@ -155,30 +153,94 @@ void recv_string(int sock, char *string, int size)
 
     if(byte_count == 0)
     {
-        printf("WE DIDNT RECV ANYTHING");
+        printf("WE DIDNT RECV ANYTHING\n");
         exit(EXIT_FAILURE);
     }
+    
 
     memcpy(string, buffer, byte_count);
+    string[byte_count] = '\0';
 
-    printf("%s\n", string);
+    // printf("%s\n", string);
     // return string; 
 
 }
 
+/*
+    FUNCTION: recv_bin_file
+    INPUT: sock (Integer)
+    OUTPUT: N/A
+
+    ASSERTION: RECEIVE A BINARY FILE FROM THE SERVER
+*/ 
+
 void recv_bin_file(int sock)
 {
-    int size = recv_byte_int(sock);
-    char filename[size]; 
-    recv_string(sock, filename, size);
+    // RECEIVE THE SIZE OF THE FILENAME
+    int str_size = recv_byte_int(sock);
+    printf("SIZE: %d\n", str_size);
+    char filename[str_size]; 
+
+    // RECEIVE THE FILENAME 
+    recv_string(sock, filename, str_size);
     printf("%s\n", filename);
-    // FILE *fp = fopen(filename, "wb");
-    // int size = recv_byte_int(sock);
 
+    // RECEIVE THE SIZE OF THE FILE
+    printf("RECEIVING FILE SIZE\n");
+    int file_size = recv_byte_int(sock);
+    printf("FILE SIZE: %d BYTES\n", file_size);
 
+    // TODO: MAKE THIS A CHECK FUNCTION
+    // #DEFINE "./tmp/"
+    // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
+    // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
+    struct stat st;
+    if(stat("./tmp/", &st) == -1)
+    {   
+        // THERE A MACRO FOR 0777?
+        mkdir("./tmp/", 0777);
+    }   
 
-   //  printf("%s\n", filename); 
+    int new_file_size = strlen("./tmp/") + strlen(filename) + 1;
+    char dir_for_file[new_file_size];
+    strcpy(dir_for_file, "./tmp/");
+    strcat(dir_for_file, filename);
+    // printf("%s\n", dir_for_file);
+
+    
+    // OPEN THE FILE
+    FILE *fp = fopen(dir_for_file, "wb");
+    if (fp == NULL)
+    {
+        printf("PROBLEM\n");
+        exit(EXIT_FAILURE);
+    }
+
+    
+    unsigned char buffer[file_size];
+    int byte_count = recv(sock, buffer, sizeof(buffer), 0);
+
+    if(byte_count == 0)
+    {
+        printf("FILE CONTENTS NOT RECEIVED\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("FILE RECEIVED SUCCESSFULLY\n");
+    // RECEIVE THE FILE'S CONTENTS 
+    fwrite(buffer, file_size, 1, fp);
+
+    fclose(fp);
 }
+
+
+// TODO: IMPLEMENT FIND FILE
+// SEARCH ENTIRE SYSTEM STORE LOCATION IN PATH AND RETURN SUCCESS = 1 OR FAIL = 0
+int find_file(char *filename, char *path)
+{
+    return 0;
+}
+
 
 // MAIN CONNECTION HANDLER
 void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
@@ -197,9 +259,15 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 queue = 0;
                 break;
             case CMD_SEND_FILE:
+                // TODO: PRETTY SURE WE CAN REMOVE LINES 253 AND 258 AND JUST HAVE
+                //  while(--action_set->req_count > 0) IN LINE 254 
+                // NOTE* I THINK IF YOU HAVE [VAR]-- AT THE END IT DECRECRENTS AFTER THE > 0 CHECK
+                // OPPOSED TO --[VAR] WHICH DECREMNETS THEN DOES THE > 0 CHECK. OR ITS THE OTHER WAY AROUND.
                 action_set->req_count--;
                 while(action_set->req_count > 0)
-                {
+                {   
+                    // TODO ADD find_file() CHECK HERE.
+                    printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
                     send_txt_file(sock, action_set->requirements[action_set->req_count]);
                     action_set->req_count--;
                     int ack = recv_byte_int(sock);
@@ -235,18 +303,20 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 }
                 break; 
             case CMD_RETURN_FILE:
-                printf("RETURN FILE\n");
+                printf("CHECKING FOR RETURN FILE ACK\n");
                 ack = recv_byte_int(sock);
-                printf("%d\n", ack);
+                printf("ACK: %d\n", ack);
                 if(ack == CMD_RETURN_FILE)
                 {
-                    printf("STARTING\n");
+                    printf("RECEIVING FILE FROM SERVER\n");
                     recv_bin_file(sock);
                 }
                 else
                 {
                     fprintf(stderr, "Wrong ACK");
                 }
+                queue = 0;
+                break;
             default:
                 break;
         }
@@ -412,7 +482,18 @@ int main (int argc, char *argv[])
             if(COMMAND(i,j).is_remote != 1)
             {   
                 //TODO: HANDLE LOCAL EXECUTIONS
-                continue;
+                /*
+                if(COMMAND(i,j).req_count > 0)
+                {
+                    for (size_t k = 1; k < COMMAND(i, j).req_count; k++)
+                    {
+                        if(fopen(COMMAND(i,j).requirements[k], "r") == NULL)
+                        {
+                            break; 
+                        }
+                    }
+                    system(COMMAND(i,j).command);
+                } */ 
             }
             else
             {   
@@ -436,6 +517,7 @@ int main (int argc, char *argv[])
                 else
                 {
                     // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
+                    handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
                 }
             }
 
