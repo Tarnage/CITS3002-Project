@@ -136,7 +136,7 @@ void send_txt_file(int sd, char *filename)
         char buffer[size]; 
         
         fread(buffer, size, 1, fp);
-        printf("%s\n", buffer);
+        // printf("%s\n", buffer);
         send_byte_int(sd, size);
         send(sd, buffer, size, 0);
         // exit(EXIT_SUCCESS);
@@ -287,7 +287,7 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
             case CMD_RETURN_FILE:
                 printf("CHECKING FOR RETURN FILE ACK\n");
                 ack = recv_byte_int(sock);
-                printf("%d\n", ack);
+                printf("ACK: %d\n", ack);
                 if(ack == CMD_RETURN_FILE)
                 {
                     printf("RECEIVING FILE FROM SERVER\n");
