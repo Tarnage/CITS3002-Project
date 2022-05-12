@@ -57,7 +57,7 @@ int recv_byte_int(int sock)
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
     if(byte_count == 0){
-        printf("WE DIDNT RECV ANYTHING");
+        printf("INTEGER NOT RECEIVED\n");
         exit(EXIT_FAILURE);
     }
 	uint32_t result = 0;
@@ -157,8 +157,10 @@ void recv_string(int sock, char *string, int size)
         printf("WE DIDNT RECV ANYTHING\n");
         exit(EXIT_FAILURE);
     }
+    
 
     memcpy(string, buffer, byte_count);
+    string[byte_count] = '\0';
 
     // printf("%s\n", string);
     // return string; 
