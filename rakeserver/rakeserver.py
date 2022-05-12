@@ -332,6 +332,7 @@ def recv_byte_int(sd):
 			result(int): The size of incoming payload
 	'''
 	size = b''
+	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
