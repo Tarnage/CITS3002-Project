@@ -152,10 +152,10 @@ def send_file_name(sd, filename):
 
 	payload = filename.encode(FORMAT)
 	send_byte_size(sd, len(payload))
+
 	print(f"SEENT FILE SIZE {len(payload)}")
 	# SEND THE LENGTH TO EXPECT
 	sd.sendall( payload )
-
 
 
 def send_txt_file(sd, filename):
@@ -173,7 +173,6 @@ def send_txt_file(sd, filename):
 	with open(filename, "r") as f:
 		payload = f.read()
 	
-	send_byte_size(sd, len(filename))
 	send_file_name(sd, filename)
 
 	send_byte_size(sd, len(payload))
@@ -295,7 +294,9 @@ def send_byte_size(sd, payload_len):
 	'''
 	#print(f"SENDING SIZE OF PAYLOAD: {payload_len}")
 	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.send(size)
+	print(f"SENDING {size}")
+	print(f"SENDING {payload_len}")
+	sd.sendall(size)
 
 
 def is_bin_file(filename):

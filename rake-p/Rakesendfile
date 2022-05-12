@@ -1,6 +1,6 @@
 
 PORT  = 6328
-HOSTS = 192.168.1.105
+HOSTS = 127.0.0.1
 
 actionset1:
 	echo starting actionset1
