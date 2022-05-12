@@ -21,7 +21,7 @@ Whats the problem we are trying to solve and why
 
 #
 
-## Desgin
+## Design
 ## Why we would use a simplex connectionless service also known as unacknowledged connectionless service. compared to the others
 We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is realiable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is jsut wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea)
 
@@ -29,7 +29,7 @@ We are using a half-duplex method but dont have timeouts and we dont read msgs. 
 
 When communications are made between client and server, the client must make the initial connection, the first type of communication must be represented as an 8 byte integer followed by any number of payloads. Once the entire datagram is sent by the client, the client will be in wait mode, until an acknowledgement has been recieved from the server, then more datagrams can be sent, in the same order of an 8 byte integer followed by one or more payloads. 
 
-The 8 byte integer will prompt the server or the client what kind of payload to expect, this will set the receiving connection into a state in which it can properly accept the incoming payload. 
+The 4 byte integer will prompt the server or the client what kind of payload to expect, this will set the receiving connection into a state in which it can properly accept the incoming payload. 
 
 ### Encoding type
 
