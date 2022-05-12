@@ -187,7 +187,9 @@ void recv_bin_file(int sock)
     printf("%s\n", filename);
 
     // RECEIVE THE SIZE OF THE FILE
+    printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
+    printf("FILE SIZE: %d BYTES\n", file_size);
     // OPEN THE FILE
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL)
@@ -202,10 +204,11 @@ void recv_bin_file(int sock)
 
     if(byte_count == 0)
     {
-        printf("WE DIDNT RECV ANYTHING\n");
+        printf("FILE CONTENTS NOT RECEIVED\n");
         exit(EXIT_FAILURE);
     }
 
+    printf("FILE RECEIVED SUCCESSFULLY\n");
     // RECEIVE THE FILE'S CONTENTS 
      // fwrite(buffer, file_size, 1, fp);
 
@@ -268,18 +271,20 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 }
                 break; 
             case CMD_RETURN_FILE:
-                printf("RETURN FILE\n");
+                printf("CHECKING FOR RETURN FILE ACK\n");
                 ack = recv_byte_int(sock);
                 printf("%d\n", ack);
                 if(ack == CMD_RETURN_FILE)
                 {
-                    printf("STARTING\n");
+                    printf("RECEIVING FILE FROM SERVER\n");
                     recv_bin_file(sock);
                 }
                 else
                 {
                     fprintf(stderr, "Wrong ACK");
                 }
+                queue = 0;
+                break;
             default:
                 break;
         }
@@ -445,7 +450,7 @@ int main (int argc, char *argv[])
             if(COMMAND(i,j).is_remote != 1)
             {   
                 //TODO: HANDLE LOCAL EXECUTIONS
-                continue;
+                system(COMMAND(i,j).command);
             }
             else
             {   
