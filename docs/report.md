@@ -55,6 +55,8 @@ We would have to send the size of the payload after ever type of communication f
     4. Server will execute the command sent, and the reuturn status will be sent to the client. If the return staus is zero the server will initiate the protocol to send the output file, otherwise it will return the error message from executing the command.
     5. Sending the output file, since the output file 
 
+## Performance
+### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
 
 ## Observations and improvements
 
