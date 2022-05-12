@@ -194,17 +194,16 @@ void recv_bin_file(int sock)
     struct stat st;
     if(stat("./tmp/", &st) == -1)
     {
-        mkdir("/tmp/", 0777);
+        mkdir("./tmp/", 0777);
     }   
 
     int new_file_size = strlen("./tmp/") + strlen(filename) + 1;
     char dir_for_file[new_file_size];
     strcpy(dir_for_file, "./tmp/");
     strcat(dir_for_file, filename);
-    printf("%s\n", dir_for_file);
+    // printf("%s\n", dir_for_file);
 
-    // strncpy(dir_for_file, directory, new_file_size);
-
+    
     // OPEN THE FILE
     FILE *fp = fopen(dir_for_file, "wb");
     if (fp == NULL)
@@ -225,7 +224,7 @@ void recv_bin_file(int sock)
 
     printf("FILE RECEIVED SUCCESSFULLY\n");
     // RECEIVE THE FILE'S CONTENTS 
-     // fwrite(buffer, file_size, 1, fp);
+    fwrite(buffer, file_size, 1, fp);
 
     fclose(fp);
 }
@@ -465,7 +464,18 @@ int main (int argc, char *argv[])
             if(COMMAND(i,j).is_remote != 1)
             {   
                 //TODO: HANDLE LOCAL EXECUTIONS
-                system(COMMAND(i,j).command);
+                /*
+                if(COMMAND(i,j).req_count > 0)
+                {
+                    for (size_t k = 1; k < COMMAND(i, j).req_count; k++)
+                    {
+                        if(fopen(COMMAND(i,j).requirements[k], "r") == NULL)
+                        {
+                            break; 
+                        }
+                    }
+                    system(COMMAND(i,j).command);
+                } */ 
             }
             else
             {   
