@@ -290,8 +290,10 @@ def send_bin_file(sd, file_attr):
 	'''
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
-	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
+
+	send_file_size(sd, len(filename))
 	
 	#payload = b''
 	with open(filename, 'rb') as f:
@@ -547,7 +549,7 @@ def handle_conn(host, port):
 							# COULD BE A NON BLOCKING / SELECT() ISSUE
 							#send_return_status(sock)
 
-							msg_queue[sock] = ACK.CMD_SEND_NAME
+							msg_queue[sock] = ACK.CMD_RETURN_FILE
 						# EXECUTION FAILED WITH WARNING
 						#TODO: hand error codes
 						elif 0 < r_code < 5:
@@ -560,22 +562,24 @@ def handle_conn(host, port):
 						
 					# THE ONLY FILES A SERVER WILL SEND IS THE LATEST CREATED IN THE tmp DIR
 					# AFTER SUCCESSFUL TRANSFER THE tmp DIR SHOULD BE DELETED
-					elif msg_type == ACK.CMD_SEND_NAME:
-						file_attr = file_to_send[sock]
-						send_filename(sock, file_attr)
-						msg_queue[sock] = ACK.CMD_SEND_SIZE
-						input_sockets.append(sock)
+					# elif msg_type == ACK.CMD_SEND_NAME:
+					# 	file_attr = file_to_send[sock]
+					# 	send_filename(sock, file_attr)
+					# 	msg_queue[sock] = ACK.CMD_SEND_SIZE
+					# 	input_sockets.append(sock)
 						
 
-					elif msg_type == ACK.CMD_SEND_SIZE:
-						file_attr = file_to_send[sock]
-						send_file_size(sock, file_attr)
-						msg_queue[sock] = 6
-						input_sockets.append(sock)
+					# elif msg_type == ACK.CMD_SEND_SIZE:
+					# 	file_attr = file_to_send[sock]
+					# 	send_file_size(sock, file_attr)
+					# 	msg_queue[sock] = 6
+					# 	input_sockets.append(sock)
 
-					elif msg_type == ACK.CMD_SEND_FILE:
+					elif msg_type == ACK.CMD_RETURN_FILE:
 						print("entered here")
 						file_attr = file_to_send[sock]
+						send_filename(sock, file_attr)
+						send_file_size(sock, file_attr)
 						send_bin_file(sock, file_attr)
 						print("CLOSING CONNECTION...")
 						del msg_queue[sock]
