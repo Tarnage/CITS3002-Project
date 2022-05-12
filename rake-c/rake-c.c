@@ -1,7 +1,9 @@
 #include "rake-c.h"
 
+#ifndef __APPLE__
 // NOT STANDARD LIB CAN INSTALL WITH sudo apt -y install libexplain-dev
 #include <libexplain/connect.h>
+#endif
 
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
@@ -10,9 +12,10 @@
 
 //--------------------GLOBALS-------------------
 int n_sock_list = 0;
+NODE *sock_cost_list;
 
 
-
+// FILLS STRUCTS WITH RAKEFILE CONTENTS
 void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 {
     file_process(file_name, actions, hosts);
@@ -21,6 +24,7 @@ void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 }
 
 
+// HELPER TO CHECK THAT WE RECEIVE BYTES
 void print_bytes(char *buffer)
 {   
     printf("BYTES ");
@@ -32,6 +36,8 @@ void print_bytes(char *buffer)
 }
 
 
+// USED TO RECVEIVE INTEGERS SUCH AS ENUMS FILE SIZES AND COST REQ
+// SINCE ALL INTS WILL BE 4 BYTES LONG
 int recv_byte_int(int sock)
 {
     uint32_t result = 0;
@@ -51,6 +57,17 @@ int recv_byte_int(int sock)
 }
 
 
+// HELPER TO ADD COST TO SOCK LIST 
+void add_quote(int sock, int quote)
+{
+    NODE *tmp = sock_cost_list;
+    printf("APPENDING CURRENT QUOTE: %i\n", quote);
+    while(tmp->sock != sock) ++tmp;
+    tmp->cost = quote;
+}
+
+
+// SEND REQ AND RECEIVE QUOTES
 void send_quote_req(int sock)
 {   
     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
@@ -75,9 +92,12 @@ void send_quote_req(int sock)
     int quote = recv_byte_int(sock);
 
     printf("QUOTE RECEIVED: %i\n", quote);
+
+    add_quote(sock, quote);
 }
 
 
+// MAIN CONNECTION HANDLER
 void handle_conn(int sock, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
@@ -87,21 +107,21 @@ void handle_conn(int sock, CMD ack_type)
     {   
         switch (ack_type)
         {
-            case CMD_QUOTE_REQUEST:
-                send_quote_req(sock);
-                close(sock);
-                queue = 0;
-                break;
-            case CMD_EXECUTE:
-                // execute_cmd(sock);
-            default:
-                break;
+        case CMD_QUOTE_REQUEST:
+            send_quote_req(sock);
+            close(sock);
+            queue = 0;
+            break;
+
+        default:
+            break;
         }
     }
     
 }
 
 
+// CREATES SOCKET DESCRIPTORS
 int create_conn(char *host, int port)
 {   
     int sock = -1;
@@ -126,9 +146,12 @@ int create_conn(char *host, int port)
 
     // CHECK CONNECTION
     int status = -1;
-    if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) 
-    {
+    if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
+#ifndef __APPLE__
         fprintf(stderr, "%s\n", explain_connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) );
+#else
+		printf("\nConnection failed!!\n");
+#endif
         exit(EXIT_FAILURE);
     }
 
@@ -138,9 +161,10 @@ int create_conn(char *host, int port)
 }
 
 
+// HELPER TO FILL OUT SOCK LIST WITH CONNECTIONS
 void get_all_conn(NODE *list, HOST *hosts)
-{
-    while (true)
+{   
+    while(1)
     {   
         if (hosts->name == NULL)
         {
@@ -153,20 +177,52 @@ void get_all_conn(NODE *list, HOST *hosts)
         list->port = hosts->port;
         list->sock = create_conn(hosts->name, hosts->port);
         
+        ++n_sock_list;
+        ++list;
+        ++hosts;
     }
     
+    list->next = NULL; 
+}
+
+
+// FOR TESTING PRINT THE CURRENT SOCK LIST
+void print_sock_list(NODE *list)
+{   
+    int i = 0;
+    printf("CURRENT SOCKET LIST\n");
+    while(i != n_sock_list)
+    {
+        int sock = list->sock;
+        char *ip = list->ip;
+        int port = list->port;
+        int cost = list->cost;
+
+        //printf("%i: (%s:%i)\n", sock, ip, port);
+        printf("%i: (%s:%i) %i\n", sock, ip, port, cost);
+
+        ++list;
+        ++i;
+    }
+}
+
+
+// HELPER TO LOOP OVER ALL SOCKETS IN THE LIST AND GET THE COST
+void get_all_costs(NODE *list)
+{
+    int i = 0;
+    printf("GETTING COST FOR ALL CONNECTIONS\n");
+    while(i != n_sock_list)
+    {
+        handle_conn(list->sock, CMD_QUOTE_REQUEST);
+        ++list;
+        ++i;
+    }
 }
 
 
 int main (int argc, char *argv[])
 {   
-    HOST hosts[MAX_HOSTS];
-    ACTION_SET action_set[MAX_ACTIONS];
-    // int host_count = 0;
-    // int action_count = 0;
-
-    NODE *sock_cost_list = (NODE*)malloc(sizeof(NODE));
-
     char *file_name;
     if(argc != 2)
     {
@@ -177,22 +233,18 @@ int main (int argc, char *argv[])
         file_name = argv[1];
     }
     
+    HOST hosts[MAX_HOSTS];
+    ACTION_SET action_set[MAX_ACTIONS];
+    // int host_count = 0;
+    // int action_count = 0;
+    sock_cost_list = (NODE*)malloc(sizeof(NODE));
+
     init_actions(file_name, action_set, hosts);
 
     //print_hosts(hosts, host_count);
     //print_action_sets(action_set, action_count);
 
-    for(int i = 0; i < num_hosts; i++)
-    {   
-        int sock = -1;  
-        sock = create_conn(hosts[i].name, hosts[i].port);
-
-        // PASS TO A FUNCTION TO HANDLE CONNECTIONS
-        handle_conn(sock, CMD_QUOTE_REQUEST);
-    }
-
 #define COMMAND(i,j)     action_set[i].actions[j]
-    
     for (size_t i = 0; i < num_sets; i++)
     {   
         size_t action_count = action_set[i].action_totals;
@@ -208,6 +260,10 @@ int main (int argc, char *argv[])
             {   
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sock_cost_list, hosts);
+
+                get_all_costs(sock_cost_list);
+                
+                print_sock_list(sock_cost_list);
 
                 if(COMMAND(i,j).req_count > 0)
                 {

@@ -4,4 +4,4 @@
 extern char **strsplit(char *, int *);
 extern void free_words(char **);
 
-#endif 
+#endif
