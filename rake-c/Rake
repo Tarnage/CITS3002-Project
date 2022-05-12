@@ -5,7 +5,7 @@ HOSTS = 127.0.0.1
 
 actionset1:
 	echo starting actionset1
-	cc -Wall -Werror -pedantic -c program.c
+	remote-cc -Wall -Werror -pedantic -c program.c
 		program.c program.h allfunctions.h
 	cc -Wall -Werror -pedantic -c square.c
 		square.c allfunctions.h

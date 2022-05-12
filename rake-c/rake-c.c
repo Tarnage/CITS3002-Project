@@ -107,11 +107,13 @@ void handle_conn(int sock, CMD ack_type)
     {   
         switch (ack_type)
         {
-        case CMD_QUOTE_REQUEST:
-            send_quote_req(sock);
-            close(sock);
-            queue = 0;
-            break;
+            case CMD_QUOTE_REQUEST:
+                send_quote_req(sock);
+                close(sock);
+                queue = 0;
+                break;
+            case CMD_SEND_REQUIREMENTS:
+
 
         default:
             break;
@@ -220,6 +222,29 @@ void get_all_costs(NODE *list)
     }
 }
 
+HOST* get_lowest_cost (NODE *list)
+{
+    HOST *low_host = (HOST*) malloc(sizeof(HOST));
+
+    int min = list->cost;
+    low_host->name = list->ip;
+    low_host->port = list->port;
+    list++;
+
+    while(list->next != NULL)
+    {
+        if(list->cost < min)
+        {
+            low_host->name = list->ip;
+            low_host->port = list->port;
+            min = list->cost;
+        }
+
+        list++;
+    }
+
+    return low_host; 
+}
 
 int main (int argc, char *argv[])
 {   
@@ -264,6 +289,9 @@ int main (int argc, char *argv[])
                 get_all_costs(sock_cost_list);
                 
                 print_sock_list(sock_cost_list);
+
+                HOST *slave = get_lowest_cost(sock_cost_list);
+                printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
 
                 if(COMMAND(i,j).req_count > 0)
                 {

@@ -20,4 +20,4 @@ INPUT: list (NODE *), CMD ack_type
 OUTPUT: N/A 
 
 ALGORITHM: 
-    // 
+    // SET UP read_sockets, write_sockets and error_sockets 
