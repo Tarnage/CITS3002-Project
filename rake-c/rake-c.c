@@ -50,7 +50,7 @@ void send_byte_int(int sd, CMD ack_type)
 // SINCE ALL INTS WILL BE 4 BYTES LONG
 int recv_byte_int(int sock)
 {
-    uint32_t result = 0;
+    
     char buffer[MAX_BYTES_SIGMA];
     bzero(buffer, MAX_BYTES_SIGMA);
     int byte_count = 0; // SHOULD BE 4
@@ -60,7 +60,7 @@ int recv_byte_int(int sock)
         printf("WE DIDNT RECV ANYTHING");
         exit(EXIT_FAILURE);
     }
-
+	uint32_t result = 0;
     memcpy(&result, buffer, MAX_BYTES_SIGMA);
 
     return ntohl(result);
@@ -106,8 +106,20 @@ void send_quote_req(int sock)
 void send_txt_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
+    send_filename(sd, filename);
+}
 
-    send_byte_int(sd, sizeof(filename));
+
+void send_filename(int sd, char filename)
+{
+	uint32_t result = 0;
+	int size = sizeof(filename);
+    memcpy(&result, filename, size);
+
+	send_byte_int(sd, size);
+
+    htonl(result);
+	send(sd, &result, size, 0);
 }
 
 
