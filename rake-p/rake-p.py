@@ -25,12 +25,6 @@ MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
-# ACKS INTEGERS ARE 8 BYTES LONG
-MAX_BYTE_SIGMA = 8
-
-# USE BIG BIG_EDIAN FOR BYTE ORDER
-BIG_EDIAN = 'big'
-
 class Ack:
 	''' ENUM  Class'''
 	def __init__(self):
@@ -281,7 +275,7 @@ def recv_byte_int(sd):
 		try:
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
 			if not more_size:
-				raise Exception("Short file length received")
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -289,6 +283,7 @@ def recv_byte_int(sd):
 		size += more_size
 
 	result = int.from_bytes(size, BIG_EDIAN)
+	print(f"RECEIVED INT {result}")
 	return result
 
 
@@ -466,23 +461,6 @@ def handle_conn(sd, ack_type, cmd=None):
 								file_count -= 1
 								msg_queue[sock] = ACK.CMD_SEND_FILE
 							input_sockets.append(sock)
-						
-						# elif msg_type == ACK.CMD_SEND_SIZE:
-						# 	index = file_count
-						# 	filename = cmd.requires[index]
-						# 	(sd, filename)
-						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
-						# 	input_sockets.append(sock)
-
-						# elif msg_type == ACK.CMD_SEND_FILE:
-						# 	index = file_count
-						# 	filename = cmd.requires[index]
-						# 	send_txt_file(sd, filename)
-						# 	# DECREMENT THE FILE COUNT
-						# 	file_count -= 1
-						# 	# GET READY TO SEND THE NEXT FILE
-						# 	msg_queue[sock] = ACK.CMD_SEND_NAME
-						# 	input_sockets.append(sock)
 
 						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
 						elif msg_type == ACK.CMD_EXECUTE:
@@ -496,11 +474,11 @@ def handle_conn(sd, ack_type, cmd=None):
 				close_sockets(input_sockets)
 				close_sockets(output_sockets)
 				sys.exit()
-			except Exception as err:
-				print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-				close_sockets(input_sockets)
-				close_sockets(output_sockets)
-				sys.exit()
+			# except Exception as err:
+			# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+			# 	close_sockets(input_sockets)
+			# 	close_sockets(output_sockets)
+			# 	sys.exit()
 	
 
 def get_all_conn(hosts):
@@ -533,7 +511,7 @@ def main(argv):
 				# EXECUTE COMMANNDS WITH THIS SOCKET
 				slave = create_socket(slave_addr[0], slave_addr[1])
 
-				print(command.requires)
+				#print(command.requires)
 				# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
 				if len(command.requires) > 0:
 					handle_conn(slave, ACK.CMD_SEND_FILE, command)
