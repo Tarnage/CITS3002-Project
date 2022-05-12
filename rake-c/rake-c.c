@@ -9,7 +9,6 @@
 #define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
 
-
 //--------------------GLOBALS-------------------
 int n_sock_list = 0;
 NODE *sock_cost_list;
@@ -191,9 +190,14 @@ void recv_bin_file(int sock)
     int file_size = recv_byte_int(sock);
     printf("FILE SIZE: %d BYTES\n", file_size);
 
+    // TODO: MAKE THIS A CHECK FUNCTION
+    // #DEFINE "./tmp/"
+    // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
+    // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
     struct stat st;
     if(stat("./tmp/", &st) == -1)
-    {
+    {   
+        // THERE A MACRO FOR 0777?
         mkdir("./tmp/", 0777);
     }   
 
@@ -229,6 +233,15 @@ void recv_bin_file(int sock)
     fclose(fp);
 }
 
+
+// TODO: IMPLEMENT FIND FILE
+// SEARCH ENTIRE SYSTEM STORE LOCATION IN PATH AND RETURN SUCCESS = 1 OR FAIL = 0
+int find_file(char *filename, char *path)
+{
+    return 0;
+}
+
+
 // MAIN CONNECTION HANDLER
 void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
 {
@@ -246,9 +259,14 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 queue = 0;
                 break;
             case CMD_SEND_FILE:
+                // TODO: PRETTY SURE WE CAN REMOVE LINES 253 AND 258 AND JUST HAVE
+                //  while(--action_set->req_count > 0) IN LINE 254 
+                // NOTE* I THINK IF YOU HAVE [VAR]-- AT THE END IT DECRECRENTS AFTER THE > 0 CHECK
+                // OPPOSED TO --[VAR] WHICH DECREMNETS THEN DOES THE > 0 CHECK. OR ITS THE OTHER WAY AROUND.
                 action_set->req_count--;
                 while(action_set->req_count > 0)
-                {
+                {   
+                    // TODO ADD find_file() CHECK HERE.
                     printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
                     send_txt_file(sock, action_set->requirements[action_set->req_count]);
                     action_set->req_count--;
