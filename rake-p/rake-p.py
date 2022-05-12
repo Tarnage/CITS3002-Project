@@ -25,12 +25,6 @@ MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
-# ACKS INTEGERS ARE 8 BYTES LONG
-MAX_BYTE_SIGMA = 8
-
-# USE BIG BIG_EDIAN FOR BYTE ORDER
-BIG_EDIAN = 'big'
-
 class Ack:
 	''' ENUM  Class'''
 	def __init__(self):
@@ -147,21 +141,6 @@ def add_cost_tuple(sd, cost):
 	cost_list.append((cost, ip_port))
 
 
-def send_size(sd, filename):
-	''' Send file size to server. This function will use system calls
-		to find the file and return the size in bytes
-	
-		Args:
-			sd(socket): Connection to send the filename
-			filename(str): name of the file we want to send the size of.
-	'''
-	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	size = os.path.getsize(f'./{filename}')
-	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-	sd.sendall( payload )
-
-
 def send_file_name(sd, filename):
 	''' Send filename to server
 	
@@ -189,6 +168,7 @@ def send_txt_file(sd, filename):
 	print(f'SENDING FILE ---->')
 	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
+
 	payload = ""
 	with open(filename, "r") as f:
 		payload = f.read()
@@ -224,22 +204,42 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-def recv_bin_file(sd, filename, size):
+# TODO: add sleep for slow connections
+def recv_filename(sd):
+
+	size = recv_byte_int(sd)
+	filename = b''
+	while len(filename) < size:
+		try:
+			more_size = sd.recv( size - len(filename) )
+			if not more_size:
+				time.sleep(0)
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+
+		filename += more_size
+	
+	return filename.decode(FORMAT)
+
+
+def recv_bin_file(sd):
 	''' Receive binary file from server
 		Args:
 			sd(socket): Connection file is being sent from
-			filename(str): Name of file
-			size(int): Total size of the file being received in bytes
-			sd(socket): Connection to send the file
-			file_attr(FileStat Oject): Object contains the file stats
 	'''
+	filename = recv_filename(sd)
+
+	size = recv_byte_int(sd)
+
 	print("ENETERED write mode")
 	path = f'./{filename}'
 	try:
 		with open(path, "wb") as f:
 			buffer = b""
 			while len(buffer) < size:
-				buffer += sd.recv(MAX_BYTES)
+				buffer += sd.recv(size - len(buffer))
 
 			f.write(buffer)
 
@@ -271,11 +271,12 @@ def recv_byte_int(sd):
 			result(int): The size of incoming payload
 	'''
 	size = b''
+	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
 			if not more_size:
-				raise Exception("Short file length received")
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -283,6 +284,7 @@ def recv_byte_int(sd):
 		size += more_size
 
 	result = int.from_bytes(size, BIG_EDIAN)
+	print(f"RECEIVED INT {result}")
 	return result
 
 
@@ -387,7 +389,7 @@ def handle_conn(sd, ack_type, cmd=None):
 							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
 							if r_code == 0:
 								# EXPECT A FILE SENT FROM SERVER
-								msg_queue[sock] = ACK.CMD_SEND_NAME
+								msg_queue[sock] = ACK.CMD_RETURN_FILE
 								
 							# EXECUTION FAILED WITH WARNING
 							#TODO: handle error codes
@@ -401,28 +403,11 @@ def handle_conn(sd, ack_type, cmd=None):
 								msg_queue[sock] = ACK.CMD_RETURN_STDERR
 
 							# SEND ACKS 
-							ack_queue[sock] = True
-							output_sockets.append(sock)
-
-						elif sigma == ACK.CMD_SEND_NAME:
-							payload = sock.recv(MAX_BYTES).decode(FORMAT)
-							file_to_recv[sock] = payload
-							msg_queue[sock] = ACK.CMD_SEND_SIZE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
-
-						elif sigma == ACK.CMD_SEND_SIZE:
-							payload = sock.recv(MAX_BYTE_SIGMA)
-							file_size[sock] = int.from_bytes(payload, BIG_EDIAN)
-							msg_queue[sock] = ACK.CMD_SEND_FILE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+							input_sockets.append(sock)
 						
-						elif sigma == ACK.CMD_SEND_FILE:
+						elif sigma == ACK.CMD_RETURN_FILE:
 							print("RECIEVING FILE")
-							recv_bin_file(sock, file_to_recv[sock], file_size[sock])
-							del file_to_recv[sock]
-							del file_size[sock]
+							recv_bin_file(sock)
 							print("CLOSING CONNECTION...")
 							sock.close()
 							del msg_queue[sock]
@@ -477,23 +462,6 @@ def handle_conn(sd, ack_type, cmd=None):
 								file_count -= 1
 								msg_queue[sock] = ACK.CMD_SEND_FILE
 							input_sockets.append(sock)
-						
-						# elif msg_type == ACK.CMD_SEND_SIZE:
-						# 	index = file_count
-						# 	filename = cmd.requires[index]
-						# 	send_size(sd, filename)
-						# 	msg_queue[sock] = ACK.CMD_SEND_FILE
-						# 	input_sockets.append(sock)
-
-						# elif msg_type == ACK.CMD_SEND_FILE:
-						# 	index = file_count
-						# 	filename = cmd.requires[index]
-						# 	send_txt_file(sd, filename)
-						# 	# DECREMENT THE FILE COUNT
-						# 	file_count -= 1
-						# 	# GET READY TO SEND THE NEXT FILE
-						# 	msg_queue[sock] = ACK.CMD_SEND_NAME
-						# 	input_sockets.append(sock)
 
 						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
 						elif msg_type == ACK.CMD_EXECUTE:
@@ -507,11 +475,11 @@ def handle_conn(sd, ack_type, cmd=None):
 				close_sockets(input_sockets)
 				close_sockets(output_sockets)
 				sys.exit()
-			except Exception as err:
-				print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-				close_sockets(input_sockets)
-				close_sockets(output_sockets)
-				sys.exit()
+			# except Exception as err:
+			# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+			# 	close_sockets(input_sockets)
+			# 	close_sockets(output_sockets)
+			# 	sys.exit()
 	
 
 def get_all_conn(hosts):
@@ -544,7 +512,7 @@ def main(argv):
 				# EXECUTE COMMANNDS WITH THIS SOCKET
 				slave = create_socket(slave_addr[0], slave_addr[1])
 
-				print(command.requires)
+				#print(command.requires)
 				# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
 				if len(command.requires) > 0:
 					handle_conn(slave, ACK.CMD_SEND_FILE, command)
