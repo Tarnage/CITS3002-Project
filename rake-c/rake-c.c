@@ -201,11 +201,7 @@ void recv_bin_file(int sock)
     // RECEIVE THE FILE'S CONTENTS 
     fwrite(buffer, file_size, 1, fp);
 
-    // int size = recv_byte_int(sock);
-
-
-
-   //  printf("%s\n", filename); 
+    fclose(fp);
 }
 
 // MAIN CONNECTION HANDLER
