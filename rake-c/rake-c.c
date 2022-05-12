@@ -180,6 +180,8 @@ void get_all_conn(NODE *list, HOST *hosts)
         ++list;
         ++hosts;
     }
+    
+    list->next = NULL; 
 }
 
 
