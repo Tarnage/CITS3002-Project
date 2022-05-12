@@ -139,15 +139,14 @@ void send_txt_file(int sd, char *filename)
         printf("%s\n", buffer);
         send_byte_int(sd, size);
         send(sd, buffer, size, 0);
-        printf("SENT SUCCESSFULLY\n");
         // exit(EXIT_SUCCESS);
     }
+
+    fclose(fp);
 }
 
 void recv_string(int sock, char *string, int size)
 {
-    
-    
     char buffer[size]; 
 
     int byte_count = 0; 
@@ -155,13 +154,13 @@ void recv_string(int sock, char *string, int size)
 
     if(byte_count == 0)
     {
-        printf("WE DIDNT RECV ANYTHING");
+        printf("WE DIDNT RECV ANYTHING\n");
         exit(EXIT_FAILURE);
     }
 
     memcpy(string, buffer, byte_count);
 
-    printf("%s\n", string);
+    // printf("%s\n", string);
     // return string; 
 
 }
@@ -178,6 +177,7 @@ void recv_bin_file(int sock)
 {
     // RECEIVE THE SIZE OF THE FILENAME
     int str_size = recv_byte_int(sock);
+    printf("SIZE: %d\n", str_size);
     char filename[str_size]; 
 
     // RECEIVE THE FILENAME 
@@ -188,18 +188,24 @@ void recv_bin_file(int sock)
     int file_size = recv_byte_int(sock);
     // OPEN THE FILE
     FILE *fp = fopen(filename, "wb");
+    if (fp == NULL)
+    {
+        printf("PROBLEM\n");
+        exit(EXIT_FAILURE);
+    }
+
     
-    char buffer[file_size];
+    unsigned char buffer[file_size];
     int byte_count = recv(sock, buffer, sizeof(buffer), 0);
 
     if(byte_count == 0)
     {
-        printf("WE DIDNT RECV ANYTHING");
+        printf("WE DIDNT RECV ANYTHING\n");
         exit(EXIT_FAILURE);
     }
 
     // RECEIVE THE FILE'S CONTENTS 
-    fwrite(buffer, file_size, 1, fp);
+     // fwrite(buffer, file_size, 1, fp);
 
     fclose(fp);
 }
