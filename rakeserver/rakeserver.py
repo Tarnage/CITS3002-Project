@@ -223,6 +223,9 @@ def recv_text_file(sd):
 		sys.exit(f'File creation failed with error: {err}')
 
 
+#-------------------------------ALL DOING THE SAME THING CHANGE TO ONE------------------------------------
+# TODO: SAME AS send_byte_size remove?
+# TODO: C VERSION USES JUST ONE CALLED send_byte_int
 def send_ack(sd, ack_type):
 	'''Helper sends acknowledgments to a connection
 	
@@ -233,18 +236,46 @@ def send_ack(sd, ack_type):
 	print(f'<---- SENDING ACK')
 	sd.sendall( ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN) )
 
+# TODO: SAME AS send_ack remove one?
+# TODO: C VERSION USES JUST ONE CALLED send_byte_int
+def send_file_size(sd, size):
+	''' Send file size to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
+	# sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	# size = file_attr.size
+	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	# sd.sendall( sigma )
+	sd.sendall( payload )
 
-def send_filename(sd, file_attr):
+# TODO: SAME AS send_ack remove one?
+# TODO: C VERSION USES JUST ONE CALLED send_byte_int
+def send_byte_size(sd, payload_len):
+	''' Helper to send the byte size of outgoing payload
+		Args:
+			sd(socket): socket descriptor of the connection
+	'''
+	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.send(size)
+
+#-----------------------------------------------------------------------------------------------------------
+
+def send_filename(sd, filename):
 	''' Send filename to client
 	
 		Args:
 			sd(socket): Connection to send the filename
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	payload = file_attr.filename
-	sd.sendall( sigma )
-	sd.sendall(payload.encode(FORMAT))
+	# sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	# SEND THE SIZE OF THE NAME FIRST
+	send_byte_size(sd, len(filename))
+	# SEND THE ACTUAL FILE NAME
+	sd.sendall(filename.encode(FORMAT))
+
 
 # TODO: add sleep for slow connections
 def recv_filename(sd):
@@ -267,20 +298,6 @@ def recv_filename(sd):
 
 
 
-def send_file_size(sd, file_attr):
-	''' Send file size to client
-	
-		Args:
-			sd(socket): Connection to send the filename
-			file_attr(FileStat Oject): Object contains the file stats
-	'''
-	sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	size = file_attr.size
-	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-	sd.sendall( payload )
-
-
 def send_bin_file(sd, file_attr):
 	''' Transfer binary file
 	
@@ -290,12 +307,15 @@ def send_bin_file(sd, file_attr):
 	'''
 	print(f'<-------SENDING FILE')
 	filename = file_attr.path
+	size = file_attr.size
+	
 	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 
-	send_file_size(sd, len(filename))
-	
-	#payload = b''
+	send_filename(sd, filename)
+	send_file_size(sd, size)
+
+	payload = b''
 	with open(filename, 'rb') as f:
 		payload = f.read()
 
@@ -326,15 +346,6 @@ def recv_byte_int(sd):
 	result = int.from_bytes(size, BIG_EDIAN)
 	print(f"RECEIVED INT {result}")
 	return result
-
-
-def send_byte_size(sd, payload_len):
-	''' Helper to send the byte size of outgoing payload
-		Args:
-			sd(socket): socket descriptor of the connection
-	'''
-	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.send(size)
 
 
 def recv_cmd(sd, size):
@@ -578,8 +589,6 @@ def handle_conn(host, port):
 					elif msg_type == ACK.CMD_RETURN_FILE:
 						print("entered here")
 						file_attr = file_to_send[sock]
-						send_filename(sock, file_attr)
-						send_file_size(sock, file_attr)
 						send_bin_file(sock, file_attr)
 						print("CLOSING CONNECTION...")
 						del msg_queue[sock]
@@ -587,6 +596,7 @@ def handle_conn(host, port):
 						if remove_temp == True:
 							rm_client_files(sock)
 						# END OF CONNECTION
+						sock.close()
 						
 
 		except KeyboardInterrupt:
