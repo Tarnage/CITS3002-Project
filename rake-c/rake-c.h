@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include "parse_c.h"
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #define MAX_BYTES_SIGMA 4
 
