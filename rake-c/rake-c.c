@@ -474,6 +474,7 @@ int main (int argc, char *argv[])
                 else
                 {
                     // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
+                    handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
                 }
             }
 
