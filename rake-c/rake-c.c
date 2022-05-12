@@ -102,6 +102,21 @@ void send_quote_req(int sock)
     add_quote(sock, quote);
 }
 
+
+void send_filename(int sd, char *filename)
+{
+	uint32_t result = 0;
+	int size = sizeof(filename);
+	send_byte_int(sd, size);
+
+	memcpy(&result, filename, size);
+
+    int payload = htonl(result);
+	
+	send(sd, &payload, size, 0);
+}
+
+
 // SEND TEXT FILE TO SERVER
 void send_txt_file(int sd, char *filename)
 {
@@ -109,18 +124,6 @@ void send_txt_file(int sd, char *filename)
     send_filename(sd, filename);
 }
 
-
-void send_filename(int sd, char filename)
-{
-	uint32_t result = 0;
-	int size = sizeof(filename);
-    memcpy(&result, filename, size);
-
-	send_byte_int(sd, size);
-
-    htonl(result);
-	send(sd, &result, size, 0);
-}
 
 
 // MAIN CONNECTION HANDLER
