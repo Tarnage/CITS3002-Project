@@ -42,7 +42,7 @@ void send_byte_int(int sd, CMD ack_type)
     int cmd  = htonl( ack_type );
 
     // SEND THE REQ
-    printf("SENDING INTEGER: %d\n", ack_type);
+    printf("SENDING BYTE: %d\n", ack_type);
     send(sd, &cmd, sizeof(cmd), 0);
 }
 
@@ -224,6 +224,7 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 action_set->req_count--;
                 while(action_set->req_count > 0)
                 {
+                    printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
                     send_txt_file(sock, action_set->requirements[action_set->req_count]);
                     action_set->req_count--;
                     int ack = recv_byte_int(sock);
