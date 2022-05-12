@@ -42,7 +42,7 @@ void send_byte_int(int sd, CMD ack_type)
     int cmd  = htonl( ack_type );
 
     // SEND THE REQ
-    printf("SENDING ACK_TYPE: %d\n", ack_type);
+    printf("SENDING INTEGER: %d\n", ack_type);
     send(sd, &cmd, sizeof(cmd), 0);
 }
 
@@ -103,17 +103,16 @@ void send_quote_req(int sock)
 }
 
 
-void send_filename(int sd, char *filename)
+void send_string(int sd, char *payload)
 {
-	uint32_t result = 0;
-	int size = sizeof(filename);
-	send_byte_int(sd, size);
-
-	memcpy(&result, filename, size);
-
-    int payload = htonl(result);
 	
-	send(sd, &payload, size, 0);
+	int size = strlen(payload);
+    printf("SENDING SIZE: %d\n", size);
+	send_byte_int(sd, size);
+    
+	send(sd, payload, size, 0);
+    printf("SENT SUCCESSFULLY\n");
+    // free(result);
 }
 
 
@@ -121,16 +120,72 @@ void send_filename(int sd, char *filename)
 void send_txt_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
-    send_filename(sd, filename);
+    send_string(sd, filename);
+
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL)
+    {
+        exit(EXIT_FAILURE);
+    }
+    else 
+    {
+        struct stat st;
+        stat(filename, &st);
+        int size = st.st_size;
+        char buffer[size]; 
+        
+        fread(buffer, size, 1, fp);
+        printf("%s\n", buffer);
+        send_byte_int(sd, size);
+        send(sd, buffer, size, 0);
+        printf("SENT SUCCESSFULLY\n");
+        // exit(EXIT_SUCCESS);
+    }
 }
 
+void recv_string(int sock, char *string, int size)
+{
+    
+    
+    char buffer[size]; 
 
+    int byte_count = 0; 
+    byte_count = recv(sock, buffer, sizeof(buffer), 0);
+
+    if(byte_count == 0)
+    {
+        printf("WE DIDNT RECV ANYTHING");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(string, buffer, byte_count);
+
+    printf("%s\n", string);
+    // return string; 
+
+}
+
+void recv_bin_file(int sock)
+{
+    int size = recv_byte_int(sock);
+    char filename[size]; 
+    recv_string(sock, filename, size);
+    printf("%s\n", filename);
+    // FILE *fp = fopen(filename, "wb");
+    // int size = recv_byte_int(sock);
+
+
+
+   //  printf("%s\n", filename); 
+}
 
 // MAIN CONNECTION HANDLER
 void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
     int queue = 1;
+    int ack = 0;
 
     while (queue)
     {   
@@ -143,18 +198,59 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 break;
             case CMD_SEND_FILE:
                 action_set->req_count--;
-                if(action_set->req_count > 0)
+                while(action_set->req_count > 0)
                 {
                     send_txt_file(sock, action_set->requirements[action_set->req_count]);
+                    action_set->req_count--;
+                    int ack = recv_byte_int(sock);
+                    if(ack != CMD_ACK)
+                    {
+                        printf("SOMETHING WENT WRONG\n");
+                    }
                 }
-                close(sock);
-                queue = 0;
+                // close(sock);
+                // queue = 0;
+                ack_type = CMD_EXECUTE;
                 break; 
+            case CMD_EXECUTE:
+                send_byte_int(sock, CMD_EXECUTE);
+                send_string(sock, action_set->command);
+                int status = recv_byte_int(sock);
 
-
+                if(status == CMD_RETURN_STATUS)
+                {
+                    int return_code = recv_byte_int(sock);
+                    if (return_code == 0)
+                    {
+                        ack_type = CMD_RETURN_FILE;
+                    }
+                }
+                else if (status == CMD_RETURN_STDOUT)
+                {
+                    continue;
+                }
+                else if (status == CMD_RETURN_STDERR)
+                {
+                    continue; 
+                }
+                break; 
+            case CMD_RETURN_FILE:
+                printf("RETURN FILE\n");
+                ack = recv_byte_int(sock);
+                printf("%d\n", ack);
+                if(ack == CMD_RETURN_FILE)
+                {
+                    printf("STARTING\n");
+                    recv_bin_file(sock);
+                }
+                else
+                {
+                    fprintf(stderr, "Wrong ACK");
+                }
             default:
                 break;
         }
+
     }
     
 }
