@@ -279,15 +279,18 @@ def send_filename(sd, filename):
 	sd.sendall( payload )
 
 
+
+# TODO: recv_filename and recv_cmd are the same fucntions
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
 	filename = b''
+	more_size = b''
 	while len(filename) < size:
 		try:
 			more_size = sd.recv( size - len(filename) )
 			if not more_size:
-				time.sleep(0)
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -298,30 +301,31 @@ def recv_filename(sd):
 	return filename.decode(FORMAT)
 
 
-
-def send_bin_file(sd, file_attr):
-	''' Transfer binary file
-	
+def recv_cmd(sd, size):
+	''' Helper to get the size of incoming payload
 		Args:
-			sd(socket): Connection to send the file
-			file_attr(FileStat Oject): Object contains the file stats
+			sd(socket): socket descriptor of the connection
+			size(int): the size of bytes to expect
+
+		Return:
+			result(str): The command sent from client
 	'''
-	print(f'<-------SENDING FILE')
-	path = file_attr.path
-	filename = file_attr.filename
-	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-
-	send_filename(sd, filename)
-
 	payload = b''
-	with open(path, 'rb') as f:
-		payload = f.read()
+	more_size = b''
+	while len(payload) < size:
+		try:
+			more_size = sd.recv( size - len(payload) )
+			if not more_size:
+				break
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+		payload += more_size
 
-	send_file_size(sd, len(payload))
-
-	sd.sendall( payload )
-	print(f'FILE SENT...')
+	result = payload.decode(FORMAT)
+	print("returned result")
+	return result
 
 
 def recv_byte_int(sd):
@@ -350,30 +354,29 @@ def recv_byte_int(sd):
 	return result
 
 
-def recv_cmd(sd, size):
-	''' Helper to get the size of incoming payload
+def send_bin_file(sd, file_attr):
+	''' Transfer binary file
+	
 		Args:
-			sd(socket): socket descriptor of the connection
-			size(int): the size of bytes to expect
-
-		Return:
-			result(str): The command sent from client
+			sd(socket): Connection to send the file
+			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	payload = b''
-	while len(payload) < size:
-		try:
-			more_size = sd.recv( size - len(payload) )
-			if not more_size:
-				raise Exception("Short file length received")
-		except socket.error as err:
-			if err.errno == 35:
-				time.sleep(0)
-				continue
-		payload += more_size
+	print(f'<-------SENDING FILE')
+	path = file_attr.path
+	filename = file_attr.filename
+	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.sendall( sigma )
 
-	result = payload.decode(FORMAT)
-	print("returned result")
-	return result
+	send_filename(sd, filename)
+
+	payload = b''
+	with open(path, 'rb') as f:
+		payload = f.read()
+
+	send_file_size(sd, len(payload))
+
+	sd.sendall( payload )
+	print(f'FILE SENT...')
 
 
 def handle_conn(host, port):

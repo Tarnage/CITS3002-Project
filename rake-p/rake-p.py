@@ -24,6 +24,8 @@ TIMEOUT 		= 0.5
 MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
+# LOCATION OF RECV FILES
+DOWNLOADS = "./downloads/"
 
 class Ack:
 	''' ENUM  Class'''
@@ -106,7 +108,7 @@ def send_cmd(sd, payload):
 	send_ack(sd, ACK.CMD_EXECUTE)
 	send_byte_size(sd, len(payload))
 	sd.sendall(payload.encode(FORMAT))
-	print(f"COMMAND SENT {payload}")
+	print(f"COMMAND SENT {payload}...")
 
 # TODO: DONT MAKE cost_list global but instead have it sent in 
 # as a paramter
@@ -141,6 +143,19 @@ def add_cost_tuple(sd, cost):
 	cost_list.append((cost, ip_port))
 
 
+def check_downloads_dir():
+	''' Helper to make sure temp dir exists if not create one
+
+		Args;
+			peer_dir(str): name of the directory to check
+	'''
+	if not os.path.isdir(DOWNLOADS):
+		try:
+			os.mkdir(DOWNLOADS)
+		except OSError as err:
+			sys.exit("Directory creation failed with error: {err}")
+
+
 def send_file_name(sd, filename):
 	''' Send filename to server
 	
@@ -148,29 +163,27 @@ def send_file_name(sd, filename):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to send
 	'''
-	print(f'SENDING FILENAME ({filename})...')
+	print(f'SENDING ({filename}) ---->')
 
 	payload = filename.encode(FORMAT)
 	send_byte_size(sd, len(payload))
 
-	print(f"SEENT FILE SIZE {len(payload)}")
 	# SEND THE LENGTH TO EXPECT
 	sd.sendall( payload )
 
 
-def send_txt_file(sd, filename):
+def send_txt_file(sd, filename, path):
 	''' Send file contents to server
 
 		Args:
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to transfer
 	'''
-	print(f'SENDING FILE ---->')
 	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 
 	payload = ""
-	with open(filename, "r") as f:
+	with open(path, "r") as f:
 		payload = f.read()
 	
 	send_file_name(sd, filename)
@@ -179,24 +192,26 @@ def send_txt_file(sd, filename):
 	sd.sendall( payload.encode(FORMAT) )
 
 
+
 # TODO: some files being sent by the client maybe binary files use this
-def send_bin_file(sd, filename):
+def send_bin_file(sd, filename, path):
 	''' Transfer binary file
 	
 		Args:
 			sd(socket): Connection to send the file
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	print(f'<-------SENDING FILE')
 	sigma = ACK.CMD_BYTE_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
-	
-	#payload = b''
-	with open(filename, 'rb') as f:
+	print(f"SENDING BIN FILE {filename}---->")
+	payload = b''
+	with open(path, 'rb') as f:
 		payload = f.read()
 
+	send_file_name(sd, filename)
+	send_byte_size(sd, len(payload))
 	sd.sendall( payload )
-	print(f'FILE SENT...')
+	print(f'BIN FILE SENT...')
 
 
 def send_filename(sd, filename):
@@ -208,6 +223,7 @@ def recv_filename(sd):
 
 	size = recv_byte_int(sd)
 	filename = b''
+	more_size = b''
 	while len(filename) < size:
 		try:
 			more_size = sd.recv( size - len(filename) )
@@ -232,8 +248,11 @@ def recv_bin_file(sd):
 
 	size = recv_byte_int(sd)
 
-	print("ENETERED write mode")
-	path = f'./{filename}'
+	print("ENETERED WRITE MODE...")
+
+	check_downloads_dir()
+
+	path = f'{DOWNLOADS}{filename}'
 	try:
 		with open(path, "wb") as f:
 			buffer = b""
@@ -283,7 +302,6 @@ def recv_byte_int(sd):
 		size += more_size
 
 	result = int.from_bytes(size, BIG_EDIAN)
-	print(f"RECEIVED INT {result}")
 	return result
 
 
@@ -292,25 +310,37 @@ def send_byte_size(sd, payload_len):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	#print(f"SENDING SIZE OF PAYLOAD: {payload_len}")
 	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	print(f"SENDING {size}")
-	print(f"SENDING {payload_len}")
 	sd.sendall(size)
 
 
-def is_bin_file(filename):
+def is_bin_file(path):
 	''' Helper to ensure we send the file in the right format
 		Args:
 			filename(str): location to the file.
 	'''
 	try:
-		with open(filename, 'tr') as check_file:  # try open file in text mode
+		with open(path, 'tr') as check_file:  # try open file in text mode
 			check_file.read()
 			return False
 	except:  # if fail then file is non-text (binary)
 		return True
 
+
+def find_files(filename):
+	''' Searches entire computer for file
+		Args:
+			filename(str): file name to find
+	'''
+	result = None
+	# start = time.time()
+	# TOP-DOWN FROM THE ROOT
+	for root, dir, files in os.walk("/"):
+		if filename in files:
+			result = (os.path.join(root, filename))
+			# finish = time.time()
+			# print(finish - start)
+			return result
 
 
 def handle_conn(sd, ack_type, cmd=None):
@@ -368,7 +398,7 @@ def handle_conn(sd, ack_type, cmd=None):
 						# SOMETHING TO READ
 						sigma = recv_byte_int(sock)
 						
-						print(f"RECIEVED ACK TYPE {sigma}")
+						#print(f"RECIEVED ACK TYPE {sigma}")
 						# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 						# NOW SEND THE NEXT PAYLOAD
 						if sigma == ACK.CMD_ACK:
@@ -376,20 +406,20 @@ def handle_conn(sd, ack_type, cmd=None):
 
 						elif sigma == ACK.CMD_QUOTE_REPLY:
 							cost = recv_byte_int(sock)
-							print(f"RECIEVED COST: {cost}")
+							#print(f"RECIEVED COST: {cost}")
 							add_cost_tuple(sock, cost)
 							del msg_queue[sock]
 							print("CLOSING CONNECTION...")
 							sock.close()
 								
 						elif sigma == ACK.CMD_RETURN_STATUS:
-							r_code = sock.recv(MAX_BYTES)
-							r_code = int.from_bytes(r_code, BIG_EDIAN)
-							print(f"RECIEVED STATUS CODE: {r_code}")
+							r_code = recv_byte_int(sock)
+							print(f"RECV CODE: {r_code}")
 
 							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
 							if r_code == 0:
 								# EXPECT A FILE SENT FROM SERVER
+								print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
 								msg_queue[sock] = ACK.CMD_RETURN_FILE
 								
 							# EXECUTION FAILED WITH WARNING
@@ -407,7 +437,7 @@ def handle_conn(sd, ack_type, cmd=None):
 							input_sockets.append(sock)
 						
 						elif sigma == ACK.CMD_RETURN_FILE:
-							print("RECIEVING FILE")
+							print("RECIEVING FILE...")
 							recv_bin_file(sock)
 							print("CLOSING CONNECTION...")
 							sock.close()
@@ -421,7 +451,7 @@ def handle_conn(sd, ack_type, cmd=None):
 
 						# CHECK WHAT YPE OF MSG TO SEND
 						msg_type = msg_queue[sock]
-						print(f"SENDING MESSAGE TYPE: {msg_type}")
+						# print(f"SENDING MESSAGE TYPE: {msg_type}")
 
 						# SLEEP
 						# rand = random.randint(1, 10)
@@ -453,16 +483,22 @@ def handle_conn(sd, ack_type, cmd=None):
 								send_cmd(sd, cmd.cmd)
 								# WHEN THEN WAIT FOR THE RETURN STATUS
 								msg_queue[sock] = ACK.CMD_RETURN_STATUS
+								input_sockets.append(sock)
 							# ELSE WE HAVE MORE FILES TO SEND
 							else:
-								if is_bin_file(filename):
-									send_bin_file(sd, filename)
+								path = find_files(filename)
+								if path != None:
+									if is_bin_file(path):
+										send_bin_file(sd, filename, path)
+									else:
+										send_txt_file(sd, filename, path)
+									file_count -= 1
+									msg_queue[sock] = ACK.CMD_SEND_FILE
+									input_sockets.append(sock)
 								else:
-									print("SENDING TEXT FILE ---->")
-									send_txt_file(sd, filename)
-								file_count -= 1
-								msg_queue[sock] = ACK.CMD_SEND_FILE
-							input_sockets.append(sock)
+									print(f"{filename} DOES NOT EXSIST!")
+									del msg_queue[sock]
+									sock.close()
 
 						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
 						elif msg_type == ACK.CMD_EXECUTE:
@@ -481,7 +517,7 @@ def handle_conn(sd, ack_type, cmd=None):
 			# 	close_sockets(input_sockets)
 			# 	close_sockets(output_sockets)
 			# 	sys.exit()
-	
+
 
 def get_all_conn(hosts):
 	socket_lists = list()
@@ -501,7 +537,8 @@ def main(argv):
 		for command in sets:
 			# DO WE RUN THIS COMMAND LOCAL OR REMOTE
 			if not command.remote:
-				subprocess.run(command.cmd, shell=True)
+				check_downloads_dir()
+				subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
 			# IS A REMOTE COMMAND
 			else:
 				# GET THE LOWEST COST
