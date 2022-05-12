@@ -190,8 +190,23 @@ void recv_bin_file(int sock)
     printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
     printf("FILE SIZE: %d BYTES\n", file_size);
+
+    struct stat st;
+    if(stat("./tmp/", &st) == -1)
+    {
+        mkdir("/tmp/", 0777);
+    }   
+
+    int new_file_size = strlen("./tmp/") + strlen(filename) + 1;
+    char dir_for_file[new_file_size];
+    strcpy(dir_for_file, "./tmp/");
+    strcat(dir_for_file, filename);
+    printf("%s\n", dir_for_file);
+
+    // strncpy(dir_for_file, directory, new_file_size);
+
     // OPEN THE FILE
-    FILE *fp = fopen(filename, "wb");
+    FILE *fp = fopen(dir_for_file, "wb");
     if (fp == NULL)
     {
         printf("PROBLEM\n");
