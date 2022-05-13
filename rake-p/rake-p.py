@@ -111,6 +111,7 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	print( f"CONNECTION SUCCESSFUL" )
+	sd.setblocking(False)
 	return sd
 
 
