@@ -349,9 +349,9 @@ int create_conn(char *host, int port)
 
 
 // HELPER TO FILL OUT SOCK LIST WITH CONNECTIONS
-void get_all_conn(NODE *list, HOST *hosts)
+void get_all_conn(NODE *list, HOST *hosts, fd_set current_sockets)
 {   
-    while(1)
+    while(true)
     {   
         if (hosts->name == NULL)
         {
@@ -363,6 +363,8 @@ void get_all_conn(NODE *list, HOST *hosts)
         list->ip = hosts->name;
         list->port = hosts->port;
         list->sock = create_conn(hosts->name, hosts->port);
+
+        FD_SET(list->sock, &current_sockets);
         
         ++n_sock_list;
         ++list;
@@ -479,27 +481,50 @@ int main (int argc, char *argv[])
             }
             else
             {   
+                fd_set sockets_created, sockets_used; 
+
+                // INITIALIZE THE SET OF CONNECTIONS
+                FD_ZERO(&sockets_created);
+
                 // TODO: GET THE LOWEST COST
-                get_all_conn(sock_cost_list, hosts);
+                get_all_conn(sock_cost_list, hosts, sockets_created);
 
-                get_all_costs(sock_cost_list);
-                
-                print_sock_list(sock_cost_list);
-
-                HOST *slave = get_lowest_cost(sock_cost_list);
-                printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
-                
-                int slave_sock = create_conn(slave->name, slave->port);
-
-                if(COMMAND(i,j).req_count > 0)
+                while(true)
                 {
-                    // TODO: HANDLE FILE TRANSFERS
-                    handle_conn(slave_sock, &COMMAND(i,j), CMD_SEND_FILE);
-                }
-                else
-                {
-                    // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
-                    handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
+                    sockets_used = sockets_created; 
+                    if(select(FD_SETSIZE, &sockets_used, NULL, NULL, NULL) < 0)
+                    {
+                        perror("ERROR USING SELECT");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    for(int i = 0; i < FD_SETSIZE; i++)
+                    {
+                        if(FD_ISSET(i, &sockets_used))
+                        {
+                            
+                        }
+                    }
+
+                    get_all_costs(sock_cost_list);
+                    
+                    print_sock_list(sock_cost_list);
+
+                    HOST *slave = get_lowest_cost(sock_cost_list);
+                    printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
+                    
+                    int slave_sock = create_conn(slave->name, slave->port);
+
+                    if(COMMAND(i,j).req_count > 0)
+                    {
+                        // TODO: HANDLE FILE TRANSFERS
+                        handle_conn(slave_sock, &COMMAND(i,j), CMD_SEND_FILE);
+                    }
+                    else
+                    {
+                        // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
+                        handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
+                    }
                 }
             }
 
