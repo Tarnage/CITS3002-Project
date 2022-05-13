@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sqlalchemy
 import parse_rakefile
 import sys
 import socket
@@ -19,13 +20,15 @@ MAX_BYTES 		= 1024
 FORMAT 			= 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
-TIMEOUT 		= 0.5
+TIMEOUT 		= 5
 # INTS OR ACKS ARE 8 BYTES LONG
 MAX_BYTE_SIGMA 	= 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN 		= 'big'
 # LOCATION OF RECV FILES
 DOWNLOADS 		= "./downloads/"
+
+MAX_INT 		= sys.maxsize
 
 class Ack:
 	''' ENUM  Class'''
@@ -55,21 +58,36 @@ class Ack:
 
 
 class Hosts:
-	def __init__(self, sock, ip, port, used=False, action=0):
+	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT):
 		self.sock = sock
 		self.ip = ip
 		self.port = port
 		self.used = used
 		self.action = action
+		self.cost = cost
 
 
 # INIT GLOBALS
 # INIT ENUM CLASS
 ACK = Ack()
+obj_hosts = list()
+
 
 def usage():
 	print("Usage: ")
 
+
+def reset_host():
+	''' Helper to re init attributes
+		Note that ones a ip and port are init it doesnt change through the life of the program
+	
+	'''
+	global obj_hosts
+	for h in obj_hosts:
+		h.sock.close()
+		h.used = False
+		h.action = None
+		h.cost = MAX_INT
 
 def create_socket(host, port):
 	''' creates connections to given hosts on give port
@@ -93,6 +111,7 @@ def create_socket(host, port):
 		else: 
 			sys.exit( f'socket creation failed with error: {err}' )
 
+	print( f"CONNECTION SUCCESSFUL" )
 	return sd
 
 
@@ -116,7 +135,7 @@ def close_sockets(sockets):
 		sock.close()
 
 
-def send_cmd(sd, payload):
+def send_cmd(sd):
 	''' Helper send command to execute on remote servers
 		Args;
 			sd(socket): connection to send the datagram
@@ -124,10 +143,14 @@ def send_cmd(sd, payload):
 			payload(str): command to execute
 	
 	'''
-	send_ack(sd, ACK.CMD_EXECUTE)
-	send_byte_size(sd, len(payload))
-	sd.sendall(payload.encode(FORMAT))
-	print(f"COMMAND SENT {payload}...")
+	for h in obj_hosts:
+		if h.sock == sd:
+			payload = h.action.cmd
+			send_ack(sd, ACK.CMD_EXECUTE)
+			send_byte_size(sd, len(payload))
+			sd.sendall(payload.encode(FORMAT))
+			print(f"COMMAND SENT {payload}...")
+			break
 
 # TODO: DONT MAKE cost_list global but instead have it sent in 
 # as a paramter
@@ -137,28 +160,75 @@ def get_lowest_cost():
 		Returns:
 			result(tuple): (str):hostname, (int):port
 	'''
-	global cost_list
-	lowest_cost = sys.maxsize
-	result = tuple()
+	global obj_hosts
+	lowest_cost = MAX_INT
+	curr = None
+	for h in obj_hosts:
+		if h.cost < lowest_cost:
+			lowest_cost = h.cost
+			curr = h
 
-	for i in cost_list:
-		if i[0] < lowest_cost:
-			lowest_cost = i[0]
-			result = i[1]
-	return result
+			# ALREADY TRUE
+			h.used = True
+		else:
+			h.used = False
+
+		# RESET COST
+		h.cost = MAX_INT
+	
+	return curr
 
 
-def add_cost_tuple(sd, cost):
+def mark_free(sd):
+	''' Helper to mark host obj as free.
+		Args:
+			sd(socket): Used to compare
+	'''
+	global obj_hosts
+
+	for h in obj_hosts:
+		if h.sock == sd:
+			h.used = False
+			break
+
+
+def add_cost(sd, cost):
 	''' Helper to record current 'bids' or cost from servers to continue 
 		execution with them.
+		Will iterate over global list obj_hosts to find the right socket
 
 		Args:
 			sd(socket): Socket object with stats
 			cost(int): the bid from the server
 	'''
-	global cost_list
-	ip_port = sd.getpeername()
-	cost_list.append((cost, ip_port))
+	global obj_hosts
+	for h in obj_hosts:
+		if h.sock == sd:
+			h.cost = cost
+			break
+
+
+def get_filename(sd):
+	''' Helper to get current file file count
+		Args:
+			sd(sock): socket
+
+		Return:
+			str: filename
+			or
+			None: if no more files to send
+	'''
+	global obj_hosts
+
+	for h in obj_hosts:
+		if h.sock == sd:
+			index = len(h.action.requires) - 1
+			if index > 0:
+				file = h.action.requires[index]
+				h.action.requires.pop()
+				return file
+			else:
+				return None
 
 
 def check_downloads_dir():
@@ -219,7 +289,7 @@ def send_bin_file(sd, filename, path):
 			sd(socket): Connection to send the file
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	sigma = ACK.CMD_BYTE_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sigma = ACK.CMD_BIN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( sigma )
 	print(f"SENDING BIN FILE {filename}---->")
 	payload = b''
@@ -364,192 +434,203 @@ def find_files(filename):
 
 
 
-def handle_conn(sets, hosts):
-		# SOCKETS WE EXPECT TO READ FROM
-		input_sockets = []
+def handle_conn(sets):
+	global obj_hosts
 
-		# SOCKETS WE EXPECT TO WRITE TO
-		output_sockets  = []
+	# SOCKETS WE EXPECT TO READ FROM
+	input_sockets = []
 
-		# TRACK THE LOWEST COST RIGHT NOW
-		# SHOULD BE RESET AFTER EACH CHECK
-		cost_list = list()
+	# SOCKETS WE EXPECT TO WRITE TO
+	output_sockets  = []
 
-		# OUTGOING MESSAGE QUEUES
-		msg_queue = {}
+	# OUTGOING MESSAGE QUEUES
+	msg_queue = {}
 
-		# KEEP TRACK OF SOCKETS NEEDING ACKS
-		ack_queue = {}
+	# KEEP TRACK OF SOCKETS NEEDING ACKS
+	ack_queue = {}
+	
+	# INDEX TO THE SET
+	actions_executed = 0
 
-		file_count = 0
-		
-		# INDEX TO THE SET
-		actions_executed = 0
+	curr_action = 0
 
-		actions_left = len(sets)
+	actions_left = len(sets)
 
-		quote_queue = 0
+	quote_queue = 0
 
-		not_used = 0
-		
-		# if ack_type == ACK.CMD_EXECUTE:
-		# 	msg_queue[sd] = ACK.CMD_EXECUTE
-		# 	output_sockets.append(sd)
-		# 	sd.setblocking(False)
+	not_used = 0
 
-		# if ack_type == ACK.CMD_SEND_FILE:
-		# 	msg_queue[sd] = ACK.CMD_SEND_FILE
-		# 	# TRACK HOW MANY FILES TO SEND
-		# 	file_count = len(cmd.requires)-1 # -1 because first index is the requires string
-		# 	output_sockets.append(sd)
-		# 	sd.setblocking(False)
-		
+	request_waiting = False
 
-		while actions_executed < actions_left:
-			try:
-				
-				# GET THE LIST OF READABLE SOCKETS
-				read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
+	while actions_executed < actions_left :
+		try:
+			# WE HAVE COSTS FOR THE NEXT ACTION
+			if (quote_queue == 0) and request_waiting:
 
-				for sock in read_sockets:
-					if sock:
-						print("WAITING FOR REPLY...")
-						if sock in input_sockets:
-							input_sockets.remove(sock)
+				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
+				if sets[curr_action].remote:
+					slave = get_lowest_cost()
+					request_waiting = False
+					slave.action = sets[curr_action]
+					sd = create_socket(slave.ip, slave.port)
+					slave.sock = sd
+					msg_queue[sd] = ACK.CMD_SEND_FILE
+					curr_action += 1
+					output_sockets.append(sd)
 
-						# SOMETHING TO READ
-						sigma = recv_byte_int(sock)
-						
-						#print(f"RECIEVED ACK TYPE {sigma}")
-						# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
-						# NOW SEND THE NEXT PAYLOAD
-						if sigma == ACK.CMD_ACK:
-							output_sockets.append(sock)
+			# WE HAVE ACTIONS TO EXECUTE 
+			if (curr_action < actions_left):
+				if (not sets[curr_action].remote):
+					check_downloads_dir()
+					subprocess.run(sets[curr_action].cmd, shell=True, cwd=DOWNLOADS)
+					curr_action += 1
+					actions_executed += 1
 
-						elif sigma == ACK.CMD_QUOTE_REPLY:
-							cost = recv_byte_int(sock)
-							#print(f"RECIEVED COST: {cost}")
-							add_cost_tuple(sock, cost)
-							del msg_queue[sock]
-							print("CLOSING CONNECTION...")
-							sock.close()
-								
-						elif sigma == ACK.CMD_RETURN_STATUS:
-							r_code = recv_byte_int(sock)
-							print(f"RECV CODE: {r_code}")
-
-							# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
-							if r_code == 0:
-								# EXPECT A FILE SENT FROM SERVER
-								print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
-								msg_queue[sock] = ACK.CMD_RETURN_FILE
-								
-							# EXECUTION FAILED WITH WARNING
-							#TODO: handle error codes
-							elif 0 < r_code < 5:
-								print("REVIEVCED A WARNING ERROR")
-								msg_queue[sock] = ACK.CMD_RETURN_STDOUT
-
-							# EXECUTION HAD A FATAL ERROR
-							else:
-								print("REVIEVCED A FATAL ERROR")
-								msg_queue[sock] = ACK.CMD_RETURN_STDERR
-
-							# SEND ACKS 
-							input_sockets.append(sock)
-						
-						elif sigma == ACK.CMD_RETURN_FILE:
-							print("RECIEVING FILE...")
-							recv_bin_file(sock)
-							print("CLOSING CONNECTION...")
-							sock.close()
-							del msg_queue[sock]
-							# END OF CONNECTION 
-							
-				for sock in write_sockets:
-					if sock:
-						if sock in output_sockets:
-							output_sockets.remove(sock)
-
-						# CHECK WHAT YPE OF MSG TO SEND
-						msg_type = msg_queue[sock]
-						# print(f"SENDING MESSAGE TYPE: {msg_type}")
-
-						# SLEEP
-						# rand = random.randint(1, 10)
-						# timer = os.getpid() % rand + 2
-						# #print( f'sleep for: {timer}' )
-						# time.sleep(timer)
-
-						# WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
-						# WE SEND AN ACK TO SIGNAL THE SERVER WE ARE READY FOR THE NEXT PAYLOAD
-						if sock in ack_queue:
-							send_ack(sock, ACK.CMD_ACK)
-							input_sockets.append(sock)
-							del ack_queue[sock]
-
-						# SEND AN ACK FOR A QUOTE
-						elif msg_type == ACK.CMD_QUOTE_REQUEST:
-							send_ack(sock, ACK.CMD_QUOTE_REQUEST)
-							msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
-							input_sockets.append(sock)
-
-						elif msg_type == ACK.CMD_SEND_FILE:
-							# NAME OF FILE TO SEND
-							index = file_count
-							filename = cmd.requires[index]
-
-							# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
-							if file_count == 0:
-								print(f'SENDING ACK FOR EXECUTE ---->')
-								send_cmd(sd, cmd.cmd)
-								# WHEN THEN WAIT FOR THE RETURN STATUS
-								msg_queue[sock] = ACK.CMD_RETURN_STATUS
-								input_sockets.append(sock)
-							# ELSE WE HAVE MORE FILES TO SEND
-							else:
-								path = find_files(filename)
-								if path != None:
-									if is_bin_file(path):
-										send_bin_file(sd, filename, path)
-									else:
-										send_txt_file(sd, filename, path)
-									file_count -= 1
-									msg_queue[sock] = ACK.CMD_SEND_FILE
-									input_sockets.append(sock)
-								else:
-									print(f"{filename} DOES NOT EXSIST!")
-									del msg_queue[sock]
-									sock.close()
-
-						# MAIN PROG WILL CALL THIS IF NO REQUIRED FILES ARE NEEDED
-						elif msg_type == ACK.CMD_EXECUTE:
-							send_cmd(sd, cmd.cmd)
-							msg_queue[sock] = ACK.CMD_RETURN_STATUS
-							input_sockets.append(sock)
-
-						# INIT THE FIRST CONNECTIONS
-
-				if quote_queue == 0:
-					for h in hosts:
+				else:
+					# SEND COST REQS TO FREE SERVERS
+					for h in obj_hosts:
 						if not h.used:
 							sd = create_socket(h.ip, h.port)
+							h.sock = sd
+							h.used = True
 							quote_queue += 1
 							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
-							output_sockets.append()
+							output_sockets.append(sd)
 							sd.setblocking(False)
 
-			except KeyboardInterrupt:
-				print('Interrupted. Closing sockets...')
-				# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
-				close_sockets(input_sockets)
-				close_sockets(output_sockets)
-				sys.exit()
-			# except Exception as err:
-			# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-			# 	close_sockets(input_sockets)
-			# 	close_sockets(output_sockets)
-			# 	sys.exit()
+
+			# GET THE LIST OF READABLE SOCKETS
+			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
+
+			for sock in read_sockets:
+				if sock:
+					print("WAITING FOR REPLY...")
+					if sock in input_sockets:
+						input_sockets.remove(sock)
+
+					# SOMETHING TO READ
+					sigma = recv_byte_int(sock)
+					
+					#print(f"RECIEVED ACK TYPE {sigma}")
+					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
+					# NOW SEND THE NEXT PAYLOAD
+					if sigma == ACK.CMD_ACK:
+						output_sockets.append(sock)
+
+					elif sigma == ACK.CMD_QUOTE_REPLY:
+						cost = recv_byte_int(sock)
+						print(f"RECIEVED COST: {cost}")
+						add_cost(sock, cost)
+						del msg_queue[sock]
+						request_waiting = True
+						quote_queue -= 1
+						print("CLOSING CONNECTION...")
+						sock.close()
+
+					elif sigma == ACK.CMD_RETURN_STATUS:
+						r_code = recv_byte_int(sock)
+						print(f"RECV CODE: {r_code}")
+
+						# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
+						if r_code == 0:
+							# EXPECT A FILE SENT FROM SERVER
+							print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
+							msg_queue[sock] = ACK.CMD_RETURN_FILE
+							
+						# EXECUTION FAILED WITH WARNING
+						#TODO: handle error codes
+						elif 0 < r_code < 5:
+							print("REVIEVCED A WARNING ERROR")
+							msg_queue[sock] = ACK.CMD_RETURN_STDOUT
+
+						# EXECUTION HAD A FATAL ERROR
+						else:
+							print("REVIEVCED A FATAL ERROR")
+							msg_queue[sock] = ACK.CMD_RETURN_STDERR
+
+						# SEND ACKS 
+						input_sockets.append(sock)
+					
+					elif sigma == ACK.CMD_RETURN_FILE:
+						print("RECIEVING FILE...")
+						recv_bin_file(sock)
+						print("CLOSING CONNECTION...")
+						actions_executed += 1
+						mark_free(sock)
+						sock.close()
+						del msg_queue[sock]
+						
+						# END OF CONNECTION 
+						
+			for sock in write_sockets:
+				if sock:
+					if sock in output_sockets:
+						output_sockets.remove(sock)
+
+					# CHECK WHAT YPE OF MSG TO SEND
+					msg_type = msg_queue[sock]
+					print(f"SENDING MESSAGE...")
+
+					# SLEEP
+					# rand = random.randint(1, 10)
+					# timer = os.getpid() % rand + 2
+					# #print( f'sleep for: {timer}' )
+					# time.sleep(timer)
+
+					# WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
+					# WE SEND AN ACK TO SIGNAL THE SERVER WE ARE READY FOR THE NEXT PAYLOAD
+					if sock in ack_queue:
+						send_ack(sock, ACK.CMD_ACK)
+						input_sockets.append(sock)
+						del ack_queue[sock]
+
+					# SEND AN ACK FOR A QUOTE
+					elif msg_type == ACK.CMD_QUOTE_REQUEST:
+						send_ack(sock, ACK.CMD_QUOTE_REQUEST)
+						msg_queue[sock] = ACK.CMD_QUOTE_REQUEST
+						input_sockets.append(sock)
+
+					elif msg_type == ACK.CMD_SEND_FILE:
+						# NAME OF FILE TO SEND
+						filename = get_filename(sock)
+
+						# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
+						if filename == None:
+							print(f'SENDING ACK FOR EXECUTE ---->')
+							send_cmd(sock)
+							# WHEN THEN WAIT FOR THE RETURN STATUS
+							msg_queue[sock] = ACK.CMD_RETURN_STATUS
+							input_sockets.append(sock)
+						# ELSE WE HAVE MORE FILES TO SEND
+						else:
+							path = find_files(filename)
+							if path != None:
+								if is_bin_file(path):
+									send_bin_file(sd, filename, path)
+								else:
+									send_txt_file(sd, filename, path)
+								msg_queue[sock] = ACK.CMD_SEND_FILE
+								input_sockets.append(sock)
+							else:
+								print(f"{filename} DOES NOT EXSIST!")
+								del msg_queue[sock]
+								sock.close()
+
+		except KeyboardInterrupt:
+			print('Interrupted. Closing sockets...')
+			# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
+			close_sockets(input_sockets)
+			close_sockets(output_sockets)
+			sys.exit()
+		# except Exception as err:
+		# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+		# 	close_sockets(input_sockets)
+		# 	close_sockets(output_sockets)
+		# 	sys.exit()
+	
+	reset_host()
+
+
 
 def print_objs(hosts):
 	for host in hosts:
@@ -558,15 +639,15 @@ def print_objs(hosts):
 def main(argv):
 	dict_hosts, actions = parse_rakefile.read_rake(argv[1])
 
+	global obj_hosts
 	obj_hosts = get_host_obj(dict_hosts)
 
-	print_objs(obj_hosts)
+	#print(actions)
 
 
-	#for sets in actions:
+	for sets in actions:
 		# ADDRESS OF LOWEST BID
-
-		#handle_conn(sets, obj_hosts)
+		handle_conn(list(sets))
 
 		# slave_addr = tuple()
 		# for command in sets:
