@@ -142,7 +142,7 @@ void send_txt_file(int sd, char *filename)
     else 
     {
         struct stat st;
-        stat(filename, &st);
+        stat(path, &st);
         int size = st.st_size;
         char buffer[size]; 
         
