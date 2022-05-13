@@ -305,7 +305,6 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
-# TODO: add sleep for slow connections
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
@@ -437,39 +436,42 @@ def handle_conn(sets):
 	global obj_hosts
 
 	# SOCKETS WE EXPECT TO READ FROM
-	input_sockets = []
+	input_sockets = list()
 
 	# SOCKETS WE EXPECT TO WRITE TO
-	output_sockets  = []
+	output_sockets  = list()
 
 	# OUTGOING MESSAGE QUEUES
-	msg_queue = {}
+	msg_queue = dict()
 
 	# KEEP TRACK OF SOCKETS NEEDING ACKS
-	ack_queue = {}
+	ack_queue = dict()
 	
 	# INDEX TO THE SET
 	actions_executed = 0
 
+	# IF CURRENT ACTION IS THE LAST ONE DONT
+	# SEND OUT REQUEST FOR COSTS
 	curr_action = 0
 
+	# REMAINING ACTIONS IN THIS LOOP
 	actions_left = len(sets)
 
+	# HOW MANY SOCKETS ARE OUT REQUESTING FOR COST
 	quote_queue = 0
 
-	not_used = 0
-
-	request_waiting = False
+	# ARE THERE COST TO BE CALCULATED
+	cost_waiting = False
 
 	while actions_executed < actions_left :
 		try:
 			# WE HAVE COSTS FOR THE NEXT ACTION
-			if (quote_queue == 0) and request_waiting:
+			if (quote_queue == 0) and cost_waiting:
 
 				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
 				if sets[curr_action].remote:
 					slave = get_lowest_cost()
-					request_waiting = False
+					cost_waiting = False
 					slave.action = sets[curr_action]
 					sd = create_socket(slave.ip, slave.port)
 					slave.sock = sd
@@ -521,7 +523,7 @@ def handle_conn(sets):
 						print(f"RECIEVED COST: {cost}")
 						add_cost(sock, cost)
 						del msg_queue[sock]
-						request_waiting = True
+						cost_waiting = True
 						quote_queue -= 1
 						print("CLOSING CONNECTION...")
 						sock.close()
