@@ -7,7 +7,7 @@ import time
 def find_files(filename):
     result = None
     start = time.time()
-# Wlaking top-down from the root
+# Walking top-down from the root
     for root, dir, files in os.walk("/"):
         if filename in files:
             result = (os.path.join(root, filename))
