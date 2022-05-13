@@ -53,10 +53,19 @@ class Ack:
 
 		self.CMD_ACK = 15
 
+
+class Hosts:
+	def __init__(self, sock, ip, port, used=False, action=0):
+		self.sock = sock
+		self.ip = ip
+		self.port = port
+		self.used = used
+		self.action = action
+
+
 # INIT GLOBALS
 # INIT ENUM CLASS
 ACK = Ack()
-cost_list = list()
 
 def usage():
 	print("Usage: ")
@@ -85,6 +94,16 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	return sd
+
+
+def get_host_obj(hosts):
+	socket_lists = list()
+	for key in hosts:
+		socket_lists.append(Hosts(None, key, hosts[key]))
+		print(key, hosts[key])
+	
+	return socket_lists
+
 
 
 def close_sockets(sockets):
@@ -126,7 +145,6 @@ def get_lowest_cost():
 		if i[0] < lowest_cost:
 			lowest_cost = i[0]
 			result = i[1]
-
 	return result
 
 
@@ -343,12 +361,19 @@ def find_files(filename):
 			return result
 
 
-def handle_conn(sd, ack_type, cmd=None):
+
+
+
+def handle_conn(sets, hosts):
 		# SOCKETS WE EXPECT TO READ FROM
 		input_sockets = []
 
 		# SOCKETS WE EXPECT TO WRITE TO
 		output_sockets  = []
+
+		# TRACK THE LOWEST COST RIGHT NOW
+		# SHOULD BE RESET AFTER EACH CHECK
+		cost_list = list()
 
 		# OUTGOING MESSAGE QUEUES
 		msg_queue = {}
@@ -356,34 +381,31 @@ def handle_conn(sd, ack_type, cmd=None):
 		# KEEP TRACK OF SOCKETS NEEDING ACKS
 		ack_queue = {}
 
-		# TRACK FILES TO EXPECT
-		file_to_recv = {}
-
-		# TRACK SIZE OF FILE TO EXPECT
-		file_size = {}
-
 		file_count = 0
-
-		if ack_type == ACK.CMD_QUOTE_REQUEST:
-			for s in sd:
-				msg_queue[s] = ACK.CMD_QUOTE_REQUEST
-				output_sockets.append(s)
-				s.setblocking(False)
 		
-		if ack_type == ACK.CMD_EXECUTE:
-			msg_queue[sd] = ACK.CMD_EXECUTE
-			output_sockets.append(sd)
-			sd.setblocking(False)
+		# INDEX TO THE SET
+		actions_executed = 0
 
-		if ack_type == ACK.CMD_SEND_FILE:
-			msg_queue[sd] = ACK.CMD_SEND_FILE
-			# TRACK HOW MANY FILES TO SEND
-			file_count = len(cmd.requires)-1 # -1 because first index is the requires string
-			output_sockets.append(sd)
-			sd.setblocking(False)
+		actions_left = len(sets)
+
+		quote_queue = 0
+
+		not_used = 0
+		
+		# if ack_type == ACK.CMD_EXECUTE:
+		# 	msg_queue[sd] = ACK.CMD_EXECUTE
+		# 	output_sockets.append(sd)
+		# 	sd.setblocking(False)
+
+		# if ack_type == ACK.CMD_SEND_FILE:
+		# 	msg_queue[sd] = ACK.CMD_SEND_FILE
+		# 	# TRACK HOW MANY FILES TO SEND
+		# 	file_count = len(cmd.requires)-1 # -1 because first index is the requires string
+		# 	output_sockets.append(sd)
+		# 	sd.setblocking(False)
 		
 
-		while msg_queue:
+		while actions_executed < actions_left:
 			try:
 				
 				# GET THE LIST OF READABLE SOCKETS
@@ -506,6 +528,17 @@ def handle_conn(sd, ack_type, cmd=None):
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
 							input_sockets.append(sock)
 
+						# INIT THE FIRST CONNECTIONS
+
+				if quote_queue == 0:
+					for h in hosts:
+						if not h.used:
+							sd = create_socket(h.ip, h.port)
+							quote_queue += 1
+							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
+							output_sockets.append()
+							sd.setblocking(False)
+
 			except KeyboardInterrupt:
 				print('Interrupted. Closing sockets...')
 				# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
@@ -518,45 +551,47 @@ def handle_conn(sd, ack_type, cmd=None):
 			# 	close_sockets(output_sockets)
 			# 	sys.exit()
 
-
-def get_all_conn(hosts):
-	socket_lists = list()
-	for key in hosts:
-		socket_lists.append(create_socket(key, int(hosts[key])))
-		print(key, hosts[key])
-	
-	return socket_lists
-
+def print_objs(hosts):
+	for host in hosts:
+		print(host.sock, host.ip, host.port, host.used)
 
 def main(argv):
-	hosts, actions = parse_rakefile.read_rake(argv[1])
+	dict_hosts, actions = parse_rakefile.read_rake(argv[1])
 
-	for sets in actions:
+	obj_hosts = get_host_obj(dict_hosts)
+
+	print_objs(obj_hosts)
+
+
+	#for sets in actions:
 		# ADDRESS OF LOWEST BID
-		slave_addr = tuple()
-		for command in sets:
-			# DO WE RUN THIS COMMAND LOCAL OR REMOTE
-			if not command.remote:
-				check_downloads_dir()
-				subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
-			# IS A REMOTE COMMAND
-			else:
-				# GET THE LOWEST COST
-				sockets_list = get_all_conn(hosts)
-				handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
 
-				slave_addr = get_lowest_cost()
-				#print(slave_addr)
-				# EXECUTE COMMANNDS WITH THIS SOCKET
-				slave = create_socket(slave_addr[0], slave_addr[1])
+		#handle_conn(sets, obj_hosts)
 
-				#print(command.requires)
-				# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
-				if len(command.requires) > 0:
-					handle_conn(slave, ACK.CMD_SEND_FILE, command)
-				# ELSE JUST RUN THE COMMAND	
-				else:
-					handle_conn(slave, ACK.CMD_EXECUTE, command)
+		# slave_addr = tuple()
+		# for command in sets:
+		# 	# DO WE RUN THIS COMMAND LOCAL OR REMOTE
+		# 	if not command.remote:
+		# 		check_downloads_dir()
+		# 		subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
+		# 	# IS A REMOTE COMMAND
+		# 	else:
+		# 		# GET THE LOWEST COST
+		# 		sockets_list = get_all_conn(hosts)
+		# 		handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
+
+		# 		slave_addr = get_lowest_cost()
+		# 		#print(slave_addr)
+		# 		# EXECUTE COMMANNDS WITH THIS SOCKET
+		# 		slave = create_socket(slave_addr[0], slave_addr[1])
+
+		# 		#print(command.requires)
+		# 		# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
+		# 		if len(command.requires) > 0:
+		# 			handle_conn(slave, ACK.CMD_SEND_FILE, command)
+		# 		# ELSE JUST RUN THE COMMAND	
+		# 		else:
+		# 			handle_conn(slave, ACK.CMD_EXECUTE, command)
 		
 if __name__ == "__main__":
 	main(sys.argv)
