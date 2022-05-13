@@ -242,15 +242,7 @@ int find_file(char *filename, char *path)
     return 0;
 }
 
-
-void handle_conn(ACTION_SET *sets, HOST* hosts)
-{
-    fd_set read_sockets, write_sockets, error_sockets; 
-    
-}
-
 // MAIN CONNECTION HANDLER
-/*
 void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
@@ -331,7 +323,7 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
 
     }
     
-}*/
+}
 
 
 // CREATES SOCKET DESCRIPTORS
@@ -493,7 +485,7 @@ int main (int argc, char *argv[])
             if(COMMAND(i,j).is_remote != 1)
             {   
                 //TODO: HANDLE LOCAL EXECUTIONS
-                /*
+                
                 if(COMMAND(i,j).req_count > 0)
                 {
                     for (size_t k = 1; k < COMMAND(i, j).req_count; k++)
@@ -504,7 +496,7 @@ int main (int argc, char *argv[])
                         }
                     }
                     system(COMMAND(i,j).command);
-                } */ 
+                } 
             }
             else
             {   
@@ -516,6 +508,7 @@ int main (int argc, char *argv[])
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sockets, hosts, sockets_created);
 
+                // TODO MIGHT NOT BE A GOOD IDEA, LOOK AT PYTHON
                 while(true)
                 {
                     sockets_used = sockets_created; 
