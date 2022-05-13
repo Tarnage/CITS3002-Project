@@ -10,6 +10,10 @@
 #define MAX_BYTES    1024
 #define MAX_SOCKETS  128
 
+
+//#define USE_FIND_FILE
+
+
 //--------------------GLOBALS-------------------
 int num_sockets = 0;
 NODE *sockets;
@@ -120,9 +124,16 @@ void send_string(int sd, char *payload)
 void send_txt_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
+    
+#ifdef USE_FIND_FILE
+    char *path = find_file(filename);
+#else
+    char *path = filename;
+#endif
+
     send_string(sd, filename);
 
-    FILE *fp = fopen(filename, "r");
+    FILE *fp = fopen(path, "r");
 
     if (fp == NULL)
     {
