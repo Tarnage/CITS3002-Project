@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import sqlalchemy
 import parse_rakefile
 import sys
 import socket
