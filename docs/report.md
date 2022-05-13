@@ -55,6 +55,15 @@ We would have to send the size of the payload after ever type of communication f
     4. Server will execute the command sent, and the reuturn status will be sent to the client. If the return staus is zero the server will initiate the protocol to send the output file, otherwise it will return the error message from executing the command.
     5. Sending the output file, since the output file 
 
+### Walkthrough of server and client interactions
+1. Server is created by running (python3 rakeserver.py 6328). Opening an port and listens for connections.
+
+2. Client is created by running (python3 rake-p.py). Client uses an socket to successfully connect to the server at the specified port. 
+
+3. Client sends a command to the servers (for example echo starting actionset1) with a message asking for the cost of executing the command on that server. It then waits for a response from the server. 
+
+4. Server receives the command from the client and deterimines the price to run this command (price varies depending on the command type, resources required and how busy the server is). It then sends the price back to the client. 
+
 ## Performance
 ### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
 
