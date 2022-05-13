@@ -13,6 +13,8 @@
 #include "parse_c.h"
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <limits.h>
+#include <sys/select.h>
 
 #define MAX_BYTES_SIGMA 4
 
@@ -45,7 +47,9 @@ typedef struct _node
     char *ip;
     int port;
     int cost;
+    int used; 
     struct _node *next;
-}NODE;
+    
+} NODE;
 
 #endif
