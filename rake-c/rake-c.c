@@ -8,10 +8,11 @@
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
+#define MAX_SOCKETS  128
 
 //--------------------GLOBALS-------------------
-int n_sock_list = 0;
-NODE *sock_cost_list;
+int num_sockets = 0;
+NODE *sockets;
 
 
 // FILLS STRUCTS WITH RAKEFILE CONTENTS
@@ -69,7 +70,7 @@ int recv_byte_int(int sock)
 // HELPER TO ADD COST TO SOCK LIST 
 void add_quote(int sock, int quote)
 {
-    NODE *tmp = sock_cost_list;
+    NODE *tmp = sockets;
     printf("APPENDING CURRENT QUOTE: %i\n", quote);
     while(tmp->sock != sock) ++tmp;
     tmp->cost = quote;
@@ -242,7 +243,14 @@ int find_file(char *filename, char *path)
 }
 
 
+void handle_conn(ACTION_SET *sets, HOST* hosts)
+{
+    fd_set read_sockets, write_sockets, error_sockets; 
+    
+}
+
 // MAIN CONNECTION HANDLER
+/*
 void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
@@ -323,7 +331,7 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
 
     }
     
-}
+}*/
 
 
 // CREATES SOCKET DESCRIPTORS
@@ -381,10 +389,11 @@ void get_all_conn(NODE *list, HOST *hosts, fd_set current_sockets)
         list->ip = hosts->name;
         list->port = hosts->port;
         list->sock = create_conn(hosts->name, hosts->port);
+        list->used = 0;
 
         FD_SET(list->sock, &current_sockets);
         
-        ++n_sock_list;
+        ++num_sockets;
         ++list;
         ++hosts;
     }
@@ -398,7 +407,7 @@ void print_sock_list(NODE *list)
 {   
     int i = 0;
     printf("CURRENT SOCKET LIST\n");
-    while(i != n_sock_list)
+    while(i != num_sockets)
     {
         int sock = list->sock;
         char *ip = list->ip;
@@ -419,7 +428,7 @@ void get_all_costs(NODE *list)
 {
     int i = 0;
     printf("GETTING COST FOR ALL CONNECTIONS\n");
-    while(i != n_sock_list)
+    while(i != num_sockets)
     {
         handle_conn(list->sock, NULL, CMD_QUOTE_REQUEST);
         ++list;
@@ -467,7 +476,7 @@ int main (int argc, char *argv[])
     ACTION_SET action_set[MAX_ACTIONS];
     // int host_count = 0;
     // int action_count = 0;
-    sock_cost_list = (NODE*)malloc(sizeof(NODE));
+    sockets = (NODE*)malloc(sizeof(NODE));
 
     init_actions(file_name, action_set, hosts);
 
@@ -505,7 +514,7 @@ int main (int argc, char *argv[])
                 FD_ZERO(&sockets_created);
 
                 // TODO: GET THE LOWEST COST
-                get_all_conn(sock_cost_list, hosts, sockets_created);
+                get_all_conn(sockets, hosts, sockets_created);
 
                 while(true)
                 {
@@ -524,11 +533,11 @@ int main (int argc, char *argv[])
                         }
                     }
 
-                    get_all_costs(sock_cost_list);
+                    get_all_costs(sockets);
                     
-                    print_sock_list(sock_cost_list);
+                    print_sock_list(sockets);
 
-                    HOST *slave = get_lowest_cost(sock_cost_list);
+                    HOST *slave = get_lowest_cost(sockets);
                     printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
                     
                     int slave_sock = create_conn(slave->name, slave->port);
