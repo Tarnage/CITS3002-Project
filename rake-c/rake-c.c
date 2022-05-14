@@ -8,7 +8,7 @@
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
 #define MAX_BYTES    1024
-#define MAX_SOCKETS  128
+#define MAX_SOCKETS  FD_SETSIZE
 
 
 //#define USE_FIND_FILE
@@ -412,6 +412,15 @@ HOST* get_lowest_cost (NODE *list)
     return low_host; 
 }
 
+void make_free(NODE *sockets, int sd)
+{
+    while(sockets->sock != sd)
+    {
+        ++sockets;
+    }
+
+    sockets->used = 0;
+}
 // MAIN CONNECTION HANDLER
 void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int action_totals) 
 {
@@ -425,10 +434,10 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
 
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
     // MESSAGE QUEUE
-    // int messages[MAX_QUEUE_ITEMS];
+    int messages[MAX_QUEUE_ITEMS];
 
     // ACK QUEUE
-    // int ack_queue[MAX_QUEUE_ITEMS];
+    int ack_queue[MAX_QUEUE_ITEMS];
 
     // INDEX TO SET
     int actions_executed = 0;
@@ -479,52 +488,134 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                     {
                         printf("CREATING CONNECTION WITH HOST %s at PORT %d\n", sockets->ip, sockets->port);
                         int socket_desc = create_conn(sockets->ip, sockets->port);
-                        printf("APPEND\n");
+                        // printf("APPEND\n");
                         sockets->sock = socket_desc; 
                         sockets->used = 1; 
-                        printf("SETTING TO OUTPUT SOCKETS\n");
+                        // printf("SETTING TO OUTPUT SOCKETS\n");
                         FD_SET(socket_desc, &output_sockets);
                     }
                     ++sockets; 
                 }
 
-                // sockets = head; 
-                printf("OUT OF LOOP\n");
+                sockets = head;
             }
         }
 
         // GET LIST OF READABLE SOCKETS
-        printf("SELECTING\n");
         if(select(FD_SETSIZE, &input_sockets, &output_sockets, NULL, 0) < 0)
         {
             perror("ERROR: ");
             exit(EXIT_FAILURE);
         }
-        else
+
+        printf("ITERATING\n");
+        for(int i = 0; i < FD_SETSIZE; i++)
         {
-            for(int i = 0; i < FD_SETSIZE; i++)
+            if(FD_ISSET(i, &input_sockets))
             {
-                if(FD_ISSET(i, &input_sockets))
+                printf("WAITING FOR REPLY\n");
+                FD_CLR(i, &input_sockets);
+
+                sigma = recv_byte_int(i);
+
+                if(sigma == CMD_ACK)
                 {
-                    printf("WAITING FOR REPLY\n");
-                    FD_CLR(i, &input_sockets);
+                    FD_SET(i, &output_sockets);
+                }
+                else if(sigma == CMD_QUOTE_REPLY)
+                {
+                    int cost = recv_byte_int(i);
+                    printf("RECEIVED COST: %d\n", cost);
+                    add_quote(i, cost);
+                    cost_waiting = true;
+                    --quote_queue;
+                    printf("CLOSING CONNECTION\n");
+                    close(i);
+                }
+                else if (sigma == CMD_RETURN_STATUS)
+                {
+                    int r_code = recv_byte_int(i);
+                    printf("RETURN CODE: %d\n", r_code);
 
-                    sigma = recv_byte_int(i);
-
-                    if(sigma == CMD_ACK)
+                    if(r_code == 0)
                     {
-                        FD_SET(i, &output_sockets);
+                        // EXPECT FILE FROM SERVER
+                        messages[i] = CMD_RETURN_FILE;
                     }
-                    else if(sigma == CMD_QUOTE_REPLY)
+                    else if (r_code > 0 && r_code < 5)
                     {
-                        int cost = recv_byte_int(i);
-                        printf("RECEIVED COST: %d\n", cost);
-                        add_quote(i, cost);
+                        messages[i] = CMD_RETURN_STDOUT; 
+                    }
+                    else
+                    {
+                        printf("FATAL ERROR\n");
+                        messages[i] = CMD_RETURN_STDERR;
+                    }
+
+                    FD_SET(i, &input_sockets);
+                }
+                else if(sigma == CMD_RETURN_FILE)
+                {
+                    printf("RECEIVING FILE\n");
+                    recv_bin_file(i);
+                    printf("CLOSING CONNECTION\n");
+                    ++actions_executed;
+                    make_free(sockets, i);
+                    close(i);
+                    messages[i] = 0;
+                }
+            }
+            
+            if(FD_ISSET(i, &output_sockets))
+            {
+                FD_CLR(i, &output_sockets);
+
+                int msg_type = messages[i];
+
+                // CHECK IF i is in ack_queue
+                for (int j = 0; j < MAX_QUEUE_ITEMS; j++)
+                {
+                    if(ack_queue[j] == i)
+                    {
+                        send_byte_int(i, CMD_QUOTE_REQUEST);
+                        FD_SET(i, &input_sockets);
+                        ack_queue[j] = 0; 
+                        break; 
+                    }
+                }
+                
+                if(msg_type == CMD_QUOTE_REQUEST)
+                {
+                    send_byte_int(i, CMD_QUOTE_REQUEST);
+                    messages[i] = CMD_QUOTE_REQUEST;
+                    FD_SET(i, &input_sockets);
+                }
+                else if(msg_type == CMD_SEND_FILE)
+                {
+                    if(actions->req_count == 0)
+                    {
+                        // DO SOMETHING
+                        messages[i] = CMD_RETURN_STATUS;
+                        FD_SET(i, &input_sockets);
+                    }
+                    else
+                    {
+                        actions->req_count--; 
+                        // TODO ADD find_file() CHECK HERE.
+                        printf("SENDING FILE: %s\n", actions->requirements[actions->req_count]);
+                        send_txt_file(i, actions->requirements[actions->req_count]);
+                        actions->req_count--;
+                        int ack = recv_byte_int(i);
+                        if(ack != CMD_ACK)
+                        {
+                            printf("SOMETHING WENT WRONG\n");
+                        }
+
+                        messages[i] = CMD_SEND_FILE;
+                        FD_SET(i, &input_sockets);
                     }
                 }
             }
-
-            // READING SOMETHING?
             
         }
 
