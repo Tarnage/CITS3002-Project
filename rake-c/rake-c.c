@@ -178,6 +178,13 @@ void recv_string(int sock, char *string, int size)
 
 }
 
+int check_folder_exists (char *filename)
+{
+    struct stat st;
+    int folder_exists = stat(TEMP_FOLDER, &st);
+
+    return folder_exists;
+}
 /*
     FUNCTION: recv_bin_file
     INPUT: sock (Integer)
@@ -206,16 +213,15 @@ void recv_bin_file(int sock)
     // #DEFINE "./tmp/"
     // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
     // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
-    struct stat st;
-    if(stat("./tmp/", &st) == -1)
+    if(check_folder_exists(TEMP_FOLDER) != -1)
     {   
         // THERE A MACRO FOR 0777?
-        mkdir("./tmp/", 0777);
+        mkdir(TEMP_FOLDER, 0777);
     }   
 
-    int new_file_size = strlen("./tmp/") + strlen(filename) + 1;
+    int new_file_size = strlen(TEMP_FOLDER) + strlen(filename) + 1;
     char dir_for_file[new_file_size];
-    strcpy(dir_for_file, "./tmp/");
+    strcpy(dir_for_file, TEMP_FOLDER);
     strcat(dir_for_file, filename);
     // printf("%s\n", dir_for_file);
 
@@ -511,7 +517,7 @@ int main (int argc, char *argv[])
             }
             else
             {   
-                fd_set sockets_created, sockets_used; 
+                fd_set sockets_created; //sockets_used; 
 
                 // INITIALIZE THE SET OF CONNECTIONS
                 FD_ZERO(&sockets_created);
@@ -519,7 +525,7 @@ int main (int argc, char *argv[])
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sockets, hosts, sockets_created);
 
-                // TODO MIGHT NOT BE A GOOD IDEA, LOOK AT PYTHON
+                /*
                 while(true)
                 {
                     sockets_used = sockets_created; 
@@ -537,25 +543,27 @@ int main (int argc, char *argv[])
                         }
                     }
 
-                    get_all_costs(sockets);
                     
-                    print_sock_list(sockets);
+                } */
 
-                    HOST *slave = get_lowest_cost(sockets);
-                    printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
+                get_all_costs(sockets);
                     
-                    int slave_sock = create_conn(slave->name, slave->port);
+                print_sock_list(sockets);
 
-                    if(COMMAND(i,j).req_count > 0)
-                    {
-                        // TODO: HANDLE FILE TRANSFERS
-                        handle_conn(slave_sock, &COMMAND(i,j), CMD_SEND_FILE);
-                    }
-                    else
-                    {
-                        // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
-                        handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
-                    }
+                HOST *slave = get_lowest_cost(sockets);
+                printf("LOWEST HOST: %s:%i\n", slave->name, slave->port);
+                    
+                int slave_sock = create_conn(slave->name, slave->port);
+
+                if(COMMAND(i,j).req_count > 0)
+                {
+                    // TODO: HANDLE FILE TRANSFERS
+                    handle_conn(slave_sock, &COMMAND(i,j), CMD_SEND_FILE);
+                }
+                else
+                {
+                    // TODO: NO FILE REQS JUST RUN SEND THE COMMAND
+                    handle_conn(slave_sock, &COMMAND(i,j), CMD_EXECUTE);
                 }
             }
 

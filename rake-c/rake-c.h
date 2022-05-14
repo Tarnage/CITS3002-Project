@@ -17,6 +17,7 @@
 #include <sys/select.h>
 
 #define MAX_BYTES_SIGMA 4
+#define TEMP_FOLDER "./tmp/"
 
 typedef enum _cmd{
     CMD_ECHO,
