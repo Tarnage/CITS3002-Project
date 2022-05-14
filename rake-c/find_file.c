@@ -12,10 +12,10 @@ extern         char *strdup(const char *s);
 
 #define STRCMP(p, q)   (strcmp(p, q) == 0)
 
-char *result;
+// char *result;
 
 //  SCANS DIRECTORY RECURSIVELY 
-void find_file(char *filename, char *buffer, char *dirname)
+int find_file(char *filename, char *buffer, char *dirname)
 {
     DIR             *dirp;
     struct dirent   *dp;
@@ -57,23 +57,28 @@ void find_file(char *filename, char *buffer, char *dirname)
         else if ( STRCMP(dp->d_name, filename) && STRCMP(dp->d_name, ".") )
         {   
             printf("%s\n", pathname);
-            result = pathname;
-            return;
+            buffer = strdup(pathname);
+
+            // FOUND THE FILE
+            return 0;
         }
     }
     
     //  CLOSE THE DIRECTORY
     closedir(dirp);
+
+    // DIDNT FIND THE FILE
+    return 1;
 }
 
-int main(int argc, char const *argv[])
-{   
-    char *filename = "program.c";
-    char *dir = "../..";
-    char *buffer = "";
-    find_file(filename, buffer, dir);
+// int main(int argc, char const *argv[])
+// {   
+//     char *filename = "program.c";
+//     char *dir = "../..";
+//     char *buffer = "";
+//     find_file(filename, buffer, dir);
 
-    //printf("%s\n", buffer);
+//     //printf("%s\n", buffer);
 
-    return 0;
-}
+//     return 0;
+// }
