@@ -511,6 +511,7 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
         printf("ITERATING\n");
         for(int i = 0; i < FD_SETSIZE; i++)
         {
+            // printf("CHECKING FOR SOCKET %d\n", i);
             if(FD_ISSET(i, &input_sockets))
             {
                 printf("WAITING FOR REPLY\n");
@@ -564,9 +565,10 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                     close(i);
                     messages[i] = 0;
                 }
+                
+                break; 
             }
-            
-            if(FD_ISSET(i, &output_sockets))
+            else if(FD_ISSET(i, &output_sockets))
             {
                 FD_CLR(i, &output_sockets);
 
@@ -615,6 +617,8 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                         FD_SET(i, &input_sockets);
                     }
                 }
+
+                break;
             }
             
         }
