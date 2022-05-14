@@ -454,7 +454,7 @@ void init_nodes(NODE *list, HOST *hosts)
         list->ip = hosts->name;
         list->port = hosts->port;
         list->used = 0;
-        
+
         ++list;
         ++hosts;
     }
@@ -539,8 +539,9 @@ int main (int argc, char *argv[])
     // int action_count = 0;
     sockets = (NODE*)malloc(sizeof(NODE));
 
-    init_actions(file_name, action_set, hosts);
 
+    init_actions(file_name, action_set, hosts);
+    init_nodes(sockets, hosts);
     //print_hosts(hosts, host_count);
     //print_action_sets(action_set, action_count);
 
