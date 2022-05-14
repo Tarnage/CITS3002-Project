@@ -260,12 +260,12 @@ int find_file(char *filename, char *path)
 }
 
 // MAIN CONNECTION HANDLER
-void handle_conn(int sock, ACTION *action_set, CMD ack_type) 
+void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts) 
 {
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
     int queue = 1;
     int ack = 0;
-
+    /*
     while (queue)
     {   
         switch (ack_type)
@@ -338,7 +338,7 @@ void handle_conn(int sock, ACTION *action_set, CMD ack_type)
                 break;
         }
 
-    }
+    }*/
     
 }
 
@@ -495,6 +495,8 @@ int main (int argc, char *argv[])
 #define COMMAND(i,j)     action_set[i].actions[j]
     for (size_t i = 0; i < num_sets; i++)
     {   
+        handle_conn(sockets, sets, hosts)
+        /*
         size_t action_count = action_set[i].action_totals;
         for (size_t j = 0; j < action_count; j++)
         {   
@@ -544,7 +546,7 @@ int main (int argc, char *argv[])
                     }
 
                     
-                } */
+                } 
 
                 get_all_costs(sockets);
                     
@@ -567,7 +569,7 @@ int main (int argc, char *argv[])
                 }
             }
 
-        }
+        }*/
         
     }
 
