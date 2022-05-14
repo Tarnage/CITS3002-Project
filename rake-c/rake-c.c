@@ -260,11 +260,67 @@ int find_file(char *filename, char *path)
 }
 
 // MAIN CONNECTION HANDLER
-void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts) 
+void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, int action_totals) 
 {
+    // SOCKETS TO READ FROM
+    NODE *input_sockets;
+
+    // SOCKETS TO WRITE TO
+    NODE *output_sockets;
+
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
-    int queue = 1;
-    int ack = 0;
+    // MESSAGE QUEUE
+    int messages[MAX_QUEUE_ITEMS];
+
+    // ACK QUEUE
+    int ack_queue[MAX_QUEUE_ITEMS];
+
+    // INDEX TO SET
+    int actions_executed = 0;
+
+    // IF CURRENT ACTION IS LAST ONE, DON'T SEND OUT COST REQUESTS
+    int current_action = 0;
+
+    // REMAINING ACTIONS
+    int actions_left = action_totals;
+
+    // SOCKETS REQUESTING COST
+    int quote_queue = 0;
+
+    // WAITING FOR CALCULATION?
+    bool cost_waiting = false;
+
+    while (actions_executed < actions_left)
+    {
+        if(quote_queue == 0 && cost_waiting)
+        {
+            // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
+            if(action_set[current_action].is_remote == 1)
+            {
+                HOST *slave = get_lowest_cost(sockets);
+            }
+        }
+
+        // ACTIONS LEFT FOR EXECUTION
+        if(current_action < actions_left)
+        {
+            // LOCAL 
+            if(action_set[current_action].is_remote == 0)
+            {
+                // RUN PROCESS - USE system()??
+                ++current_action;
+                ++actions_executed; 
+            }
+            else
+            {
+                for(int i = 0; i < num_hosts; i++)
+                {
+
+                }
+            }
+
+        }
+    }
     /*
     while (queue)
     {   
@@ -384,7 +440,7 @@ int create_conn(char *host, int port)
 
 
 // HELPER TO FILL OUT SOCK LIST WITH CONNECTIONS
-void get_all_conn(NODE *list, HOST *hosts, fd_set current_sockets)
+void init_nodes(NODE *list, HOST *hosts)
 {   
     while(true)
     {   
@@ -397,12 +453,8 @@ void get_all_conn(NODE *list, HOST *hosts, fd_set current_sockets)
 
         list->ip = hosts->name;
         list->port = hosts->port;
-        list->sock = create_conn(hosts->name, hosts->port);
         list->used = 0;
-
-        FD_SET(list->sock, &current_sockets);
         
-        ++num_sockets;
         ++list;
         ++hosts;
     }
@@ -495,7 +547,7 @@ int main (int argc, char *argv[])
 #define COMMAND(i,j)     action_set[i].actions[j]
     for (size_t i = 0; i < num_sets; i++)
     {   
-        handle_conn(sockets, sets, hosts)
+        handle_conn(sockets, action_set, hosts, action_set[i].action_totals);
         /*
         size_t action_count = action_set[i].action_totals;
         for (size_t j = 0; j < action_count; j++)
