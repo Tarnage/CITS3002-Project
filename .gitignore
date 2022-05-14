@@ -7,3 +7,4 @@ rake-c/client_socket
 *.log
 *tmp*
 *downloads*
+libGLEW.a
