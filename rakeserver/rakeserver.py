@@ -385,7 +385,7 @@ def handle_conn(host, port):
 					handle_fork(conn)
 				else:
 					conn.close()
-				
+				os.wait() # MAKE SURE CHILD PROCESS RETURNS TO PARENT OTHERWISE ZOMBIES
 
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
@@ -457,7 +457,7 @@ def handle_fork(sock):
 				print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
 				sock.close()
 				sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-			
+				
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
