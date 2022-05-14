@@ -259,146 +259,26 @@ int find_file(char *filename, char *path)
     return 0;
 }
 
-// MAIN CONNECTION HANDLER
-void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, int action_totals) 
+void append_sockets(NODE* socket_appended, char *host, int port, int sd, int used)
 {
-    // SOCKETS TO READ FROM
-    NODE *input_sockets;
-
-    // SOCKETS TO WRITE TO
-    NODE *output_sockets;
-
-    // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
-    // MESSAGE QUEUE
-    int messages[MAX_QUEUE_ITEMS];
-
-    // ACK QUEUE
-    int ack_queue[MAX_QUEUE_ITEMS];
-
-    // INDEX TO SET
-    int actions_executed = 0;
-
-    // IF CURRENT ACTION IS LAST ONE, DON'T SEND OUT COST REQUESTS
-    int current_action = 0;
-
-    // REMAINING ACTIONS
-    int actions_left = action_totals;
-
-    // SOCKETS REQUESTING COST
-    int quote_queue = 0;
-
-    // WAITING FOR CALCULATION?
-    bool cost_waiting = false;
-
-    while (actions_executed < actions_left)
+    // CHECK IF NODE IS EMPTY
+    if(socket_appended == NULL)
     {
-        if(quote_queue == 0 && cost_waiting)
+        socket_appended = (NODE*) malloc(sizeof(NODE));
+        socket_appended->ip = host;
+        socket_appended->port = port;
+        socket_appended->sock = sd;
+        socket_appended->used = used; 
+    }
+    else
+    {
+        // GO TO THE END 
+        while(socket_appended->next != NULL)
         {
-            // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
-            if(action_set[current_action].is_remote == 1)
-            {
-                HOST *slave = get_lowest_cost(sockets);
-            }
-        }
-
-        // ACTIONS LEFT FOR EXECUTION
-        if(current_action < actions_left)
-        {
-            // LOCAL 
-            if(action_set[current_action].is_remote == 0)
-            {
-                // RUN PROCESS - USE system()??
-                ++current_action;
-                ++actions_executed; 
-            }
-            else
-            {
-                for(int i = 0; i < num_hosts; i++)
-                {
-
-                }
-            }
-
+            ++socket_appended
         }
     }
-    /*
-    while (queue)
-    {   
-        switch (ack_type)
-        {
-            case CMD_QUOTE_REQUEST:
-                send_quote_req(sock);
-                close(sock);
-                queue = 0;
-                break;
-            case CMD_SEND_FILE:
-                // TODO: PRETTY SURE WE CAN REMOVE LINES 253 AND 258 AND JUST HAVE
-                //  while(--action_set->req_count > 0) IN LINE 254 
-                // NOTE* I THINK IF YOU HAVE [VAR]-- AT THE END IT DECRECRENTS AFTER THE > 0 CHECK
-                // OPPOSED TO --[VAR] WHICH DECREMNETS THEN DOES THE > 0 CHECK. OR ITS THE OTHER WAY AROUND.
-                action_set->req_count--;
-                while(action_set->req_count > 0)
-                {   
-                    // TODO ADD find_file() CHECK HERE.
-                    printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
-                    send_txt_file(sock, action_set->requirements[action_set->req_count]);
-                    action_set->req_count--;
-                    int ack = recv_byte_int(sock);
-                    if(ack != CMD_ACK)
-                    {
-                        printf("SOMETHING WENT WRONG\n");
-                    }
-                }
-                // close(sock);
-                // queue = 0;
-                ack_type = CMD_EXECUTE;
-                break; 
-            case CMD_EXECUTE:
-                send_byte_int(sock, CMD_EXECUTE);
-                send_string(sock, action_set->command);
-                int status = recv_byte_int(sock);
-
-                if(status == CMD_RETURN_STATUS)
-                {
-                    int return_code = recv_byte_int(sock);
-                    if (return_code == 0)
-                    {
-                        ack_type = CMD_RETURN_FILE;
-                    }
-                }
-                else if (status == CMD_RETURN_STDOUT)
-                {
-                    continue;
-                }
-                else if (status == CMD_RETURN_STDERR)
-                {
-                    continue; 
-                }
-                break; 
-            case CMD_RETURN_FILE:
-                printf("CHECKING FOR RETURN FILE ACK\n");
-                ack = recv_byte_int(sock);
-                printf("ACK: %d\n", ack);
-                if(ack == CMD_RETURN_FILE)
-                {
-                    printf("RECEIVING FILE FROM SERVER\n");
-                    recv_bin_file(sock);
-                }
-                else
-                {
-                    fprintf(stderr, "Wrong ACK");
-                }
-                queue = 0;
-                break;
-            default:
-                break;
-        }
-
-    }*/
-    
 }
-
-
 // CREATES SOCKET DESCRIPTORS
 int create_conn(char *host, int port)
 {   
@@ -519,6 +399,152 @@ HOST* get_lowest_cost (NODE *list)
     }
 
     return low_host; 
+}
+
+// MAIN CONNECTION HANDLER
+void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, int action_totals) 
+{
+    // SOCKETS TO READ FROM
+    NODE *input_sockets;
+
+    // SOCKETS TO WRITE TO
+    NODE *output_sockets;
+
+    // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
+    // MESSAGE QUEUE
+    int messages[MAX_QUEUE_ITEMS];
+
+    // ACK QUEUE
+    int ack_queue[MAX_QUEUE_ITEMS];
+
+    // INDEX TO SET
+    int actions_executed = 0;
+
+    // IF CURRENT ACTION IS LAST ONE, DON'T SEND OUT COST REQUESTS
+    int current_action = 0;
+
+    // REMAINING ACTIONS
+    int actions_left = action_totals;
+
+    // SOCKETS REQUESTING COST
+    int quote_queue = 0;
+
+    // WAITING FOR CALCULATION?
+    bool cost_waiting = false;
+
+    while (actions_executed < actions_left)
+    {
+        if(quote_queue == 0 && cost_waiting)
+        {
+            // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
+            if(action_set[current_action].is_remote == 1)
+            {
+                HOST *slave = get_lowest_cost(sockets);
+            }
+        }
+
+        // ACTIONS LEFT FOR EXECUTION
+        if(current_action < actions_left)
+        {
+            // LOCAL 
+            if(action_set[current_action].is_remote == 0)
+            {
+                // RUN PROCESS - USE system()??
+                ++current_action;
+                ++actions_executed; 
+            }
+            else
+            {
+                while(sockets->next != NULL)
+                {
+                    if(sockets->used == 0)
+                    {
+                        printf("CREATING CONNECTION WITH HOST %s at PORT %d\n", sockets->ip, sockets->port);
+                        int socket_desc = create_conn(sockets->ip, sockets->port);
+                        sockets->sock = socket_desc; 
+                        sockets->used = 1; 
+                        append_socket(output_sockets, sockets->ip, sockets->port, sockets->sock, sockets->used);
+                    }
+                    ++sockets; 
+                }
+            }
+        }
+    }
+    /*
+    while (queue)
+    {   
+        switch (ack_type)
+        {
+            case CMD_QUOTE_REQUEST:
+                send_quote_req(sock);
+                close(sock);
+                queue = 0;
+                break;
+            case CMD_SEND_FILE:
+                // TODO: PRETTY SURE WE CAN REMOVE LINES 253 AND 258 AND JUST HAVE
+                //  while(--action_set->req_count > 0) IN LINE 254 
+                // NOTE* I THINK IF YOU HAVE [VAR]-- AT THE END IT DECRECRENTS AFTER THE > 0 CHECK
+                // OPPOSED TO --[VAR] WHICH DECREMNETS THEN DOES THE > 0 CHECK. OR ITS THE OTHER WAY AROUND.
+                action_set->req_count--;
+                while(action_set->req_count > 0)
+                {   
+                    // TODO ADD find_file() CHECK HERE.
+                    printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
+                    send_txt_file(sock, action_set->requirements[action_set->req_count]);
+                    action_set->req_count--;
+                    int ack = recv_byte_int(sock);
+                    if(ack != CMD_ACK)
+                    {
+                        printf("SOMETHING WENT WRONG\n");
+                    }
+                }
+                // close(sock);
+                // queue = 0;
+                ack_type = CMD_EXECUTE;
+                break; 
+            case CMD_EXECUTE:
+                send_byte_int(sock, CMD_EXECUTE);
+                send_string(sock, action_set->command);
+                int status = recv_byte_int(sock);
+
+                if(status == CMD_RETURN_STATUS)
+                {
+                    int return_code = recv_byte_int(sock);
+                    if (return_code == 0)
+                    {
+                        ack_type = CMD_RETURN_FILE;
+                    }
+                }
+                else if (status == CMD_RETURN_STDOUT)
+                {
+                    continue;
+                }
+                else if (status == CMD_RETURN_STDERR)
+                {
+                    continue; 
+                }
+                break; 
+            case CMD_RETURN_FILE:
+                printf("CHECKING FOR RETURN FILE ACK\n");
+                ack = recv_byte_int(sock);
+                printf("ACK: %d\n", ack);
+                if(ack == CMD_RETURN_FILE)
+                {
+                    printf("RECEIVING FILE FROM SERVER\n");
+                    recv_bin_file(sock);
+                }
+                else
+                {
+                    fprintf(stderr, "Wrong ACK");
+                }
+                queue = 0;
+                break;
+            default:
+                break;
+        }
+
+    }*/
+    
 }
 
 int main (int argc, char *argv[])
