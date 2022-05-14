@@ -273,10 +273,20 @@ void append_sockets(NODE* socket_appended, char *host, int port, int sd, int use
     else
     {
         // GO TO THE END 
-        while(socket_appended->next != NULL)
+        NODE* head = socket_appended;
+        while(socket_appended != NULL)
         {
-            ++socket_appended
+            ++socket_appended;
         }
+
+        socket_appended = (NODE*)malloc(sizeof(NODE));
+        socket_appended->ip = host;
+        socket_appended->port = port;
+        socket_appended->sock = sd;
+        socket_appended->used = used;
+        socket_appended->next = NULL;
+
+        socket_appended = head; 
     }
 }
 // CREATES SOCKET DESCRIPTORS
@@ -365,6 +375,7 @@ void print_sock_list(NODE *list)
 
 
 // HELPER TO LOOP OVER ALL SOCKETS IN THE LIST AND GET THE COST
+/*
 void get_all_costs(NODE *list)
 {
     int i = 0;
@@ -375,7 +386,7 @@ void get_all_costs(NODE *list)
         ++list;
         ++i;
     }
-}
+} */
 
 HOST* get_lowest_cost (NODE *list)
 {
@@ -402,20 +413,22 @@ HOST* get_lowest_cost (NODE *list)
 }
 
 // MAIN CONNECTION HANDLER
-void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, int action_totals) 
+void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int action_totals) 
 {
     // SOCKETS TO READ FROM
-    NODE *input_sockets;
+    fd_set input_sockets;
+    FD_ZERO(&input_sockets);
 
     // SOCKETS TO WRITE TO
-    NODE *output_sockets;
+    fd_set output_sockets;
+    FD_ZERO(&output_sockets);
 
     // WHILE THERE IS A SOCKING WAITING TO SEND OR RECV, QUEUE >=1
     // MESSAGE QUEUE
-    int messages[MAX_QUEUE_ITEMS];
+    // int messages[MAX_QUEUE_ITEMS];
 
     // ACK QUEUE
-    int ack_queue[MAX_QUEUE_ITEMS];
+    // int ack_queue[MAX_QUEUE_ITEMS];
 
     // INDEX TO SET
     int actions_executed = 0;
@@ -432,14 +445,18 @@ void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, in
     // WAITING FOR CALCULATION?
     bool cost_waiting = false;
 
+    int sigma; 
+
     while (actions_executed < actions_left)
     {
         if(quote_queue == 0 && cost_waiting)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
-            if(action_set[current_action].is_remote == 1)
+            if(actions[current_action].is_remote == 1)
             {
-                HOST *slave = get_lowest_cost(sockets);
+                // HOST *slave = get_lowest_cost(sockets);
+                cost_waiting = false;
+                
             }
         }
 
@@ -447,7 +464,7 @@ void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, in
         if(current_action < actions_left)
         {
             // LOCAL 
-            if(action_set[current_action].is_remote == 0)
+            if(actions[current_action].is_remote == 0)
             {
                 // RUN PROCESS - USE system()??
                 ++current_action;
@@ -455,20 +472,64 @@ void handle_conn(/*int sock */NODE *sockets, ACTION *action_set, HOST *hosts, in
             }
             else
             {
+                NODE *head = sockets; 
                 while(sockets->next != NULL)
                 {
                     if(sockets->used == 0)
                     {
                         printf("CREATING CONNECTION WITH HOST %s at PORT %d\n", sockets->ip, sockets->port);
                         int socket_desc = create_conn(sockets->ip, sockets->port);
+                        printf("APPEND\n");
                         sockets->sock = socket_desc; 
                         sockets->used = 1; 
-                        append_socket(output_sockets, sockets->ip, sockets->port, sockets->sock, sockets->used);
+                        printf("SETTING TO OUTPUT SOCKETS\n");
+                        FD_SET(socket_desc, &output_sockets);
                     }
                     ++sockets; 
                 }
+
+                // sockets = head; 
+                printf("OUT OF LOOP\n");
             }
         }
+
+        // GET LIST OF READABLE SOCKETS
+        printf("SELECTING\n");
+        if(select(FD_SETSIZE, &input_sockets, &output_sockets, NULL, 0) < 0)
+        {
+            perror("ERROR: ");
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            for(int i = 0; i < FD_SETSIZE; i++)
+            {
+                if(FD_ISSET(i, &input_sockets))
+                {
+                    printf("WAITING FOR REPLY\n");
+                    FD_CLR(i, &input_sockets);
+
+                    sigma = recv_byte_int(i);
+
+                    if(sigma == CMD_ACK)
+                    {
+                        FD_SET(i, &output_sockets);
+                    }
+                    else if(sigma == CMD_QUOTE_REPLY)
+                    {
+                        int cost = recv_byte_int(i);
+                        printf("RECEIVED COST: %d\n", cost);
+                        add_quote(i, cost);
+                    }
+                }
+            }
+
+            // READING SOMETHING?
+            
+        }
+
+        actions_executed++;
+        current_action++;
     }
     /*
     while (queue)
@@ -574,7 +635,7 @@ int main (int argc, char *argv[])
 #define COMMAND(i,j)     action_set[i].actions[j]
     for (size_t i = 0; i < num_sets; i++)
     {   
-        handle_conn(sockets, action_set, hosts, action_set[i].action_totals);
+        handle_conn(sockets, action_set->actions, hosts, action_set[i].action_totals);
         /*
         size_t action_count = action_set[i].action_totals;
         for (size_t j = 0; j < action_count; j++)
@@ -606,7 +667,7 @@ int main (int argc, char *argv[])
                 // TODO: GET THE LOWEST COST
                 get_all_conn(sockets, hosts, sockets_created);
 
-                /*
+                
                 while(true)
                 {
                     sockets_used = sockets_created; 
