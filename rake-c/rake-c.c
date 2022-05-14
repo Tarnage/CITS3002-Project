@@ -388,6 +388,41 @@ void get_all_costs(NODE *list)
     }
 } */
 
+bool find(int queue[], int socket)
+{
+    bool found = false; 
+
+    for (int i = 0; i < MAX_QUEUE_ITEMS; i++)
+    {
+        if(queue[i] == socket)
+        {
+            found = true;
+        }
+    }
+
+    return found;
+}
+
+bool check_socket_exists (NODE *list, int sd)
+{
+    bool exists = false;
+
+    NODE *head = list; 
+    while(list->next != NULL)
+    {
+        if(list->sock == sd)
+        {
+            exists = true;
+            break;
+        }
+
+        ++list;
+    }
+    
+    list = head;
+    return exists; 
+}
+
 HOST* get_lowest_cost (NODE *list)
 {
     HOST *low_host = (HOST*) malloc(sizeof(HOST));
@@ -512,15 +547,21 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
         for(int i = 0; i < FD_SETSIZE; i++)
         {
             // printf("CHECKING FOR SOCKET %d\n", i);
-            if(FD_ISSET(i, &input_sockets))
+            if(check_socket_exists(sockets, i))
             {
-                printf("WAITING FOR REPLY\n");
-                FD_CLR(i, &input_sockets);
 
+                printf("WAITING FOR REPLY\n");
+                if(FD_ISSET(i, &input_sockets))
+                {
+                    FD_CLR(i, &input_sockets);
+                }
+                
+                // READ SOMETHING
                 sigma = recv_byte_int(i);
 
                 if(sigma == CMD_ACK)
                 {
+                    printf("SETTING SOCKET FOR WRITING\n");
                     FD_SET(i, &output_sockets);
                 }
                 else if(sigma == CMD_QUOTE_REPLY)
@@ -541,10 +582,12 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                     if(r_code == 0)
                     {
                         // EXPECT FILE FROM SERVER
+                        printf("REMOTE HOST EXECUTION SUCCESSFUL\n");
                         messages[i] = CMD_RETURN_FILE;
                     }
                     else if (r_code > 0 && r_code < 5)
                     {
+                        printf("WARNING ERROR RECEIVED\n");
                         messages[i] = CMD_RETURN_STDOUT; 
                     }
                     else
@@ -566,27 +609,29 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                     messages[i] = 0;
                 }
                 
-                break; 
             }
-            else if(FD_ISSET(i, &output_sockets))
+        }
+
+        for(int i = 0; i < FD_SETSIZE; i++)
+        {
+            if(check_socket_exists(sockets, i))
             {
-                FD_CLR(i, &output_sockets);
+                if(FD_ISSET(i, &output_sockets))
+                {
+                    FD_CLR(i, &output_sockets);
+                }
 
                 int msg_type = messages[i];
+                printf("SENDING MESSAGE\n");
 
                 // CHECK IF i is in ack_queue
-                for (int j = 0; j < MAX_QUEUE_ITEMS; j++)
+                if(find(ack_queue, i))
                 {
-                    if(ack_queue[j] == i)
-                    {
-                        send_byte_int(i, CMD_QUOTE_REQUEST);
-                        FD_SET(i, &input_sockets);
-                        ack_queue[j] = 0; 
-                        break; 
-                    }
+                    send_byte_int(i, CMD_QUOTE_REQUEST);
+                    FD_SET(i, &input_sockets);
+                    ack_queue[i] = 0; 
                 }
-                
-                if(msg_type == CMD_QUOTE_REQUEST)
+                else if(msg_type == CMD_QUOTE_REQUEST)
                 {
                     send_byte_int(i, CMD_QUOTE_REQUEST);
                     messages[i] = CMD_QUOTE_REQUEST;
@@ -617,8 +662,6 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                         FD_SET(i, &input_sockets);
                     }
                 }
-
-                break;
             }
             
         }
