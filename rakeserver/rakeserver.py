@@ -153,7 +153,7 @@ def run_cmd(sd, cmd):
 	check_temp_dir(peer_dir)
 	print(f'EXECUTE REQUEST FROM {raddr}')
 	print(f'RUNNING COMMAND: {cmd}')
-	p = subprocess.run(cmd, shell=True, cwd=dir)
+	p = subprocess.run(cmd, shell=True, cwd=dir, capture_output=True)
 	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
@@ -243,6 +243,21 @@ def send_filename(sd, filename):
 
 	# SEND THE ACTUAL FILE NAME
 	sd.sendall( payload )
+
+
+def send_std(sd, payload):
+	''' Send filename to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
+	# SEND THE SIZE OF THE NAME FIRST
+	send_byte_int(sd, len(payload))
+
+	# SEND THE ACTUAL FILE NAME
+	sd.sendall( payload )
+
 
 
 # TODO: recv_filename and recv_cmd are the same fucntions
@@ -439,35 +454,28 @@ def handle_fork(sock):
 			if r_code == 0:
 				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
 				send_byte_int(sock, r_code)
-
-				# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
-				# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
-				# COULD BE A NON BLOCKING / SELECT() ISSUE
-				#send_return_status(sock)
-
 				send_bin_file(sock, file_attr)
-				
-				# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
 
-				if remove_temp == True:
-					rm_client_files(sock)
-					# END OF CONNECTION
-				print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-
-			
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
-				# send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-				# send_byte_int(sock, r_code)
-				#send_filename(sock, proc.stdout.decode())
-				print("ERROR: {}".format(proc.stdout.decode(FORMAT)))
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stderr)
+				print("STDERR SENT --->")
+
 			# EXECUTION HAD A FATAL ERROR
 			else:
-				# send_byte_int(sock, ACK.CMD_RETURN_STDERR)
-				# send_byte_int(sock, r_code)
-				# send_filename(sock, proc.stderr.decode())
-				print("ERROR: {}".format(proc.stderr))
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stdout)
+				print("STDOUT SENT --->")
+
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+			if remove_temp == True:
+				rm_client_files(sock)
+				# END OF CONNECTION
 
 			sock.close()
 			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
