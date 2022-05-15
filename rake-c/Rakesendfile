@@ -1,9 +1,13 @@
 
-PORT  = 6328
+PORT  = 63289
 HOSTS = 127.0.0.1
 
 actionset1:
 	remote-cc -c program.c
+		requires program.c program.h allfunctions.h
+	cc -c program.c
+		requires program.c program.h allfunctions.h
+	cc -c program.c
 		requires program.c program.h allfunctions.h
 
 actionset2:
