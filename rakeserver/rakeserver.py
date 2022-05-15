@@ -437,8 +437,8 @@ def handle_fork(sock):
 			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 			if r_code == 0:
-				sigma = ACK.CMD_RETURN_STATUS.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-				payload = r_code.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+				send_byte_int(sock, r_code)
 				sock.sendall( sigma )
 				sock.sendall( payload )
 
@@ -455,17 +455,21 @@ def handle_fork(sock):
 					rm_client_files(sock)
 					# END OF CONNECTION
 				print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-				sock.close()
-				sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
 			
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
-				pass
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
 			# EXECUTION HAD A FATAL ERROR
 			else:
-				pass
-		
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+			
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
