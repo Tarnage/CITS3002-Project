@@ -158,7 +158,7 @@ def run_cmd(sd, cmd):
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
 
-	return p.returncode, p.stdout.decode(), p.stderr.decode(), file_attr
+	return p, file_attr
 
 
 def scan_dir(dir):
@@ -392,10 +392,10 @@ def handle_conn(host, port):
 		# Make sure we close sockets gracefully
 		sd.close()
 		sys.exit()
-	except Exception as err:
-		print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-		sd.close()
-		sys.exit()
+	# except Exception as err:
+	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+	# 	sd.close()
+	# 	sys.exit()
 
 
 def retrun_status(sd):
@@ -432,15 +432,13 @@ def handle_fork(sock):
 			payload = recv_cmd(sock, size)
 			print(f'REQUEST TO EXECUTE...{payload}')
 			# STORE RETURN CODE IN DICT 
-			r_code, stdout, stderr, file_attr = run_cmd(sock, payload)
-
+			proc, file_attr = run_cmd(sock, payload)
+			r_code = proc.returncode
 			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 			if r_code == 0:
 				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
 				send_byte_int(sock, r_code)
-				sock.sendall( sigma )
-				sock.sendall( payload )
 
 				# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
 				# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
@@ -460,14 +458,16 @@ def handle_fork(sock):
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
-				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-				send_byte_int(sock, r_code)
-				send_filename(sock, stdout)
+				# send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				# send_byte_int(sock, r_code)
+				#send_filename(sock, proc.stdout.decode())
+				print("ERROR: {}".format(proc.stdout.decode(FORMAT)))
 			# EXECUTION HAD A FATAL ERROR
 			else:
-				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-				send_byte_int(sock, r_code)
-				send_filename(sock, stderr)
+				# send_byte_int(sock, ACK.CMD_RETURN_STDERR)
+				# send_byte_int(sock, r_code)
+				# send_filename(sock, proc.stderr.decode())
+				print("ERROR: {}".format(proc.stderr))
 
 			sock.close()
 			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
