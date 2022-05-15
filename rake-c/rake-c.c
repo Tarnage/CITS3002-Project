@@ -496,6 +496,7 @@ void change_state(int sd, CMD state)
 void recv_cost_reply(int sd)
 {
     int cost = recv_byte_int(sd);
+    printf("COST RECEIVED: %d\n", cost);
     add_quote(sd, cost);
 }
 
@@ -660,14 +661,19 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                     {
                         NODE *curr = get_node(i);
                         int file_count = curr->actions->req_count;
+                        printf("REQUIREMENT COUNT: %d\n", file_count);
                         if (file_count > 1)
                         {   
-                            char *next_file_to_send = curr->actions->requirements[file_count];
+                            printf("FILE NAME TO SEND: %s\n", curr->actions->requirements[file_count-1]);
+                            char *next_file_to_send = curr->actions->requirements[file_count-1];
+                            printf("FILE NAME: %s\n", next_file_to_send);
                             send_txt_file(i, next_file_to_send);
 
                             // WAIT FOR ACK FROM SERVER BEFORE SENDING THE NEXT FILE
+                            curr->actions->req_count--;
                             FD_CLR(i, &output_sockets);
                             FD_SET(i, &input_sockets);
+                            
                         }
                         else
                         {   
