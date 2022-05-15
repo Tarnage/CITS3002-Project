@@ -543,7 +543,7 @@ def handle_conn(sets):
 						#TODO: handle error codes
 						elif 0 < r_code < 5:
 							print("REVIEVCED A WARNING ERROR")
-							msg_queue[sock] = ACK.CMD_RETURN_STDOUT
+							msg = recv_msg(sock)
 
 						# EXECUTION HAD A FATAL ERROR
 						else:
@@ -644,37 +644,9 @@ def main(argv):
 	global obj_hosts
 	obj_hosts = get_host_obj(dict_hosts)
 
-	#print(actions)
-
-
 	for sets in actions:
 		# ADDRESS OF LOWEST BID
 		handle_conn(list(sets))
-
-		# slave_addr = tuple()
-		# for command in sets:
-		# 	# DO WE RUN THIS COMMAND LOCAL OR REMOTE
-		# 	if not command.remote:
-		# 		check_downloads_dir()
-		# 		subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
-		# 	# IS A REMOTE COMMAND
-		# 	else:
-		# 		# GET THE LOWEST COST
-		# 		sockets_list = get_all_conn(hosts)
-		# 		handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
-
-		# 		slave_addr = get_lowest_cost()
-		# 		#print(slave_addr)
-		# 		# EXECUTE COMMANNDS WITH THIS SOCKET
-		# 		slave = create_socket(slave_addr[0], slave_addr[1])
-
-		# 		#print(command.requires)
-		# 		# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
-		# 		if len(command.requires) > 0:
-		# 			handle_conn(slave, ACK.CMD_SEND_FILE, command)
-		# 		# ELSE JUST RUN THE COMMAND	
-		# 		else:
-		# 			handle_conn(slave, ACK.CMD_EXECUTE, command)
 		
 if __name__ == "__main__":
 	main(sys.argv)
