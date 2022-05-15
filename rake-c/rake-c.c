@@ -259,7 +259,7 @@ int find_file(char *filename, char *path)
     return 0;
 }
 
-void append_sockets(NODE* socket_appended, char *host, int port, int sd, int used)
+void append_sockets(NODE* socket_appended, char *host, int port, int sd, bool used)
 {
     // CHECK IF NODE IS EMPTY
     if(socket_appended == NULL)
@@ -343,7 +343,9 @@ void init_nodes(NODE *list, HOST *hosts)
 
         list->ip = hosts->name;
         list->port = hosts->port;
-        list->used = 0;
+        list->used = false;
+        list->cost = INT_MAX;
+        list->curr_req = -1;
 
         ++list;
         ++hosts;
@@ -418,30 +420,34 @@ bool check_socket_exists (NODE *list, int sd)
 
         ++list;
     }
-    
     list = head;
+
     return exists; 
 }
 
-HOST* get_lowest_cost (NODE *list)
+NODE* get_lowest_cost ()
 {
-    HOST *low_host = (HOST*) malloc(sizeof(HOST));
-
+    NODE *low_host;
+    // COPYING THE HEAD OF THE GLOBAL VAR
+    NODE * list = sockets;
     int min = list->cost;
-    low_host->name = list->ip;
-    low_host->port = list->port;
+    low_host = list;
+    list->used = false;
+    list->cost = INT_MAX;
+    list->curr_req = -1;
     list++;
 
     while(list->next != NULL)
     {
         if(list->cost < min)
         {
-            low_host->name = list->ip;
-            low_host->port = list->port;
+            low_host = list;
             min = list->cost;
         }
-
         list++;
+        list->used = false;
+        list->cost = INT_MAX;
+        list->curr_req = -1;
     }
 
     return low_host; 
@@ -454,8 +460,31 @@ void make_free(NODE *sockets, int sd)
         ++sockets;
     }
 
-    sockets->used = 0;
+    sockets->used = false;
 }
+
+// HELPER TO FIND WHAT REQ THE SOCKET IS DOING
+// i.e. ARE THEY JUST ASKING FOR A COST REQUEST OR ARE THEY SENDING A FILE
+CMD get_curr_req(NODE *list, int sd) 
+{   
+    CMD result = -1;
+
+    NODE *head = list; 
+        while(list->next != NULL)
+        {
+            if(list->sock == sd)
+            {
+                result = list->curr_req;
+                return result;
+            }
+
+            ++list;
+        }
+        list = head;
+
+    return result;
+}
+
 // MAIN CONNECTION HANDLER
 void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int action_totals) 
 {
@@ -496,11 +525,19 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
         if(quote_queue == 0 && cost_waiting)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
+            // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
             if(actions[current_action].is_remote == 1)
             {
-                // HOST *slave = get_lowest_cost(sockets);
+                NODE *slave = get_lowest_cost();
                 cost_waiting = false;
-                
+
+                int socket_desc = create_conn(slave->ip, slave->port);
+                // printf("APPEND\n");
+                slave->sock = socket_desc;
+                slave->used = true;
+                slave->curr_req = CMD_SEND_FILE;
+                // printf("SETTING TO OUTPUT SOCKETS\n");
+                FD_SET(socket_desc, &output_sockets);
             }
         }
 
@@ -515,235 +552,165 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                 ++actions_executed; 
             }
             else
-            {
+            {   
+                // BUILDING THE FD_SET
                 NODE *head = sockets; 
                 while(sockets->next != NULL)
                 {
-                    if(sockets->used == 0)
+                    if( !sockets->used )
                     {
                         printf("CREATING CONNECTION WITH HOST %s at PORT %d\n", sockets->ip, sockets->port);
                         int socket_desc = create_conn(sockets->ip, sockets->port);
                         // printf("APPEND\n");
-                        sockets->sock = socket_desc; 
-                        sockets->used = 1; 
+                        sockets->sock = socket_desc;
+                        sockets->used = true;
+                        sockets->curr_req = CMD_QUOTE_REQUEST;
                         // printf("SETTING TO OUTPUT SOCKETS\n");
                         FD_SET(socket_desc, &output_sockets);
                     }
-                    ++sockets; 
+                    ++sockets;
                 }
-
                 sockets = head;
             }
         }
 
-        // GET LIST OF READABLE SOCKETS
-        if(select(FD_SETSIZE, &input_sockets, &output_sockets, NULL, 0) < 0)
-        {
-            perror("ERROR: ");
-            exit(EXIT_FAILURE);
-        }
 
-        printf("ITERATING\n");
-        for(int i = 0; i < FD_SETSIZE; i++)
-        {
-            // printf("CHECKING FOR SOCKET %d\n", i);
-            if(check_socket_exists(sockets, i))
-            {
 
-                printf("WAITING FOR REPLY\n");
-                if(FD_ISSET(i, &input_sockets))
-                {
-                    FD_CLR(i, &input_sockets);
-                }
+
+    //     // GET LIST OF READABLE SOCKETS
+    //     if(select(FD_SETSIZE, &input_sockets, &output_sockets, NULL, 0) < 0)
+    //     {
+    //         perror("ERROR: ");
+    //         exit(EXIT_FAILURE);
+    //     }
+
+    //     printf("ITERATING\n");
+    //     for(int i = 0; i < FD_SETSIZE; i++)
+    //     {
+    //         // printf("CHECKING FOR SOCKET %d\n", i);
+    //         if(check_socket_exists(sockets, i))
+    //         {
+
+    //             printf("WAITING FOR REPLY\n");
+    //             if(FD_ISSET(i, &input_sockets))
+    //             {
+    //                 FD_CLR(i, &input_sockets);
+    //             }
                 
-                // READ SOMETHING
-                sigma = recv_byte_int(i);
+    //             // READ SOMETHING
+    //             sigma = recv_byte_int(i);
 
-                if(sigma == CMD_ACK)
-                {
-                    printf("SETTING SOCKET FOR WRITING\n");
-                    FD_SET(i, &output_sockets);
-                }
-                else if(sigma == CMD_QUOTE_REPLY)
-                {
-                    int cost = recv_byte_int(i);
-                    printf("RECEIVED COST: %d\n", cost);
-                    add_quote(i, cost);
-                    cost_waiting = true;
-                    --quote_queue;
-                    printf("CLOSING CONNECTION\n");
-                    close(i);
-                }
-                else if (sigma == CMD_RETURN_STATUS)
-                {
-                    int r_code = recv_byte_int(i);
-                    printf("RETURN CODE: %d\n", r_code);
+    //             if(sigma == CMD_ACK)
+    //             {
+    //                 printf("SETTING SOCKET FOR WRITING\n");
+    //                 FD_SET(i, &output_sockets);
+    //             }
+    //             else if(sigma == CMD_QUOTE_REPLY)
+    //             {
+    //                 int cost = recv_byte_int(i);
+    //                 printf("RECEIVED COST: %d\n", cost);
+    //                 add_quote(i, cost);
+    //                 cost_waiting = true;
+    //                 --quote_queue;
+    //                 printf("CLOSING CONNECTION\n");
+    //                 close(i);
+    //             }
+    //             else if (sigma == CMD_RETURN_STATUS)
+    //             {
+    //                 int r_code = recv_byte_int(i);
+    //                 printf("RETURN CODE: %d\n", r_code);
 
-                    if(r_code == 0)
-                    {
-                        // EXPECT FILE FROM SERVER
-                        printf("REMOTE HOST EXECUTION SUCCESSFUL\n");
-                        messages[i] = CMD_RETURN_FILE;
-                    }
-                    else if (r_code > 0 && r_code < 5)
-                    {
-                        printf("WARNING ERROR RECEIVED\n");
-                        messages[i] = CMD_RETURN_STDOUT; 
-                    }
-                    else
-                    {
-                        printf("FATAL ERROR\n");
-                        messages[i] = CMD_RETURN_STDERR;
-                    }
+    //                 if(r_code == 0)
+    //                 {
+    //                     // EXPECT FILE FROM SERVER
+    //                     printf("REMOTE HOST EXECUTION SUCCESSFUL\n");
+    //                     messages[i] = CMD_RETURN_FILE;
+    //                 }
+    //                 else if (r_code > 0 && r_code < 5)
+    //                 {
+    //                     printf("WARNING ERROR RECEIVED\n");
+    //                     messages[i] = CMD_RETURN_STDOUT; 
+    //                 }
+    //                 else
+    //                 {
+    //                     printf("FATAL ERROR\n");
+    //                     messages[i] = CMD_RETURN_STDERR;
+    //                 }
 
-                    FD_SET(i, &input_sockets);
-                }
-                else if(sigma == CMD_RETURN_FILE)
-                {
-                    printf("RECEIVING FILE\n");
-                    recv_bin_file(i);
-                    printf("CLOSING CONNECTION\n");
-                    ++actions_executed;
-                    make_free(sockets, i);
-                    close(i);
-                    messages[i] = 0;
-                }
+    //                 FD_SET(i, &input_sockets);
+    //             }
+    //             else if(sigma == CMD_RETURN_FILE)
+    //             {
+    //                 printf("RECEIVING FILE\n");
+    //                 recv_bin_file(i);
+    //                 printf("CLOSING CONNECTION\n");
+    //                 ++actions_executed;
+    //                 make_free(sockets, i);
+    //                 close(i);
+    //                 messages[i] = 0;
+    //             }
                 
-            }
-        }
+    //         }
+    //     }
 
-        for(int i = 0; i < FD_SETSIZE; i++)
-        {
-            if(check_socket_exists(sockets, i))
-            {
-                if(FD_ISSET(i, &output_sockets))
-                {
-                    FD_CLR(i, &output_sockets);
-                }
+    //     for(int i = 0; i < FD_SETSIZE; i++)
+    //     {
+    //         if(check_socket_exists(sockets, i))
+    //         {
+    //             if(FD_ISSET(i, &output_sockets))
+    //             {
+    //                 FD_CLR(i, &output_sockets);
+    //             }
 
-                int msg_type = messages[i];
-                printf("SENDING MESSAGE\n");
+    //             int msg_type = messages[i];
+    //             printf("SENDING MESSAGE\n");
 
-                // CHECK IF i is in ack_queue
-                if(find(ack_queue, i))
-                {
-                    send_byte_int(i, CMD_QUOTE_REQUEST);
-                    FD_SET(i, &input_sockets);
-                    ack_queue[i] = 0; 
-                }
-                else if(msg_type == CMD_QUOTE_REQUEST)
-                {
-                    send_byte_int(i, CMD_QUOTE_REQUEST);
-                    messages[i] = CMD_QUOTE_REQUEST;
-                    FD_SET(i, &input_sockets);
-                }
-                else if(msg_type == CMD_SEND_FILE)
-                {
-                    if(actions->req_count == 0)
-                    {
-                        // DO SOMETHING
-                        messages[i] = CMD_RETURN_STATUS;
-                        FD_SET(i, &input_sockets);
-                    }
-                    else
-                    {
-                        actions->req_count--; 
-                        // TODO ADD find_file() CHECK HERE.
-                        printf("SENDING FILE: %s\n", actions->requirements[actions->req_count]);
-                        send_txt_file(i, actions->requirements[actions->req_count]);
-                        actions->req_count--;
-                        int ack = recv_byte_int(i);
-                        if(ack != CMD_ACK)
-                        {
-                            printf("SOMETHING WENT WRONG\n");
-                        }
+    //             // CHECK IF i is in ack_queue
+    //             if(find(ack_queue, i))
+    //             {
+    //                 send_byte_int(i, CMD_QUOTE_REQUEST);
+    //                 FD_SET(i, &input_sockets);
+    //                 ack_queue[i] = 0; 
+    //             }
+    //             else if(msg_type == CMD_QUOTE_REQUEST)
+    //             {
+    //                 send_byte_int(i, CMD_QUOTE_REQUEST);
+    //                 messages[i] = CMD_QUOTE_REQUEST;
+    //                 FD_SET(i, &input_sockets);
+    //             }
+    //             else if(msg_type == CMD_SEND_FILE)
+    //             {
+    //                 if(actions->req_count == 0)
+    //                 {
+    //                     // DO SOMETHING
+    //                     messages[i] = CMD_RETURN_STATUS;
+    //                     FD_SET(i, &input_sockets);
+    //                 }
+    //                 else
+    //                 {
+    //                     actions->req_count--; 
+    //                     // TODO ADD find_file() CHECK HERE.
+    //                     printf("SENDING FILE: %s\n", actions->requirements[actions->req_count]);
+    //                     send_txt_file(i, actions->requirements[actions->req_count]);
+    //                     actions->req_count--;
+    //                     int ack = recv_byte_int(i);
+    //                     if(ack != CMD_ACK)
+    //                     {
+    //                         printf("SOMETHING WENT WRONG\n");
+    //                     }
 
-                        messages[i] = CMD_SEND_FILE;
-                        FD_SET(i, &input_sockets);
-                    }
-                }
-            }
+    //                     messages[i] = CMD_SEND_FILE;
+    //                     FD_SET(i, &input_sockets);
+    //                 }
+    //             }
+    //         }
             
-        }
+    //     }
 
-        actions_executed++;
-        current_action++;
-    }
-    /*
-    while (queue)
-    {   
-        switch (ack_type)
-        {
-            case CMD_QUOTE_REQUEST:
-                send_quote_req(sock);
-                close(sock);
-                queue = 0;
-                break;
-            case CMD_SEND_FILE:
-                // TODO: PRETTY SURE WE CAN REMOVE LINES 253 AND 258 AND JUST HAVE
-                //  while(--action_set->req_count > 0) IN LINE 254 
-                // NOTE* I THINK IF YOU HAVE [VAR]-- AT THE END IT DECRECRENTS AFTER THE > 0 CHECK
-                // OPPOSED TO --[VAR] WHICH DECREMNETS THEN DOES THE > 0 CHECK. OR ITS THE OTHER WAY AROUND.
-                action_set->req_count--;
-                while(action_set->req_count > 0)
-                {   
-                    // TODO ADD find_file() CHECK HERE.
-                    printf("SENDING FILE: %s\n", action_set->requirements[action_set->req_count]);
-                    send_txt_file(sock, action_set->requirements[action_set->req_count]);
-                    action_set->req_count--;
-                    int ack = recv_byte_int(sock);
-                    if(ack != CMD_ACK)
-                    {
-                        printf("SOMETHING WENT WRONG\n");
-                    }
-                }
-                // close(sock);
-                // queue = 0;
-                ack_type = CMD_EXECUTE;
-                break; 
-            case CMD_EXECUTE:
-                send_byte_int(sock, CMD_EXECUTE);
-                send_string(sock, action_set->command);
-                int status = recv_byte_int(sock);
-
-                if(status == CMD_RETURN_STATUS)
-                {
-                    int return_code = recv_byte_int(sock);
-                    if (return_code == 0)
-                    {
-                        ack_type = CMD_RETURN_FILE;
-                    }
-                }
-                else if (status == CMD_RETURN_STDOUT)
-                {
-                    continue;
-                }
-                else if (status == CMD_RETURN_STDERR)
-                {
-                    continue; 
-                }
-                break; 
-            case CMD_RETURN_FILE:
-                printf("CHECKING FOR RETURN FILE ACK\n");
-                ack = recv_byte_int(sock);
-                printf("ACK: %d\n", ack);
-                if(ack == CMD_RETURN_FILE)
-                {
-                    printf("RECEIVING FILE FROM SERVER\n");
-                    recv_bin_file(sock);
-                }
-                else
-                {
-                    fprintf(stderr, "Wrong ACK");
-                }
-                queue = 0;
-                break;
-            default:
-                break;
-        }
-
-    }*/
+    //     actions_executed++;
+    //     current_action++;
     
+    }
 }
 
 int main (int argc, char *argv[])
