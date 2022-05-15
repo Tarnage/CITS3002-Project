@@ -569,7 +569,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 slave->used = true;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[current_action];
-                printf("%s\n", actions->command);
+                printf("%s\n", actions->requirements[0]);
                 FD_SET(socket_desc, &output_sockets);
                 current_action++;
             }
@@ -662,13 +662,12 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                     {
                         NODE *curr = get_node(i);
                         int file_count = curr->actions->req_count;
-                        if (file_count > 1)
+                        if (file_count > 0)
                         {   
                             // TODO ERROR HERE TRYING TO GET THE STRING TO FILE NAME
-                            char *next_file_to_send = curr->actions->requirements[file_count];
+                            char *next_file_to_send = curr->actions->requirements[file_count-1];
                             printf("TEST\n");
-                            printf("%s\n", curr->actions->requirements[file_count]);
-
+                            printf("%s\n", curr->actions->requirements[file_count-1]);
 
                             send_txt_file(i, next_file_to_send);
                             curr->actions->req_count--;
