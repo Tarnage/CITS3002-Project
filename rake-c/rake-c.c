@@ -97,7 +97,7 @@ void send_string(int sd, char *payload)
 
 
 // SEND TEXT FILE TO SERVER
-void send_txt_file(int sd, char *filename)
+void send_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
     
@@ -109,7 +109,7 @@ void send_txt_file(int sd, char *filename)
 
     send_string(sd, filename);
 
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "rb");
 
     if (fp == NULL)
     {
@@ -584,7 +584,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             if( !actions[current_action].is_remote )
             {
                 // RUN PROCESS - USE system()??
-                ++current_action;
+                system(actions[current_action].command);
                 ++actions_executed; 
             }
             else
@@ -659,11 +659,13 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             preamble = recv_byte_int(i);
                         }
                     }
-                    else if (preamble == CMD_RETURN_STDOUT)
+                    
+                    if (preamble == CMD_RETURN_STDOUT)
                     {
                         continue;
                     }
-                    else if (preamble == CMD_RETURN_STDERR)
+                    
+                    if (preamble == CMD_RETURN_STDERR)
                     {
                         continue; 
                     }
@@ -673,6 +675,8 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         /// printf("FILE BEING RECEIVED...\n");
                         recv_bin_file(i);
                         FD_CLR(i, &input_sockets);
+                        ++actions_executed; 
+                        close(i);
                     }
                 }
 
@@ -697,7 +701,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             printf("FILE NAME TO SEND: %s\n", curr->actions->requirements[file_count-1]);
                             char *next_file_to_send = curr->actions->requirements[file_count-1];
                             printf("FILE NAME: %s\n", next_file_to_send);
-                            send_txt_file(i, next_file_to_send);
+                            send_file(i, next_file_to_send);
 
                             // WAIT FOR ACK FROM SERVER BEFORE SENDING THE NEXT FILE
                             curr->actions->req_count--;
@@ -713,7 +717,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             // WAIT FOR RETURN STATUS
                             FD_CLR(i, &output_sockets);
                             FD_SET(i, &input_sockets);
-                            ++current_action; 
+                        
                         }
                         
                     }
