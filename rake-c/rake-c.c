@@ -100,6 +100,7 @@ void send_string(int sd, char *payload)
 void send_txt_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
+    printf("SENDING PREAMBLE");
     
 #ifdef USE_FIND_FILE
     char *path = find_file(filename);
@@ -476,8 +477,8 @@ void close_all_sockets()
 }
 
 
-// HELPER TO FIND WHAT REQ THE SOCKET IS DOING
-// i.e. ARE THEY JUST ASKING FOR A COST REQUEST OR ARE THEY SENDING A FILE
+// HELPER TO CHANGE SOCKET STATE 
+// MIGHT NOT NEED
 void change_state(int sd, CMD state) 
 {   
     NODE *head = sockets;
@@ -557,7 +558,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
             // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
-            if(actions[current_action].is_remote == 1)
+            if( actions[current_action].is_remote )
             {
                 NODE *slave = get_lowest_cost();
                 cost_waiting = false;
@@ -568,6 +569,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 slave->used = true;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[current_action];
+                printf("%s\n", actions->command);
                 FD_SET(socket_desc, &output_sockets);
                 current_action++;
             }
@@ -662,8 +664,14 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         int file_count = curr->actions->req_count;
                         if (file_count > 1)
                         {   
+                            // TODO ERROR HERE TRYING TO GET THE STRING TO FILE NAME
                             char *next_file_to_send = curr->actions->requirements[file_count];
+                            printf("TEST\n");
+                            printf("%s\n", curr->actions->requirements[file_count]);
+
+
                             send_txt_file(i, next_file_to_send);
+                            curr->actions->req_count--;
 
                             // WAIT FOR ACK FROM SERVER BEFORE SENDING THE NEXT FILE
                             FD_CLR(i, &output_sockets);
