@@ -592,7 +592,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             }
             else
             {   
-                printf("BUILDING FD_SET\n");
+                // printf("BUILDING FD_SET\n");
                 // BUILDING THE FD_SET
                 NODE *head = sockets;
                 // print_sock_list(sockets);
@@ -662,6 +662,12 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             // change_state(i, CMD_RETURN_FILE);
                             preamble = recv_byte_int(i);
                         }
+                        else if (return_code < 5 && return_code >= 1)
+                        {
+                            perror("Something went wrong\n");
+                            close_all_sockets();
+                            // exit(EXIT_FAILURE);
+                        }
                     }
                     
                     if (preamble == CMD_RETURN_STDOUT)
@@ -679,10 +685,11 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
 
                     if(preamble == CMD_RETURN_FILE)
                     {
-                        /// printf("FILE BEING RECEIVED...\n");
+                        printf("FILE BEING RECEIVED...\n");
                         recv_bin_file(i);
                         FD_CLR(i, &input_sockets);
                         ++actions_executed; 
+                        make_free(sockets, i);
                         close(i);
                     }
                 }
@@ -760,8 +767,7 @@ int main (int argc, char *argv[])
     
     for (size_t i = 0; i < num_sets; i++)
     {   
-        printf("TOTAL ACTIONS FOR SET: %d\n", action_set[i].action_totals);
-        printf("%s\n", action_set[i].actions->command);
+        // printf("%s\n", action_set[i].actions->command);
         handle_conn(sockets, action_set->actions, hosts, action_set[i].action_totals);
     }
 
