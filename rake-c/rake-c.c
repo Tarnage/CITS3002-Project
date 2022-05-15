@@ -399,6 +399,7 @@ void reset_socket_node(NODE *list)
     list->cost = INT_MAX;
     list->used = false;
     list->curr_req = -1;
+    list->actions = NULL;
 }
 
 
@@ -578,7 +579,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             }
         }
 
-        printf("%i %i\n",current_action, actions_left);
         // ACTIONS LEFT FOR EXECUTION
         if(current_action < actions_left)
         {
@@ -679,7 +679,8 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         // MARK UNUSED
                         NODE *node = get_node(i);
                         node->used = false;
-
+                        node->actions = NULL;
+                        node->curr_req = -1;
                         close(i);
                     }
                 }
@@ -727,8 +728,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         
             break;
         }
-        
-        printf("EXITED\n");
 
     }
 }
@@ -751,13 +750,11 @@ int main (int argc, char *argv[])
 
     init_actions(file_name, action_set, hosts);
     init_nodes(hosts);
+    //print_action_sets(action_set, num_sets);
 
-#define COMMAND(i,j)     action_set[i].actions[j]
-    
     for (size_t i = 0; i < num_sets; i++)
     {   
-        
-        handle_conn(sockets, action_set->actions, hosts, action_set[i].action_totals);
+        handle_conn(sockets, action_set[i].actions, hosts, action_set[i].action_totals);
     }
 
     return 0; 
