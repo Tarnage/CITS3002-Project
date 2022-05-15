@@ -97,7 +97,7 @@ void send_string(int sd, char *payload)
 
 
 // SEND TEXT FILE TO SERVER
-void send_txt_file(int sd, char *filename)
+void send_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
     printf("SENDING PREAMBLE");
@@ -110,7 +110,7 @@ void send_txt_file(int sd, char *filename)
 
     send_string(sd, filename);
 
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "rb");
 
     if (fp == NULL)
     {
@@ -177,25 +177,26 @@ void recv_bin_file(int sock)
 {
     // RECEIVE THE SIZE OF THE FILENAME
     int str_size = recv_byte_int(sock);
-    printf("SIZE: %d\n", str_size);
+    // printf("SIZE OF FILE NAME: %d\n", str_size);
     char filename[str_size]; 
 
     // RECEIVE THE FILENAME 
     recv_string(sock, filename, str_size);
-    printf("%s\n", filename);
+    // printf("%s\n", filename);
 
     // RECEIVE THE SIZE OF THE FILE
-    printf("RECEIVING FILE SIZE\n");
+    // printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
-    printf("FILE SIZE: %d BYTES\n", file_size);
+    // printf("FILE SIZE: %d BYTES\n", file_size);
 
     // TODO: MAKE THIS A CHECK FUNCTION
     // #DEFINE "./tmp/"
     // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
     // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
-    if(check_folder_exists(TEMP_FOLDER) != -1)
+    if(check_folder_exists(TEMP_FOLDER) == -1)
     {   
         // THERE A MACRO FOR 0777?
+        // printf("MAKING NEW FOLDER\n");
         mkdir(TEMP_FOLDER, 0777);
     }   
 
@@ -224,7 +225,7 @@ void recv_bin_file(int sock)
         exit(EXIT_FAILURE);
     }
 
-    printf("FILE RECEIVED SUCCESSFULLY\n");
+    printf("FILE %s RECEIVED SUCCESSFULLY\n", filename);
     // RECEIVE THE FILE'S CONTENTS 
     fwrite(buffer, file_size, 1, fp);
 
@@ -392,7 +393,7 @@ bool check_socket_exists (NODE *list, int sd)
     }
     list = head;
 
-    return exists; 
+    return exists;
 }
 
 
@@ -497,6 +498,7 @@ void change_state(int sd, CMD state)
 void recv_cost_reply(int sd)
 {
     int cost = recv_byte_int(sd);
+    printf("COST RECEIVED: %d\n", cost);
     add_quote(sd, cost);
 }
 
@@ -520,6 +522,8 @@ NODE *get_node(int sd)
 void send_cmd(int sd, char *cmd)
 {
     // TODO send command to server to execute
+    send_byte_int(sd, CMD_EXECUTE);
+    send_string(sd, cmd);
 }
 
 
@@ -579,14 +583,18 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         if(current_action < actions_left)
         {
             // LOCAL 
-            if( !actions[current_action].is_remote )
+            if( actions[current_action].is_remote != 1 )
             {
                 // RUN PROCESS - USE system()??
-                ++current_action;
+                printf("LOCAL COMMAND EXECUTION\n");
+                system(actions[current_action].command);
                 ++actions_executed; 
+                ++current_action;
+                printf("FINISHED\n");
             }
             else
             {   
+                printf("BUILDING FD_SET\n");
                 // BUILDING THE FD_SET
                 NODE *head = sockets;
                 // print_sock_list(sockets);
@@ -611,86 +619,122 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         }
 
         // JUST A CHECK SELECT WORKED
-        int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, 0);
-
-        switch (activity)
+        if(actions[current_action].is_remote == 1)
         {
-        case -1:
-            perror("select()\n");
-            close_all_sockets();
-            break;
-        case 0:
-            perror("select() returned 0\n");
-            close_all_sockets();
-            break;
-        default:
-
-            for (size_t i = 0; i < FD_SETSIZE; i++)
+            printf("SELECTING\n");
+            int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, 0);
+            printf("ACTIVITY: %d\n", activity);
+            switch (activity)
             {
-                
-                if (FD_ISSET(i, &input_sockets))
-                {   
-                    int preamble = recv_byte_int(i);
+            case -1:
+                perror("select()\n");
+                close_all_sockets();
+                break;
+            case 0:
+                perror("select() returned 0\n");
+                close_all_sockets();
+                break;
+            default:
 
-                    if(preamble == CMD_ACK)
+                for (size_t i = 0; i < FD_SETSIZE; i++)
+                {
+                    
+                    if (FD_ISSET(i, &input_sockets))
                     {   
-                        FD_CLR(i, &input_sockets);
-                        FD_SET(i, &output_sockets);
-                    }
+                        int preamble = recv_byte_int(i);
+                        // printf("PREAMBLE NUMBER: %d\n", preamble);
 
-                    if(preamble == CMD_QUOTE_REPLY)
-                    {   
-                        recv_cost_reply(i);
-                        quote_queue--;
-                        cost_waiting = true;
-                        FD_CLR(i, &input_sockets);
-                    }
-                }
-
-                if (FD_ISSET(i, &output_sockets))
-                {   
-                    CMD curr_req = get_curr_req(i);
-                    if(curr_req == CMD_QUOTE_REQUEST)
-                    {   
-                        send_cost_req(i);
-                        // REMOVE FROM OUTPUT
-                        FD_CLR(i, &output_sockets);
-                        // ADD TO INPUT
-                        FD_SET(i, &input_sockets);
-                    }
-                    if(curr_req == CMD_SEND_FILE)
-                    {
-                        NODE *curr = get_node(i);
-                        int file_count = curr->actions->req_count;
-                        if (file_count > 0)
+                        if(preamble == CMD_ACK)
                         {   
-                            // TODO ERROR HERE TRYING TO GET THE STRING TO FILE NAME
-                            char *next_file_to_send = curr->actions->requirements[file_count-1];
-                            printf("TEST\n");
-                            printf("%s\n", curr->actions->requirements[file_count-1]);
-
-                            send_txt_file(i, next_file_to_send);
-                            curr->actions->req_count--;
-
-                            // WAIT FOR ACK FROM SERVER BEFORE SENDING THE NEXT FILE
-                            FD_CLR(i, &output_sockets);
-                            FD_SET(i, &input_sockets);
+                            FD_CLR(i, &input_sockets);
+                            FD_SET(i, &output_sockets);
                         }
-                        else
+
+                        if(preamble == CMD_QUOTE_REPLY)
                         {   
-                            char *cmd = curr->actions->command;
-                            send_cmd(i, cmd);
-                            
-                            // WAIT FOR RETURN STATUS
-                            FD_CLR(i, &output_sockets);
-                            FD_SET(i, &input_sockets);
+                            recv_cost_reply(i);
+                            quote_queue--;
+                            cost_waiting = true;
+                            FD_CLR(i, &input_sockets);
+                        }
+
+                        if(preamble == CMD_RETURN_STATUS)
+                        {
+                            int return_code = recv_byte_int(i);
+                            // printf("RETURN CODE: %d\n", return_code);
+                            if (return_code == 0)
+                            {
+                                // change_state(i, CMD_RETURN_FILE);
+                                preamble = recv_byte_int(i);
+                            }
                         }
                         
-                    }
-                }
-            }
+                        if (preamble == CMD_RETURN_STDOUT)
+                        {
+                            continue;
+                        }
+                        
+                        if (preamble == CMD_RETURN_STDERR)
+                        {
+                            continue; 
+                        }
 
-            break;
+                        if(preamble == CMD_RETURN_FILE)
+                        {
+                            /// printf("FILE BEING RECEIVED...\n");
+                            recv_bin_file(i);
+                            FD_CLR(i, &input_sockets);
+                            ++actions_executed; 
+                            close(i);
+                        }
+                    }
+
+                    if (FD_ISSET(i, &output_sockets))
+                    {   
+                        CMD curr_req = get_curr_req(i);
+                        if(curr_req == CMD_QUOTE_REQUEST)
+                        {   
+                            send_cost_req(i);
+                            // REMOVE FROM OUTPUT
+                            FD_CLR(i, &output_sockets);
+                            // ADD TO INPUT
+                            FD_SET(i, &input_sockets);
+                        }
+                        if(curr_req == CMD_SEND_FILE)
+                        {
+                            NODE *curr = get_node(i);
+                            int file_count = curr->actions->req_count;
+                            printf("REQUIREMENT COUNT: %d\n", file_count);
+                            if (file_count > 1)
+                            {   
+                                printf("FILE NAME TO SEND: %s\n", curr->actions->requirements[file_count-1]);
+                                char *next_file_to_send = curr->actions->requirements[file_count-1];
+                                printf("FILE NAME: %s\n", next_file_to_send);
+                                send_file(i, next_file_to_send);
+
+                                // WAIT FOR ACK FROM SERVER BEFORE SENDING THE NEXT FILE
+                                curr->actions->req_count--;
+                                FD_CLR(i, &output_sockets);
+                                FD_SET(i, &input_sockets);
+                                
+                            }
+                            else
+                            {   
+                                char *cmd = curr->actions->command;
+                                send_cmd(i, cmd);
+                                
+                                // WAIT FOR RETURN STATUS
+                                FD_CLR(i, &output_sockets);
+                                FD_SET(i, &input_sockets);
+                            
+                            }
+                            
+                        }
+                    }
+                }   
+            
+                break;
+            }
         }
 
     }
