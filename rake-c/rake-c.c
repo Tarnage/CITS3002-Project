@@ -176,25 +176,26 @@ void recv_bin_file(int sock)
 {
     // RECEIVE THE SIZE OF THE FILENAME
     int str_size = recv_byte_int(sock);
-    printf("SIZE: %d\n", str_size);
+    // printf("SIZE OF FILE NAME: %d\n", str_size);
     char filename[str_size]; 
 
     // RECEIVE THE FILENAME 
     recv_string(sock, filename, str_size);
-    printf("%s\n", filename);
+    // printf("%s\n", filename);
 
     // RECEIVE THE SIZE OF THE FILE
-    printf("RECEIVING FILE SIZE\n");
+    // printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
-    printf("FILE SIZE: %d BYTES\n", file_size);
+    // printf("FILE SIZE: %d BYTES\n", file_size);
 
     // TODO: MAKE THIS A CHECK FUNCTION
     // #DEFINE "./tmp/"
     // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
     // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
-    if(check_folder_exists(TEMP_FOLDER) != -1)
+    if(check_folder_exists(TEMP_FOLDER) == -1)
     {   
         // THERE A MACRO FOR 0777?
+        // printf("MAKING NEW FOLDER\n");
         mkdir(TEMP_FOLDER, 0777);
     }   
 
@@ -223,7 +224,7 @@ void recv_bin_file(int sock)
         exit(EXIT_FAILURE);
     }
 
-    printf("FILE RECEIVED SUCCESSFULLY\n");
+    printf("FILE %s RECEIVED SUCCESSFULLY\n", filename);
     // RECEIVE THE FILE'S CONTENTS 
     fwrite(buffer, file_size, 1, fp);
 
@@ -391,7 +392,7 @@ bool check_socket_exists (NODE *list, int sd)
     }
     list = head;
 
-    return exists; 
+    return exists;
 }
 
 
@@ -520,6 +521,8 @@ NODE *get_node(int sd)
 void send_cmd(int sd, char *cmd)
 {
     // TODO send command to server to execute
+    send_byte_int(sd, CMD_EXECUTE);
+    send_string(sd, cmd);
 }
 
 
@@ -630,6 +633,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 if (FD_ISSET(i, &input_sockets))
                 {   
                     int preamble = recv_byte_int(i);
+                    // printf("PREAMBLE NUMBER: %d\n", preamble);
 
                     if(preamble == CMD_ACK)
                     {   
@@ -642,6 +646,32 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         recv_cost_reply(i);
                         quote_queue--;
                         cost_waiting = true;
+                        FD_CLR(i, &input_sockets);
+                    }
+
+                    if(preamble == CMD_RETURN_STATUS)
+                    {
+                        int return_code = recv_byte_int(i);
+                        // printf("RETURN CODE: %d\n", return_code);
+                        if (return_code == 0)
+                        {
+                            // change_state(i, CMD_RETURN_FILE);
+                            preamble = recv_byte_int(i);
+                        }
+                    }
+                    else if (preamble == CMD_RETURN_STDOUT)
+                    {
+                        continue;
+                    }
+                    else if (preamble == CMD_RETURN_STDERR)
+                    {
+                        continue; 
+                    }
+
+                    if(preamble == CMD_RETURN_FILE)
+                    {
+                        /// printf("FILE BEING RECEIVED...\n");
+                        recv_bin_file(i);
                         FD_CLR(i, &input_sockets);
                     }
                 }
@@ -683,6 +713,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             // WAIT FOR RETURN STATUS
                             FD_CLR(i, &output_sockets);
                             FD_SET(i, &input_sockets);
+                            ++current_action; 
                         }
                         
                     }
