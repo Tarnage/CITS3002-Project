@@ -544,6 +544,7 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
         }
 
         printf("ITERATING\n");
+
         for(int i = 0; i < FD_SETSIZE; i++)
         {
             // printf("CHECKING FOR SOCKET %d\n", i);
@@ -553,11 +554,14 @@ void handle_conn(/*int sock */NODE *sockets, ACTION* actions, HOST *hosts, int a
                 printf("WAITING FOR REPLY\n");
                 if(FD_ISSET(i, &input_sockets))
                 {
+                    printf("CLEARING\n");
                     FD_CLR(i, &input_sockets);
                 }
                 
+                printf("RECEIVING INTEGER\n");
                 // READ SOMETHING
                 sigma = recv_byte_int(i);
+                printf("INTEGER RECEIVED: %d\n", sigma);
 
                 if(sigma == CMD_ACK)
                 {
