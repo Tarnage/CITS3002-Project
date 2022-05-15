@@ -760,6 +760,8 @@ int main (int argc, char *argv[])
     
     for (size_t i = 0; i < num_sets; i++)
     {   
+        printf("TOTAL ACTIONS FOR SET: %d\n", action_set[i].action_totals);
+        printf("%s\n", action_set[i].actions->command);
         handle_conn(sockets, action_set->actions, hosts, action_set[i].action_totals);
     }
 
