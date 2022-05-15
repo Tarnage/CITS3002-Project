@@ -153,12 +153,12 @@ def run_cmd(sd, cmd):
 	check_temp_dir(peer_dir)
 	print(f'EXECUTE REQUEST FROM {raddr}')
 	print(f'RUNNING COMMAND: {cmd}')
-	p = subprocess.run(cmd, shell=True, cwd=dir)
+	p = subprocess.run(cmd, shell=True, cwd=dir, capture_output=True)
 	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
 
-	return p.returncode, file_attr
+	return p, file_attr
 
 
 def scan_dir(dir):
@@ -243,6 +243,21 @@ def send_filename(sd, filename):
 
 	# SEND THE ACTUAL FILE NAME
 	sd.sendall( payload )
+
+
+def send_std(sd, payload):
+	''' Send filename to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
+	# SEND THE SIZE OF THE NAME FIRST
+	send_byte_int(sd, len(payload))
+
+	# SEND THE ACTUAL FILE NAME
+	sd.sendall( payload )
+
 
 
 # TODO: recv_filename and recv_cmd are the same fucntions
@@ -392,10 +407,10 @@ def handle_conn(host, port):
 		# Make sure we close sockets gracefully
 		sd.close()
 		sys.exit()
-	except Exception as err:
-		print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-		sd.close()
-		sys.exit()
+	# except Exception as err:
+	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+	# 	sd.close()
+	# 	sys.exit()
 
 
 def retrun_status(sd):
@@ -432,45 +447,42 @@ def handle_fork(sock):
 			payload = recv_cmd(sock, size)
 			print(f'REQUEST TO EXECUTE...{payload}')
 			# STORE RETURN CODE IN DICT 
-			r_code, file_attr = run_cmd(sock, payload)
-
+			proc, file_attr = run_cmd(sock, payload)
+			r_code = proc.returncode
 			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 			if r_code == 0:
-				sigma = ACK.CMD_RETURN_STATUS.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-				payload = r_code.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-				sock.sendall( sigma )
-				sock.sendall( payload )
-
-				# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
-				# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
-				# COULD BE A NON BLOCKING / SELECT() ISSUE
-				#send_return_status(sock)
-
+				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+				send_byte_int(sock, r_code)
 				send_bin_file(sock, file_attr)
-				
-				# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
-
-				if remove_temp == True:
-					rm_client_files(sock)
-					# END OF CONNECTION
-				print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-				sock.close()
-				sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-				
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
-				pass
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stderr)
+				print("STDERR SENT --->")
+
 			# EXECUTION HAD A FATAL ERROR
 			else:
-				pass
-		
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stdout)
+				print("STDOUT SENT --->")
+
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+			if remove_temp == True:
+				rm_client_files(sock)
+				# END OF CONNECTION
+
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
 
-	
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD

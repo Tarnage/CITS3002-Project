@@ -306,6 +306,7 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
+# CHANGE TO RECV STRING? JUST ONE FUNC
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
@@ -325,6 +326,26 @@ def recv_filename(sd):
 	
 	return filename.decode(FORMAT)
 
+# CHANGE TO RECV STRING?
+def recv_std(sd):
+
+	print("-----> RECEIVING ERROR MSG")
+	size = recv_byte_int(sd)
+	filename = b''
+	more_size = b''
+	while len(filename) < size:
+		try:
+			more_size = sd.recv( size - len(filename) )
+			if not more_size:
+				time.sleep(0)
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+
+		filename += more_size
+	
+	return filename.decode(FORMAT)
 
 def recv_bin_file(sd):
 	''' Receive binary file from server
@@ -538,21 +559,23 @@ def handle_conn(sets):
 							# EXPECT A FILE SENT FROM SERVER
 							print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
 							msg_queue[sock] = ACK.CMD_RETURN_FILE
+							input_sockets.append(sock)
 							
-						# EXECUTION FAILED WITH WARNING
-						#TODO: handle error codes
-						elif 0 < r_code < 5:
-							print("REVIEVCED A WARNING ERROR")
-							msg_queue[sock] = ACK.CMD_RETURN_STDOUT
-
-						# EXECUTION HAD A FATAL ERROR
-						else:
-							print("REVIEVCED A FATAL ERROR")
-							msg_queue[sock] = ACK.CMD_RETURN_STDERR
-
-						# SEND ACKS 
-						input_sockets.append(sock)
-					
+					# EXECUTION FAILED WITH WARNING
+					#TODO: handle error codes
+					elif sigma == ACK.CMD_RETURN_STDOUT:
+						print("REVIEVCED A WARNING ERROR")
+						code = recv_byte_int(sock)
+						msg = recv_std(sock)
+						raise Exception(msg)
+						
+					# EXECUTION HAD A FATAL ERROR
+					elif sigma == ACK.CMD_RETURN_STDERR:
+						print("REVIEVCED A FATAL ERROR")
+						code = recv_byte_int(sock)
+						msg = recv_std(sock)
+						raise Exception(msg)
+						
 					elif sigma == ACK.CMD_RETURN_FILE:
 						print("RECIEVING FILE...")
 						recv_bin_file(sock)
@@ -624,11 +647,13 @@ def handle_conn(sets):
 			close_sockets(input_sockets)
 			close_sockets(output_sockets)
 			sys.exit()
-		# except Exception as err:
-		# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-		# 	close_sockets(input_sockets)
-		# 	close_sockets(output_sockets)
-		# 	sys.exit()
+
+		except Exception as err:
+			print( f'ERROR IN REMOTE HOST WITH:' )
+			print( f'{err}' )
+			close_sockets(input_sockets)
+			close_sockets(output_sockets)
+			sys.exit()
 	
 	reset_host()
 
@@ -644,37 +669,9 @@ def main(argv):
 	global obj_hosts
 	obj_hosts = get_host_obj(dict_hosts)
 
-	#print(actions)
-
-
 	for sets in actions:
 		# ADDRESS OF LOWEST BID
 		handle_conn(list(sets))
-
-		# slave_addr = tuple()
-		# for command in sets:
-		# 	# DO WE RUN THIS COMMAND LOCAL OR REMOTE
-		# 	if not command.remote:
-		# 		check_downloads_dir()
-		# 		subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
-		# 	# IS A REMOTE COMMAND
-		# 	else:
-		# 		# GET THE LOWEST COST
-		# 		sockets_list = get_all_conn(hosts)
-		# 		handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
-
-		# 		slave_addr = get_lowest_cost()
-		# 		#print(slave_addr)
-		# 		# EXECUTE COMMANNDS WITH THIS SOCKET
-		# 		slave = create_socket(slave_addr[0], slave_addr[1])
-
-		# 		#print(command.requires)
-		# 		# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
-		# 		if len(command.requires) > 0:
-		# 			handle_conn(slave, ACK.CMD_SEND_FILE, command)
-		# 		# ELSE JUST RUN THE COMMAND	
-		# 		else:
-		# 			handle_conn(slave, ACK.CMD_EXECUTE, command)
 		
 if __name__ == "__main__":
 	main(sys.argv)

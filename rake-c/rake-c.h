@@ -49,7 +49,9 @@ typedef struct _node
     char *ip;
     int port;
     int cost;
-    int used; 
+    bool used;
+    CMD curr_req;
+    ACTION *actions;
     struct _node *next;
     
 } NODE;
