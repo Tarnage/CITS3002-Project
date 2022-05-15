@@ -51,6 +51,7 @@ typedef struct _node
     int cost;
     bool used;
     CMD curr_req;
+    ACTION *actions;
     struct _node *next;
     
 } NODE;
