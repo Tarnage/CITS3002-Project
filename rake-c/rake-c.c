@@ -100,6 +100,7 @@ void send_string(int sd, char *payload)
 void send_file(int sd, char *filename)
 {
     send_byte_int(sd, CMD_SEND_FILE);
+    printf("SENDING PREAMBLE");
     
 #ifdef USE_FIND_FILE
     char *path = find_file(filename);
@@ -477,8 +478,8 @@ void close_all_sockets()
 }
 
 
-// HELPER TO FIND WHAT REQ THE SOCKET IS DOING
-// i.e. ARE THEY JUST ASKING FOR A COST REQUEST OR ARE THEY SENDING A FILE
+// HELPER TO CHANGE SOCKET STATE 
+// MIGHT NOT NEED
 void change_state(int sd, CMD state) 
 {   
     NODE *head = sockets;
@@ -561,7 +562,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
             // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
-            if(actions[current_action].is_remote == 1)
+            if( actions[current_action].is_remote )
             {
                 NODE *slave = get_lowest_cost();
                 cost_waiting = false;
@@ -572,6 +573,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 slave->used = true;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[current_action];
+                printf("%s\n", actions->requirements[0]);
                 FD_SET(socket_desc, &output_sockets);
                 current_action++;
             }

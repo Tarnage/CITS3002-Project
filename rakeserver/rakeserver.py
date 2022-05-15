@@ -158,7 +158,7 @@ def run_cmd(sd, cmd):
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
 
-	return p.returncode, file_attr
+	return p.returncode, p.stdout.decode(), p.stderr.decode(), file_attr
 
 
 def scan_dir(dir):
@@ -432,13 +432,13 @@ def handle_fork(sock):
 			payload = recv_cmd(sock, size)
 			print(f'REQUEST TO EXECUTE...{payload}')
 			# STORE RETURN CODE IN DICT 
-			r_code, file_attr = run_cmd(sock, payload)
+			r_code, stdout, stderr, file_attr = run_cmd(sock, payload)
 
 			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 			if r_code == 0:
-				sigma = ACK.CMD_RETURN_STATUS.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-				payload = r_code.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+				send_byte_int(sock, r_code)
 				sock.sendall( sigma )
 				sock.sendall( payload )
 
@@ -455,22 +455,27 @@ def handle_fork(sock):
 					rm_client_files(sock)
 					# END OF CONNECTION
 				print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-				sock.close()
-				sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
 			
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
 			elif 0 < r_code < 5:
-				pass
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_filename(sock, stdout)
 			# EXECUTION HAD A FATAL ERROR
 			else:
-				pass
-		
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_filename(sock, stderr)
+
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
 
-	
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
