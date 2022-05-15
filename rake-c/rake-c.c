@@ -581,14 +581,18 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         if(current_action < actions_left)
         {
             // LOCAL 
-            if( !actions[current_action].is_remote )
+            if( actions[current_action].is_remote != 1 )
             {
                 // RUN PROCESS - USE system()??
+                printf("LOCAL COMMAND EXECUTION\n");
                 system(actions[current_action].command);
                 ++actions_executed; 
+                ++current_action;
+                printf("FINISHED\n");
             }
             else
             {   
+                printf("BUILDING FD_SET\n");
                 // BUILDING THE FD_SET
                 NODE *head = sockets;
                 // print_sock_list(sockets);
@@ -613,8 +617,9 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         }
 
         // JUST A CHECK SELECT WORKED
+        printf("SELECTING\n");
         int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, 0);
-
+        printf("ACTIVITY: %d\n", activity);
         switch (activity)
         {
         case -1:
