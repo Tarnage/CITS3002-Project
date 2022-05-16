@@ -110,7 +110,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     }
                     j++;
                     char *cmd = &line[j];
-                    ACTION_DATA(num_sets-1, action_index).command = strdup(cmd);
+                    ACTION_DATA(num_sets-1, action_index).command = trim_whitespace(strdup(cmd));
                 }
                 else
                 {

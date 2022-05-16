@@ -312,6 +312,7 @@ def send_filename(sd, filename):
 	sd.sendall(filename.encode(FORMAT))
 
 
+# CHANGE TO RECV STRING? JUST ONE FUNC
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
@@ -331,6 +332,26 @@ def recv_filename(sd):
 	
 	return filename.decode(FORMAT)
 
+# CHANGE TO RECV STRING?
+def recv_std(sd):
+
+	print("-----> RECEIVING ERROR MSG")
+	size = recv_byte_int(sd)
+	filename = b''
+	more_size = b''
+	while len(filename) < size:
+		try:
+			more_size = sd.recv( size - len(filename) )
+			if not more_size:
+				time.sleep(0)
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+
+		filename += more_size
+	
+	return filename.decode(FORMAT)
 
 def recv_bin_file(sd):
 	''' Receive binary file from server
@@ -549,21 +570,23 @@ def handle_conn(sets):
 							# EXPECT A FILE SENT FROM SERVER
 							print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
 							msg_queue[sock] = ACK.CMD_RETURN_FILE
+							input_sockets.append(sock)
 							
-						# EXECUTION FAILED WITH WARNING
-						#TODO: handle error codes
-						elif 0 < r_code < 5:
-							print("REVIEVCED A WARNING ERROR")
-							msg_queue[sock] = ACK.CMD_RETURN_STDOUT
-
-						# EXECUTION HAD A FATAL ERROR
-						else:
-							print("REVIEVCED A FATAL ERROR")
-							msg_queue[sock] = ACK.CMD_RETURN_STDERR
-
-						# SEND ACKS 
-						input_sockets.append(sock)
-					
+					# EXECUTION FAILED WITH WARNING
+					#TODO: handle error codes
+					elif sigma == ACK.CMD_RETURN_STDOUT:
+						print("REVIEVCED A WARNING ERROR")
+						code = recv_byte_int(sock)
+						msg = recv_std(sock)
+						raise Exception(msg)
+						
+					# EXECUTION HAD A FATAL ERROR
+					elif sigma == ACK.CMD_RETURN_STDERR:
+						print("REVIEVCED A FATAL ERROR")
+						code = recv_byte_int(sock)
+						msg = recv_std(sock)
+						raise Exception(msg)
+						
 					elif sigma == ACK.CMD_RETURN_FILE:
 						print("RECIEVING FILE...")
 						recv_bin_file(sock)
@@ -635,11 +658,13 @@ def handle_conn(sets):
 			close_sockets(input_sockets)
 			close_sockets(output_sockets)
 			sys.exit()
-		# except Exception as err:
-		# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-		# 	close_sockets(input_sockets)
-		# 	close_sockets(output_sockets)
-		# 	sys.exit()
+
+		except Exception as err:
+			print( f'ERROR IN REMOTE HOST WITH:' )
+			print( f'{err}' )
+			close_sockets(input_sockets)
+			close_sockets(output_sockets)
+			sys.exit()
 	
 	reset_host()
 
