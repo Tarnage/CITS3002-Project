@@ -114,7 +114,7 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	print( f"CONNECTION SUCCESSFUL" )
-	sd.setblocking(False)
+	sd.setblocking(True)
 	return sd
 
 
@@ -171,6 +171,7 @@ def get_lowest_cost():
 	lowest_cost = MAX_INT
 	curr = None
 	for h in obj_hosts:
+		print(f"CHECKING COSE == {h.cost}")
 		if h.cost < lowest_cost:
 			lowest_cost = h.cost
 			curr = h
@@ -543,7 +544,7 @@ def handle_conn(sets):
 
 			for sock in read_sockets:
 				if sock:
-					print("WAITING FOR REPLY...")
+					print(f"({sock.getpeername()}) WAITING FOR REPLY...")
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 
@@ -617,7 +618,7 @@ def handle_conn(sets):
 
 					# CHECK WHAT YPE OF MSG TO SEND
 					msg_type = msg_queue[sock]
-					print(f"SENDING MESSAGE...")
+					print(f"({sock.getpeername()}) SENDING MESSAGE...")
 
 					# SLEEP
 					# rand = random.randint(1, 10)

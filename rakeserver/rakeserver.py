@@ -424,6 +424,7 @@ def handle_conn(host, port):
 	try:
 		while True:
 			conn, addr = sd.accept()
+			print("FORKING")
 			if conn == -1:
 				conn.close()
 			else:
@@ -435,7 +436,8 @@ def handle_conn(host, port):
 					handle_fork(conn)
 				else:
 					conn.close()
-				
+			
+			print("RETURNED")
 
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')

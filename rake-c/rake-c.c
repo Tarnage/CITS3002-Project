@@ -55,8 +55,9 @@ int recv_byte_int(int sock)
     char buffer[MAX_BYTES_SIGMA];
     bzero(buffer, MAX_BYTES_SIGMA);
     int byte_count = 0; // SHOULD BE 4
+    
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
-
+    printf("BYTE COUNT SHOULD BE 4 == %i\n", byte_count);
     if(byte_count == 0){
         printf("INTEGER NOT RECEIVED\n");
         exit(EXIT_FAILURE);
@@ -261,10 +262,10 @@ int create_conn(char *host, int port)
         exit(EXIT_FAILURE);
     }
 
-    //Set the socket to non-blocking
+    // Set the socket to non-blocking
     // int flags = fcntl(sock, F_GETFL, 0);
     // fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-
+    // sleep(2);
 
     // CHECK CONNECTION
     int status = -1;
