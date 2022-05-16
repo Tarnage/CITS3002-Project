@@ -56,15 +56,17 @@ We would have to send the size of the payload after ever type of communication f
     5. Sending the output file, since the output file 
 
 ### Walkthrough of server and client interactions
-1. Server is created by running (python3 rakeserver.py 6328). Opening an port and listens for connections.
+1. Servers are created by running (python3 rakeserver.py 6328). Opening an port based on the command line third argument and listens for connections on that port number and IP address.
 
-2. Client is created by running (python3 rake-p.py). Client creates and connects sockets for quote while listening to server. When connection is established the client will initate the connection by sending a preamble represented in 4 bytes and in edian byte order (CMD_QUOTE_REQUEST). 
+2. Client is created by running (python3 rake-p.py Rakefile). Client creates and connects sockets for quote while listening for servers. 
 
-3. The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing. 
+3. When connection is established with an server the client will initate the connection by sending a preamble represented in 4 bytes and in edian byte order (CMD_QUOTE_REQUEST). 
 
-4. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client receoves the cost and closes the connection. 
+4. The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing. 
 
-5. 
+5. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client receoves the cost and closes the connection. 
+
+5. Steps 3 to 5 are repeated until the client has found server with lowest cost. Client creates and connects sockets for executing commands on the server with lowest cost. Client 
 
 
 
