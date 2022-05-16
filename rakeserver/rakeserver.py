@@ -6,7 +6,6 @@ import time
 import random
 import os
 import socket
-import select
 import sys
 import subprocess
 
@@ -48,6 +47,7 @@ class Ack:
 		self.CMD_RETURN_FILE = 14
 
 		self.CMD_ACK = 15
+		self.CMD_NO_OUTPUT = 16
 
 
 class FileStats():
@@ -61,6 +61,10 @@ class FileStats():
 
 # INIT ENUM CLASS
 ACK = Ack()
+
+# IF LOCAL HOST SERVER
+local_host = False
+
 
 # OPTSARGS
 sleep = False
@@ -221,6 +225,34 @@ def recv_text_file(sd):
 		sys.exit(f'File creation failed with error: {err}')
 
 
+def recv_bin_file(sd):
+	''' Receive binary file from server
+		Args:
+			sd(socket): Connection file is being sent from
+	'''
+
+	raddr = sd.getpeername()
+	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	check_temp_dir(peer_dir)
+	tmp = f"./tmp/{peer_dir}/"
+
+	filename = recv_filename(sd)
+	print(f"RECEIVED FILE NAME: {filename}")
+	size = recv_byte_int(sd)
+
+	buffer = b""
+	while len(buffer) < size:
+		print("reading")
+		buffer += sd.recv(size - len(buffer))
+
+	try:
+		with open(tmp + filename, "wb") as f:
+			f.write(buffer)
+
+	except OSError as err:
+		sys.exit(f'File creation failed with error: {err}')
+
+
 def send_byte_int(sd, preamble):
 	''' Helper to send the byte size of outgoing payload
 		Args:
@@ -257,7 +289,6 @@ def send_std(sd, payload):
 
 	# SEND THE ACTUAL FILE NAME
 	sd.sendall( payload )
-
 
 
 # TODO: recv_filename and recv_cmd are the same fucntions
@@ -344,9 +375,7 @@ def send_bin_file(sd, file_attr):
 	print(f'<-------SENDING FILE')
 	path = file_attr.path
 	filename = file_attr.filename
-	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-
+	
 	send_filename(sd, filename)
 
 	payload = b''
@@ -366,6 +395,11 @@ def handle_conn(host, port):
 		host (str): the ip address the server will bind
 		port (int): the port the server will bind 
 	'''	
+
+	global local_host
+
+	if (host == "localhost") or (host == "127.0.0.1"):
+		local_host = True
 
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
@@ -449,11 +483,19 @@ def handle_fork(sock):
 			# STORE RETURN CODE IN DICT 
 			proc, file_attr = run_cmd(sock, payload)
 			r_code = proc.returncode
+
 			print(f"<-------- SENDING RETURN STATUS ({r_code})")
+
+			# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+			if (file_attr.filename == "") and (r_code == 0):
+				send_byte_int(sock, ACK.CMD_NO_OUTPUT)
+				send_byte_int(sock, r_code)
+
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
-			if r_code == 0:
+			elif r_code == 0:
 				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
 				send_byte_int(sock, r_code)
+				send_byte_int(sock, ACK.CMD_RETURN_FILE)
 				send_bin_file(sock, file_attr)
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
@@ -481,6 +523,10 @@ def handle_fork(sock):
 
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
+
+		elif sigma == ACK.CMD_BIN_FILE:
+			recv_bin_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
 
 
