@@ -126,7 +126,6 @@ def get_host_obj(hosts):
 
 	for key in hosts:
 		socket_lists.append(Hosts(None, key, hosts[key]))
-		print(key, hosts[key])
 	
 	return socket_lists
 
@@ -152,10 +151,10 @@ def send_cmd(sd):
 	'''
 	for h in obj_hosts:
 		if h.sock == sd:
-			payload = h.action.cmd
+			payload = h.action.cmd.encode(FORMAT)
 			send_ack(sd, ACK.CMD_EXECUTE)
 			send_byte_int(sd, len(payload))
-			sd.sendall(payload.encode(FORMAT))
+			sd.sendall(payload)
 			print(f"COMMAND SENT {payload}...")
 			break
 
@@ -171,7 +170,6 @@ def get_lowest_cost():
 	lowest_cost = MAX_INT
 	curr = None
 	for h in obj_hosts:
-		print(f"CHECKING COSE == {h.cost}")
 		if h.cost < lowest_cost:
 			lowest_cost = h.cost
 			curr = h
@@ -229,6 +227,7 @@ def get_filename(sd):
 
 	for h in obj_hosts:
 		if h.sock == sd:
+			
 			index = len(h.action.requires) - 1
 			if index > 0:
 				file = h.action.requires[index]
@@ -258,7 +257,7 @@ def send_file_name(sd, filename):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to send
 	'''
-	print(f'SENDING ({filename}) ---->')
+	print(f'{sd.getpeername()} SENDING ({filename}) ---->')
 
 	payload = filename.encode(FORMAT)
 	send_byte_int(sd, len(payload))
@@ -390,7 +389,7 @@ def send_ack(sd, ack_type):
 			sd(socket): Connection to send the acknowledgment
 			ack_type(int): integer representing the acknowledgment type
 	'''
-	print(f'----> SENDING ACK')
+	print(f'----> SENDING ACK {ack_type}')
 	
 	# SEND ACK WITH FIXED BYTE ORDER AND SIZE
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -488,7 +487,6 @@ def handle_conn(sets):
 
 	# REMAINING ACTIONS IN THIS LOOP
 	actions_left = len(sets)
-	print(f"ACTIONS LEFT = {actions_left}")
 
 	# HOW MANY SOCKETS ARE OUT REQUESTING FOR COST
 	quote_queue = 0
@@ -497,11 +495,35 @@ def handle_conn(sets):
 	cost_waiting = False
 
 	while actions_executed < actions_left :
-		print(f"{actions_executed}  {actions_left}")
+		
 		try:
 			# WE HAVE COSTS FOR THE NEXT ACTION
-			if (quote_queue == 0) and cost_waiting:
 
+			# WE HAVE ACTIONS TO EXECUTE 
+			if (curr_action < actions_left):
+				if (not sets[curr_action].remote):
+					# 0TH INDEX IS ALWAYS LOCALHOST
+					obj_hosts[0].action = sets[curr_action]
+					sd = create_socket(obj_hosts[0].ip, obj_hosts[0].port)
+					obj_hosts[0].sock = sd
+					msg_queue[sd] = ACK.CMD_SEND_FILE
+					curr_action += 1
+					output_sockets.append(sd)
+					# actions_executed += 1
+
+				if (curr_action < actions_left):
+					print(f"{actions_executed}  {actions_left}  {curr_action}")
+					# SEND COST REQS TO FREE SERVERS
+					for h in obj_hosts:
+						if (not h.used) and (not h.local):
+							sd = create_socket(h.ip, h.port)
+							h.sock = sd
+							h.used = True
+							quote_queue += 1
+							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
+							output_sockets.append(sd)
+
+			if (quote_queue == 0) and cost_waiting:
 				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
 				if sets[curr_action].remote:
 					slave = get_lowest_cost()
@@ -513,30 +535,7 @@ def handle_conn(sets):
 					curr_action += 1
 					output_sockets.append(sd)
 
-			# WE HAVE ACTIONS TO EXECUTE 
-			if (curr_action < actions_left):
 
-				if (not sets[curr_action].remote):
-					# 0TH INDEX IS ALWAYS LOCALHOST
-					local = obj_hosts[0]
-					local.action = sets[curr_action]
-					sd = create_socket(local.ip, local.port)
-					local.sock = sd
-					msg_queue[sd] = ACK.CMD_SEND_FILE
-					curr_action += 1
-					output_sockets.append(sd)
-					# actions_executed += 1
-
-				if (curr_action < actions_left):
-					# SEND COST REQS TO FREE SERVERS
-					for h in obj_hosts:
-						if (not h.used) and (not h.local):
-							sd = create_socket(h.ip, h.port)
-							h.sock = sd
-							h.used = True
-							quote_queue += 1
-							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
-							output_sockets.append(sd)
 
 
 			# GET THE LIST OF READABLE SOCKETS
@@ -544,7 +543,7 @@ def handle_conn(sets):
 
 			for sock in read_sockets:
 				if sock:
-					print(f"({sock.getpeername()}) WAITING FOR REPLY...")
+					print(f"{sock.getpeername()} WAITING FOR REPLY...")
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 
@@ -618,7 +617,8 @@ def handle_conn(sets):
 
 					# CHECK WHAT YPE OF MSG TO SEND
 					msg_type = msg_queue[sock]
-					print(f"({sock.getpeername()}) SENDING MESSAGE...")
+					#print(msg_queue)
+					print(f"{sock.getpeername()} SENDING MESSAGE...")
 
 					# SLEEP
 					# rand = random.randint(1, 10)
@@ -642,7 +642,6 @@ def handle_conn(sets):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						# NAME OF FILE TO SEND
 						filename = get_filename(sock)
-
 						# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 						if filename == None:
 							print(f'SENDING ACK FOR EXECUTE ---->')
