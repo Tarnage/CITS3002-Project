@@ -36,7 +36,8 @@ typedef enum _cmd{
     CMD_RETURN_STDOUT,
     CMD_RETURN_STDERR,
     CMD_RETURN_FILE,
-    CMD_ACK
+    CMD_ACK,
+    CMD_NO_OUTPUT
 } CMD;
 
 
