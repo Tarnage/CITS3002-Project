@@ -13,6 +13,7 @@ import random
 SERVER_PORT 	= 50009
 #SERVER_HOST = '192.168.1.105'
 SERVER_HOST 	= '127.0.0.1'
+LOCAL_HOST 		= '127.0.0.1'
 # MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES 		= 1024
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
@@ -25,7 +26,7 @@ MAX_BYTE_SIGMA 	= 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN 		= 'big'
 # LOCATION OF RECV FILES
-DOWNLOADS 		= "./downloads/"
+DOWNLOADS 		= "./downloads"
 
 MAX_INT 		= sys.maxsize
 
@@ -54,16 +55,18 @@ class Ack:
 		self.CMD_RETURN_FILE = 14
 
 		self.CMD_ACK = 15
+		self.CMD_NO_OUTPUT = 16
 
 
 class Hosts:
-	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT):
+	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, local=False):
 		self.sock = sock
 		self.ip = ip
 		self.port = port
 		self.used = used
 		self.action = action
 		self.cost = cost
+		self.local = local
 
 
 # INIT GLOBALS
@@ -117,6 +120,10 @@ def create_socket(host, port):
 
 def get_host_obj(hosts):
 	socket_lists = list()
+	port = parse_rakefile.get_default_port()
+	# ADD LOCAL HOST
+	socket_lists.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
+
 	for key in hosts:
 		socket_lists.append(Hosts(None, key, hosts[key]))
 		print(key, hosts[key])
@@ -147,7 +154,7 @@ def send_cmd(sd):
 		if h.sock == sd:
 			payload = h.action.cmd
 			send_ack(sd, ACK.CMD_EXECUTE)
-			send_byte_size(sd, len(payload))
+			send_byte_int(sd, len(payload))
 			sd.sendall(payload.encode(FORMAT))
 			print(f"COMMAND SENT {payload}...")
 			break
@@ -187,10 +194,9 @@ def mark_free(sd):
 	global obj_hosts
 
 	for h in obj_hosts:
-		if h.sock == sd:
+		if (h.sock == sd) and (not h.local):
 			h.used = False
 			break
-
 
 def add_cost(sd, cost):
 	''' Helper to record current 'bids' or cost from servers to continue 
@@ -254,7 +260,7 @@ def send_file_name(sd, filename):
 	print(f'SENDING ({filename}) ---->')
 
 	payload = filename.encode(FORMAT)
-	send_byte_size(sd, len(payload))
+	send_byte_int(sd, len(payload))
 
 	# SEND THE LENGTH TO EXPECT
 	sd.sendall( payload )
@@ -276,7 +282,7 @@ def send_txt_file(sd, filename, path):
 	
 	send_file_name(sd, filename)
 
-	send_byte_size(sd, len(payload))
+	send_byte_int(sd, len(payload))
 	sd.sendall( payload.encode(FORMAT) )
 
 
@@ -289,15 +295,14 @@ def send_bin_file(sd, filename, path):
 			sd(socket): Connection to send the file
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	sigma = ACK.CMD_BIN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
+	send_byte_int(sd, ACK.CMD_BIN_FILE)
 	print(f"SENDING BIN FILE {filename}---->")
 	payload = b''
 	with open(path, 'rb') as f:
 		payload = f.read()
 
 	send_file_name(sd, filename)
-	send_byte_size(sd, len(payload))
+	send_byte_int(sd, len(payload))
 	sd.sendall( payload )
 	print(f'BIN FILE SENT...')
 
@@ -310,6 +315,7 @@ def send_filename(sd, filename):
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
+
 	filename = b''
 	more_size = b''
 	while len(filename) < size:
@@ -325,6 +331,8 @@ def recv_filename(sd):
 		filename += more_size
 	
 	return filename.decode(FORMAT)
+	
+		
 
 # CHANGE TO RECV STRING?
 def recv_std(sd):
@@ -352,6 +360,7 @@ def recv_bin_file(sd):
 		Args:
 			sd(socket): Connection file is being sent from
 	'''
+
 	filename = recv_filename(sd)
 
 	size = recv_byte_int(sd)
@@ -413,7 +422,7 @@ def recv_byte_int(sd):
 	return result
 
 
-def send_byte_size(sd, payload_len):
+def send_byte_int(sd, payload_len):
 	''' Helper to send the byte size of outgoing payload
 		Args:
 			sd(socket): socket descriptor of the connection
@@ -504,12 +513,17 @@ def handle_conn(sets):
 			# WE HAVE ACTIONS TO EXECUTE 
 			if (curr_action < actions_left):
 				if (not sets[curr_action].remote):
-					check_downloads_dir()
-					subprocess.run(sets[curr_action].cmd, shell=True, cwd=DOWNLOADS)
+					# 0TH INDEX IS ALWAYS LOCALHOST
+					local = obj_hosts[0]
+					local.action = sets[curr_action]
+					sd = create_socket(local.ip, local.port)
+					local.sock = sd
+					msg_queue[sd] = ACK.CMD_SEND_FILE
 					curr_action += 1
-					actions_executed += 1
+					output_sockets.append(sd)
+					# actions_executed += 1
 
-				else:
+				if (curr_action < actions_left):
 					# SEND COST REQS TO FREE SERVERS
 					for h in obj_hosts:
 						if not h.used:
@@ -584,8 +598,14 @@ def handle_conn(sets):
 						mark_free(sock)
 						sock.close()
 						del msg_queue[sock]
-						
 						# END OF CONNECTION 
+
+					elif sigma == ACK.CMD_NO_OUTPUT:
+						r_code = recv_byte_int(sock)
+						print(f"RECV CODE: {r_code}")
+						mark_free(sock)
+						sock.close()
+						del msg_queue[sock]
 						
 			for sock in write_sockets:
 				if sock:
@@ -670,7 +690,6 @@ def main(argv):
 	obj_hosts = get_host_obj(dict_hosts)
 
 	for sets in actions:
-		# ADDRESS OF LOWEST BID
 		handle_conn(list(sets))
 		
 if __name__ == "__main__":
