@@ -14,6 +14,11 @@ class Action:
 		self.remote = remote
 		self.requires = requires
 		
+# GLOBAL FOR RAKE-P TO ACCESS
+deafult_port = 0
+
+def get_default_port():
+	return deafult_port
 
 def read_rake(filename):
 	'''Parse a tab seperated Rakefile
@@ -25,10 +30,9 @@ def read_rake(filename):
 		host (dict[str]:[int]): key: hostname value: port
 		action_sequence( list( list(Action) ) ): will contain action objects to be run in sequence
 	'''
+	global deafult_port
 
 	with open(filename) as rake_file:
-
-		deafult_port = 0
 
 		# holds current actionset of Action objects
 		# appends the list to action_sequence once all actions in a set is recorded
@@ -57,7 +61,7 @@ def read_rake(filename):
 						if len(host_split) == 1:
 							hosts[host_split[0]] = deafult_port
 						else:
-							hosts[host_split[0]] = host_split[1]
+							hosts[host_split[0]] = int(host_split[1])
 
 				# checks single
 				if line[0] == '\t' and not line[1] == '\t':

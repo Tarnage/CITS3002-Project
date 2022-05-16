@@ -13,6 +13,7 @@ import random
 SERVER_PORT 	= 50009
 #SERVER_HOST = '192.168.1.105'
 SERVER_HOST 	= '127.0.0.1'
+LOCAL_HOST 		= '127.0.0.1'
 # MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
 MAX_BYTES 		= 1024
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
@@ -25,7 +26,7 @@ MAX_BYTE_SIGMA 	= 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN 		= 'big'
 # LOCATION OF RECV FILES
-DOWNLOADS 		= "./downloads/"
+DOWNLOADS 		= "./downloads"
 
 MAX_INT 		= sys.maxsize
 
@@ -57,13 +58,14 @@ class Ack:
 
 
 class Hosts:
-	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT):
+	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, local=False):
 		self.sock = sock
 		self.ip = ip
 		self.port = port
 		self.used = used
 		self.action = action
 		self.cost = cost
+		self.local = local
 
 
 # INIT GLOBALS
@@ -117,6 +119,10 @@ def create_socket(host, port):
 
 def get_host_obj(hosts):
 	socket_lists = list()
+	port = parse_rakefile.get_default_port()
+	# ADD LOCAL HOST
+	socket_lists.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
+
 	for key in hosts:
 		socket_lists.append(Hosts(None, key, hosts[key]))
 		print(key, hosts[key])
@@ -483,12 +489,17 @@ def handle_conn(sets):
 			# WE HAVE ACTIONS TO EXECUTE 
 			if (curr_action < actions_left):
 				if (not sets[curr_action].remote):
-					check_downloads_dir()
-					subprocess.run(sets[curr_action].cmd, shell=True, cwd=DOWNLOADS)
+					# 0TH INDEX IS ALWAYS LOCALHOST
+					local = obj_hosts[0]
+					local.action = sets[curr_action]
+					sd = create_socket(local.ip, local.port)
+					local.sock = sd
+					msg_queue[sd] = ACK.CMD_SEND_FILE
 					curr_action += 1
-					actions_executed += 1
+					output_sockets.append(sd)
+					# actions_executed += 1
 
-				else:
+				if (curr_action < actions_left):
 					# SEND COST REQS TO FREE SERVERS
 					for h in obj_hosts:
 						if not h.used:
@@ -644,37 +655,8 @@ def main(argv):
 	global obj_hosts
 	obj_hosts = get_host_obj(dict_hosts)
 
-	#print(actions)
-
-
 	for sets in actions:
-		# ADDRESS OF LOWEST BID
 		handle_conn(list(sets))
-
-		# slave_addr = tuple()
-		# for command in sets:
-		# 	# DO WE RUN THIS COMMAND LOCAL OR REMOTE
-		# 	if not command.remote:
-		# 		check_downloads_dir()
-		# 		subprocess.run(command.cmd, shell=True, cwd=DOWNLOADS)
-		# 	# IS A REMOTE COMMAND
-		# 	else:
-		# 		# GET THE LOWEST COST
-		# 		sockets_list = get_all_conn(hosts)
-		# 		handle_conn(sockets_list, ACK.CMD_QUOTE_REQUEST)
-
-		# 		slave_addr = get_lowest_cost()
-		# 		#print(slave_addr)
-		# 		# EXECUTE COMMANNDS WITH THIS SOCKET
-		# 		slave = create_socket(slave_addr[0], slave_addr[1])
-
-		# 		#print(command.requires)
-		# 		# IF FILES ARE REQUIRED TO RUN THE COMMAND SEND THE FILES FIRST
-		# 		if len(command.requires) > 0:
-		# 			handle_conn(slave, ACK.CMD_SEND_FILE, command)
-		# 		# ELSE JUST RUN THE COMMAND	
-		# 		else:
-		# 			handle_conn(slave, ACK.CMD_EXECUTE, command)
 		
 if __name__ == "__main__":
 	main(sys.argv)
