@@ -51,6 +51,7 @@ typedef struct _node
     int port;
     int cost;
     bool used;
+    bool local;
     CMD curr_req;
     ACTION *actions;
     struct _node *next;

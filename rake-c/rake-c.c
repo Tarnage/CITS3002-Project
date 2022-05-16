@@ -7,6 +7,7 @@
 
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
+#define LOCAL_HOST   "127.0.0.1"
 #define MAX_BYTES    1024
 #define MAX_SOCKETS  FD_SETSIZE
 //#define USE_FIND_FILE
@@ -35,14 +36,14 @@ void print_bytes(char *buffer)
 }
 
 
-void send_byte_int(int sd, CMD ack_type)
+void send_byte_int(int sd, CMD preamble)
 {
     // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
     // ALWAYS CONVERTS INTS TO 4 BYTES LONG
-    int cmd  = htonl( ack_type );
+    int cmd  = htonl( preamble );
 
     // SEND THE REQ
-    printf("SENDING INT ----> %d\n", ack_type);
+    printf("SENDING INT ----> %d\n", preamble);
     send(sd, &cmd, sizeof(cmd), 0);
 }
 
@@ -85,7 +86,6 @@ void add_quote(int sd, int quote)
 
 void send_string(int sd, char *payload)
 {
-	
 	int size = strlen(payload);
 	send_byte_int(sd, size);
     
@@ -238,38 +238,6 @@ int find_file(char *filename, char *path)
 }
 
 
-void append_sockets(NODE* socket_appended, char *host, int port, int sd, bool used)
-{
-    // CHECK IF NODE IS EMPTY
-    if(socket_appended == NULL)
-    {
-        socket_appended = (NODE*) malloc(sizeof(NODE));
-        socket_appended->ip = host;
-        socket_appended->port = port;
-        socket_appended->sock = sd;
-        socket_appended->used = used; 
-    }
-    else
-    {
-        // GO TO THE END 
-        NODE* head = socket_appended;
-        while(socket_appended != NULL)
-        {
-            ++socket_appended;
-        }
-
-        socket_appended = (NODE*)malloc(sizeof(NODE));
-        socket_appended->ip = host;
-        socket_appended->port = port;
-        socket_appended->sock = sd;
-        socket_appended->used = used;
-        socket_appended->next = NULL;
-
-        socket_appended = head; 
-    }
-}
-
-
 // CREATES SOCKET DESCRIPTORS
 int create_conn(char *host, int port)
 {   
@@ -314,7 +282,17 @@ int create_conn(char *host, int port)
 void init_nodes(HOST *hosts)
 {    
     sockets = (NODE*)malloc(sizeof(NODE));
-    NODE *head = sockets;
+
+    // FIRST NODE ALWASY LOCAL HOST
+    sockets->ip = LOCAL_HOST;
+    sockets->port = default_port;
+    sockets->used = true;       // LOCAL HOST IS RESERVED FOR LOCAL EXECUTION 
+    sockets->cost = INT_MAX;
+    sockets->curr_req = -1;
+    sockets->local = true;
+    sockets->next = (NODE*)malloc(sizeof(NODE));
+
+    NODE *head = sockets->next;
     while(hosts->name != NULL)
     {   
         if (head == NULL)
@@ -326,10 +304,10 @@ void init_nodes(HOST *hosts)
         head->used = false;
         head->cost = INT_MAX;
         head->curr_req = -1;
+        sockets->local = false;
         head->next = NULL;
 
         head = head->next;
-
         ++hosts;
     }
 }
@@ -356,43 +334,6 @@ void print_sock_list(NODE *list)
 }
 
 
-bool find(int queue[], int socket)
-{
-    bool found = false; 
-
-    for (int i = 0; i < MAX_QUEUE_ITEMS; i++)
-    {
-        if(queue[i] == socket)
-        {
-            found = true;
-        }
-    }
-
-    return found;
-}
-
-
-bool check_socket_exists (NODE *list, int sd)
-{
-    bool exists = false;
-
-    NODE *head = list; 
-    while(list->next != NULL)
-    {
-        if(list->sock == sd)
-        {
-            exists = true;
-            break;
-        }
-
-        ++list;
-    }
-    list = head;
-
-    return exists;
-}
-
-
 void reset_socket_node(NODE *list)
 {   
     list->sock = -1;
@@ -406,7 +347,9 @@ NODE* get_lowest_cost()
 {
     NODE *low_host;
     // COPYING THE HEAD OF THE GLOBAL VAR
-    NODE * list = sockets;
+    // DONT CHECK THE FIRST ONE AS ITS THE LOCAL HOST
+    // AND LOCAL HOST NEVER NEEDS TO SEND REQ COSTS
+    NODE * list = sockets->next;
     int min = list->cost;
     low_host = list;
 
@@ -431,11 +374,7 @@ NODE* get_lowest_cost()
 
 void make_free(NODE *sockets, int sd)
 {
-    while(sockets->sock != sd)
-    {
-        ++sockets;
-    }
-
+    while(sockets->sock != sd) ++sockets;
     sockets->used = false;
 }
 
@@ -562,7 +501,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
             if( actions[current_action].is_remote )
             {   
-                printf("PICKING LOWEST COST\n");
+                printf("PICKING LOWEST COST...\n");
                 NODE *slave = get_lowest_cost();
                 cost_waiting = false;
 
@@ -577,16 +516,20 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             }
         }
 
-        printf("%i %i\n",current_action, actions_left);
         // ACTIONS LEFT FOR EXECUTION
         if(current_action < actions_left)
         {
             // LOCAL 
-            if( actions[current_action].is_remote != 1 )
+            if( !actions[current_action].is_remote )
             {
                 // RUN PROCESS - USE system()??
-                system(actions[current_action].command);
-                ++actions_executed; 
+                // FIRST NODE IN sockets IS THE LOCAL_HOST
+                int socket_desc = create_conn(sockets->ip, sockets->port);
+                // printf("APPEND\n");
+                sockets->sock = socket_desc;
+                sockets->curr_req = CMD_SEND_FILE;
+                sockets->actions = &actions[current_action];
+                FD_SET(socket_desc, &output_sockets);
                 ++current_action;
             }
 
@@ -594,7 +537,8 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             {   
                 printf("BUILDING FD_SET...\n");
                 // BUILDING THE FD_SET
-                NODE *head = sockets;
+                // HEAD IS LOCAL HOST
+                NODE *head = sockets->next;
                 while(head != NULL)
                 {   
                     if( !head->used )
@@ -628,11 +572,11 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
 
             for (size_t i = 0; i < FD_SETSIZE; i++)
             {
-                
                 if (FD_ISSET(i, &input_sockets))
                 {   
+                    //sleep(2);
                     int preamble = recv_byte_int(i);
-                    // printf("PREAMBLE NUMBER: %d\n", preamble);
+                    printf("PREAMBLE NUMBER: %d\n", preamble);
 
                     if(preamble == CMD_ACK)
                     {   
@@ -642,7 +586,9 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
 
                     if(preamble == CMD_QUOTE_REPLY)
                     {   
-                        recv_cost_reply(i);
+                        //recv_cost_reply(i);
+                        int cost = recv_byte_int(i);
+                        printf("RECV %i\n", cost);
                         quote_queue--;
                         cost_waiting = true;
                         FD_CLR(i, &input_sockets);
@@ -678,13 +624,22 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         // MARK UNUSED
                         NODE *node = get_node(i);
                         node->used = false;
+                        close(i);
+                    }
 
+                    if(preamble == CMD_NO_OUTPUT)
+                    {   
+                        int return_code = recv_byte_int(i);
+                        FD_CLR(i, &input_sockets);
+                        printf("NO OUTPUT FILE... RETURN CODE %i\n", return_code);
+                        ++actions_executed;
                         close(i);
                     }
                 }
 
                 if (FD_ISSET(i, &output_sockets))
                 {   
+                    sleep(2);
                     CMD curr_req = get_curr_req(i);
                     if(curr_req == CMD_QUOTE_REQUEST)
                     {   
@@ -726,8 +681,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         
             break;
         }
-        
-        printf("EXITED\n");
 
     }
 }
@@ -756,7 +709,7 @@ int main (int argc, char *argv[])
     for (size_t i = 0; i < num_sets; i++)
     {   
         
-        handle_conn(sockets, action_set->actions, hosts, action_set[i].action_totals);
+        handle_conn(sockets, action_set[i].actions, hosts, action_set[i].action_totals);
     }
 
     return 0; 

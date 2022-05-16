@@ -1,6 +1,8 @@
 #include "parse_c.h"
 //----------------------------------------------
 
+
+
 char *trim_whitespace(char *str)
 {
     char *end;
@@ -31,7 +33,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         exit(EXIT_FAILURE);
     }
 
-    int default_port = 0;
+    
     char line[MAX_LINE_LENGTH] = "";
 
     // READ AND PARSE FILES LINE BY LINE
@@ -102,7 +104,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 // CHECKS IF THIS IS A REMOTE COMMAND
                 if (strstr(line, "remote-") != NULL)
                 {
-                    ACTION_DATA(num_sets-1, action_index).is_remote = 1;
+                    ACTION_DATA(num_sets-1, action_index).is_remote = true;
                     int j = 0;
                     while (line[j] != '-')
                     {   
@@ -114,7 +116,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 }
                 else
                 {
-                    ACTION_DATA(num_sets-1, action_index).is_remote = -1;
+                    ACTION_DATA(num_sets-1, action_index).is_remote = false;
                     char *buffer = trim_whitespace(line);
                     ACTION_DATA(num_sets-1, action_index).command = strdup(buffer);
                 }
