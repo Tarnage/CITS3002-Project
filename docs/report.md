@@ -58,11 +58,22 @@ We would have to send the size of the payload after ever type of communication f
 ### Walkthrough of server and client interactions
 1. Server is created by running (python3 rakeserver.py 6328). Opening an port and listens for connections.
 
-2. Client is created by running (python3 rake-p.py). Client uses an socket to successfully connect to the server at the specified port. 
+2. Client is created by running (python3 rake-p.py). Client creates and connects sockets for quote while listening to server. When connection is established the client will initate the connection by sending a preamble represented in 4 bytes and in edian byte order (CMD_QUOTE_REQUEST). The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). 
 
-3. Client sends a command to the servers (for example echo starting actionset1) with a message asking for the cost of executing the command on that server. It then waits for a response from the server. 
+3. If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing.
+
+
+
+
+
+
+
+
+
+3. Client asks the server (for example echo starting actionset1) with a message asking for the cost of executing the command on that server. It then waits for a response from the server. 
 
 4. Server receives the command from the client and deterimines the price to run this command (price varies depending on the command type, resources required and how busy the server is). It then sends the price back to the client. 
+
 
 ## Performance
 ### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
