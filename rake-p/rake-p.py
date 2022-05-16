@@ -369,7 +369,7 @@ def recv_bin_file(sd):
 
 	check_downloads_dir()
 
-	path = f'{DOWNLOADS}{filename}'
+	path = f'{DOWNLOADS}/{filename}'
 	try:
 		with open(path, "wb") as f:
 			buffer = b""
@@ -487,6 +487,7 @@ def handle_conn(sets):
 
 	# REMAINING ACTIONS IN THIS LOOP
 	actions_left = len(sets)
+	print(f"ACTIONS LEFT = {actions_left}")
 
 	# HOW MANY SOCKETS ARE OUT REQUESTING FOR COST
 	quote_queue = 0
@@ -495,6 +496,7 @@ def handle_conn(sets):
 	cost_waiting = False
 
 	while actions_executed < actions_left :
+		print(f"{actions_executed}  {actions_left}")
 		try:
 			# WE HAVE COSTS FOR THE NEXT ACTION
 			if (quote_queue == 0) and cost_waiting:
@@ -512,6 +514,7 @@ def handle_conn(sets):
 
 			# WE HAVE ACTIONS TO EXECUTE 
 			if (curr_action < actions_left):
+
 				if (not sets[curr_action].remote):
 					# 0TH INDEX IS ALWAYS LOCALHOST
 					local = obj_hosts[0]
@@ -526,14 +529,13 @@ def handle_conn(sets):
 				if (curr_action < actions_left):
 					# SEND COST REQS TO FREE SERVERS
 					for h in obj_hosts:
-						if not h.used:
+						if (not h.used) and (not h.local):
 							sd = create_socket(h.ip, h.port)
 							h.sock = sd
 							h.used = True
 							quote_queue += 1
 							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
 							output_sockets.append(sd)
-							sd.setblocking(False)
 
 
 			# GET THE LIST OF READABLE SOCKETS
@@ -603,6 +605,7 @@ def handle_conn(sets):
 					elif sigma == ACK.CMD_NO_OUTPUT:
 						r_code = recv_byte_int(sock)
 						print(f"RECV CODE: {r_code}")
+						actions_executed += 1
 						mark_free(sock)
 						sock.close()
 						del msg_queue[sock]
@@ -674,8 +677,6 @@ def handle_conn(sets):
 			close_sockets(input_sockets)
 			close_sockets(output_sockets)
 			sys.exit()
-	
-	reset_host()
 
 
 
@@ -688,8 +689,10 @@ def main(argv):
 
 	global obj_hosts
 	obj_hosts = get_host_obj(dict_hosts)
-
+	count = 0
 	for sets in actions:
+		count += 1
+		print(f"EXECTUING ACTIONSET {count}")
 		handle_conn(list(sets))
 		
 if __name__ == "__main__":

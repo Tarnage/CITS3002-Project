@@ -226,6 +226,34 @@ def recv_text_file(sd):
 		sys.exit(f'File creation failed with error: {err}')
 
 
+def recv_bin_file(sd):
+	''' Receive binary file from server
+		Args:
+			sd(socket): Connection file is being sent from
+	'''
+
+	raddr = sd.getpeername()
+	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	check_temp_dir(peer_dir)
+	tmp = f"./tmp/{peer_dir}/"
+
+	filename = recv_filename(sd)
+	print(f"RECEIVED FILE NAME: {filename}")
+	size = recv_byte_int(sd)
+
+	buffer = b""
+	while len(buffer) < size:
+		print("reading")
+		buffer += sd.recv(size - len(buffer))
+
+	try:
+		with open(tmp + filename, "wb") as f:
+			f.write(buffer)
+
+	except OSError as err:
+		sys.exit(f'File creation failed with error: {err}')
+
+
 def send_byte_int(sd, preamble):
 	''' Helper to send the byte size of outgoing payload
 		Args:
@@ -468,6 +496,7 @@ def handle_fork(sock):
 			elif r_code == 0:
 				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
 				send_byte_int(sock, r_code)
+				send_byte_int(sock, ACK.CMD_RETURN_FILE)
 				send_bin_file(sock, file_attr)
 
 			# EXECUTION FAILED WITH WARNING
@@ -496,6 +525,10 @@ def handle_fork(sock):
 
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
+
+		elif sigma == ACK.CMD_BIN_FILE:
+			recv_bin_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
 
 
