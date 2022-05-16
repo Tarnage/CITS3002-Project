@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <sys/select.h>
+#include <fcntl.h>
 
 #define MAX_BYTES_SIGMA 4
 #define TEMP_FOLDER "./tmp/"

@@ -103,6 +103,7 @@ def send_quote(sd):
 	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.sendall( cost )
+	time.sleep(2)
 
 
 def rm_client_files(sd):
@@ -259,7 +260,7 @@ def send_byte_int(sd, preamble):
 			sd(socket): socket descriptor of the connection
 	'''
 	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.send(payload)
+	sd.sendall(payload)
 
 
 def send_filename(sd, filename):
@@ -529,6 +530,12 @@ def handle_fork(sock):
 		elif sigma == ACK.CMD_BIN_FILE:
 			recv_bin_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
+		
+
+		# TODO: ERROR 
+		elif sigma == ACK.CMD_ECHO:
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES

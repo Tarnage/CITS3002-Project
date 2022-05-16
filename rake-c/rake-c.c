@@ -261,6 +261,11 @@ int create_conn(char *host, int port)
         exit(EXIT_FAILURE);
     }
 
+    //Set the socket to non-blocking
+    // int flags = fcntl(sock, F_GETFL, 0);
+    // fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+
     // CHECK CONNECTION
     int status = -1;
     if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
@@ -345,11 +350,11 @@ void reset_socket_node(NODE *list)
 
 NODE* get_lowest_cost()
 {
-    NODE *low_host;
+    NODE *low_host = (NODE*)malloc(sizeof(NODE));
     // COPYING THE HEAD OF THE GLOBAL VAR
     // DONT CHECK THE FIRST ONE AS ITS THE LOCAL HOST
     // AND LOCAL HOST NEVER NEEDS TO SEND REQ COSTS
-    NODE * list = sockets->next;
+    NODE *list = sockets->next;
     int min = list->cost;
     low_host = list;
 
@@ -494,7 +499,11 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
     // int sigma; 
     
     while (actions_executed < actions_left)
-    {
+    {   
+        printf("CURR %i\n", current_action);
+        printf("executed %i\n", actions_executed);
+        printf("actions left %i\n", actions_left);
+        printf("quote queue %i\n", quote_queue);
         if(quote_queue == 0 && cost_waiting)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
@@ -541,8 +550,9 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 NODE *head = sockets->next;
                 while(head != NULL)
                 {   
-                    if( !head->used )
-                    {
+                    if( (!head->used) && (!head->local) )
+                    {   
+                        printf("BUILDING\n");
                         int socket_desc = create_conn(head->ip, head->port);
                         head->sock = socket_desc;
                         head->used = true;
@@ -556,8 +566,12 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             }
         }
 
+        struct timeval tv;
+        tv.tv_sec = 5;
+
         printf("SELECTING....\n");
-        int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, 0);
+        int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, &tv);
+        printf("ACTIVITY %i\n", activity);
         switch (activity)
         {
         case -1:
@@ -584,7 +598,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         FD_SET(i, &output_sockets);
                     }
 
-                    if(preamble == CMD_QUOTE_REPLY)
+                    else if(preamble == CMD_QUOTE_REPLY)
                     {   
                         //recv_cost_reply(i);
                         int cost = recv_byte_int(i);
@@ -594,7 +608,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         FD_CLR(i, &input_sockets);
                     }
 
-                    if(preamble == CMD_RETURN_STATUS)
+                    else if(preamble == CMD_RETURN_STATUS)
                     {
                         int return_code = recv_byte_int(i);
                         // printf("RETURN CODE: %d\n", return_code);
@@ -605,17 +619,17 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         }
                     }
                     
-                    if (preamble == CMD_RETURN_STDOUT)
+                    else if (preamble == CMD_RETURN_STDOUT)
                     {
                         continue;
                     }
                     
-                    if (preamble == CMD_RETURN_STDERR)
+                    else if (preamble == CMD_RETURN_STDERR)
                     {
                         continue; 
                     }
 
-                    if(preamble == CMD_RETURN_FILE)
+                    else if(preamble == CMD_RETURN_FILE)
                     {
                         recv_bin_file(i);
                         FD_CLR(i, &input_sockets);
@@ -627,13 +641,13 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         close(i);
                     }
 
-                    if(preamble == CMD_NO_OUTPUT)
+                    else if(preamble == CMD_NO_OUTPUT)
                     {   
                         int return_code = recv_byte_int(i);
                         FD_CLR(i, &input_sockets);
                         printf("NO OUTPUT FILE... RETURN CODE %i\n", return_code);
                         ++actions_executed;
-                        close(i);
+                        //close(i);
                     }
                 }
 
@@ -648,8 +662,9 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         FD_CLR(i, &output_sockets);
                         // ADD TO INPUT
                         FD_SET(i, &input_sockets);
+                        printf("WAITING...\n");
                     }
-                    if(curr_req == CMD_SEND_FILE)
+                    else if(curr_req == CMD_SEND_FILE)
                     {
                         NODE *curr = get_node(i);
                         int file_count = curr->actions->req_count;
