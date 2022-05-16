@@ -3,7 +3,7 @@
 # tab = "\t"
 # Currently index out of range when it reaches blank line!
 PORT  = 6327
-HOSTS = 192.168.1.111 127.0.1.1:6431
+HOSTS = 192.168.1.105 127.0.0.1:6431
 
 actionset1:
 	echo starting actionset1

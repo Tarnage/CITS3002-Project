@@ -430,14 +430,13 @@ def handle_conn(host, port):
 			else:
 				fork = os.fork()
 
-				# if fork == -1:
-				# 	conn.close()
-				# else:
-				handle_fork(conn)
-				# else:
-				# 	conn.close()
-			# os.wait()
-			# print("RETURNED")
+				if fork < 0:
+					conn.close()
+				elif fork > 0:
+					os.wait()
+					handle_fork(conn)
+					
+			print("RETURNED")
 
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
