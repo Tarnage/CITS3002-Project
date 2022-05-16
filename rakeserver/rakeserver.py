@@ -436,7 +436,7 @@ def handle_conn(host, port):
 					handle_fork(conn)
 				else:
 					conn.close()
-			
+			os.wait()
 			print("RETURNED")
 
 	except KeyboardInterrupt:
