@@ -64,11 +64,11 @@ We would have to send the size of the payload after ever type of communication f
 
 4. The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing. 
 
-5. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client receoves the cost and closes the connection. 
+5. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client recieves the cost and closes the connection. 
 
-5. Steps 3 to 5 are repeated until the client has found server with lowest cost. Client creates and connects sockets for executing commands on the server with lowest cost. Client 
+5. Steps 3 to 5 are repeated until the client has found server with lowest cost. 
 
-
+6. Client creates and connects sockets for executing commands on the server with lowest cost. Client determines if it requires files by reading the Rakefile. If it does, client sends required files to the server by sending an preamble (CMD_SEND_FILE) in big edian byte order.
 
 ## Performance
 ### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
