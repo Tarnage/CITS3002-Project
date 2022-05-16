@@ -6,7 +6,6 @@ import time
 import random
 import os
 import socket
-import select
 import sys
 import subprocess
 
