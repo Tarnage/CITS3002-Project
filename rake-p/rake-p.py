@@ -119,15 +119,15 @@ def create_socket(host, port):
 
 
 def get_host_obj(hosts):
-	socket_lists = list()
+	global obj_hosts
+	obj_hosts = list()
 	port = parse_rakefile.get_default_port()
 	# ADD LOCAL HOST
-	socket_lists.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
+	obj_hosts.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
 
 	for key in hosts:
-		socket_lists.append(Hosts(None, key, hosts[key]))
-	
-	return socket_lists
+		obj_hosts.append(Hosts(None, key, hosts[key]))
+
 
 
 
@@ -170,17 +170,17 @@ def get_lowest_cost():
 	lowest_cost = MAX_INT
 	curr = None
 	for h in obj_hosts:
-		if h.cost < lowest_cost:
-			lowest_cost = h.cost
-			curr = h
+		if(not h.local):
+			if (h.cost < lowest_cost):
+				lowest_cost = h.cost
+				curr = h
+				# ALREADY TRUE
+				h.used = True
+			else:
+				h.used = False
 
-			# ALREADY TRUE
-			h.used = True
-		else:
-			h.used = False
-
-		# RESET COST
-		h.cost = MAX_INT
+			# RESET COST
+			h.cost = MAX_INT
 	
 	return curr
 
@@ -229,7 +229,9 @@ def get_filename(sd):
 		if h.sock == sd:
 			
 			index = len(h.action.requires) - 1
+			
 			if index > 0:
+				print("FILE AND INDEX {} {}".format(h.action.requires[index], index))
 				file = h.action.requires[index]
 				h.action.requires.pop()
 				return file
@@ -495,7 +497,6 @@ def handle_conn(sets):
 	cost_waiting = False
 
 	while actions_executed < actions_left :
-		
 		try:
 			# WE HAVE COSTS FOR THE NEXT ACTION
 
@@ -536,14 +537,14 @@ def handle_conn(sets):
 					output_sockets.append(sd)
 
 
-
+			#print_objs(obj_hosts)
 
 			# GET THE LIST OF READABLE SOCKETS
 			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
 
 			for sock in read_sockets:
 				if sock:
-					print(f"{sock.getpeername()} WAITING FOR REPLY...")
+					#print(f"{sock.getpeername()} WAITING FOR REPLY...")
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 
@@ -593,7 +594,7 @@ def handle_conn(sets):
 						raise Exception(msg)
 						
 					elif sigma == ACK.CMD_RETURN_FILE:
-						print("RECIEVING FILE...")
+						print("<----- RECIEVING FILE...")
 						recv_bin_file(sock)
 						print("CLOSING CONNECTION...")
 						actions_executed += 1
@@ -604,7 +605,7 @@ def handle_conn(sets):
 
 					elif sigma == ACK.CMD_NO_OUTPUT:
 						r_code = recv_byte_int(sock)
-						print(f"RECV CODE: {r_code}")
+						print(f"<------ RECV CODE: {r_code}")
 						actions_executed += 1
 						mark_free(sock)
 						sock.close()
@@ -618,7 +619,7 @@ def handle_conn(sets):
 					# CHECK WHAT YPE OF MSG TO SEND
 					msg_type = msg_queue[sock]
 					#print(msg_queue)
-					print(f"{sock.getpeername()} SENDING MESSAGE...")
+					#print(f"{sock.getpeername()} SENDING MESSAGE ----->")
 
 					# SLEEP
 					# rand = random.randint(1, 10)
@@ -682,17 +683,15 @@ def handle_conn(sets):
 
 def print_objs(hosts):
 	for host in hosts:
-		print(host.sock, host.ip, host.port, host.used)
+		print(host.ip, host.port, host.used, host.action, host.cost, host.local)
+
 
 def main(argv):
 	dict_hosts, actions = parse_rakefile.read_rake(argv[1])
 
-	global obj_hosts
-	obj_hosts = get_host_obj(dict_hosts)
-	count = 0
+	get_host_obj(dict_hosts)
+	
 	for sets in actions:
-		count += 1
-		print(f"EXECTUING ACTIONSET {count}")
 		handle_conn(list(sets))
 		
 if __name__ == "__main__":
