@@ -59,7 +59,7 @@ class Ack:
 
 
 class Hosts:
-	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, local=False):
+	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, got_cost=False, local=False):
 		self.sock = sock
 		self.ip = ip
 		self.port = port
@@ -67,6 +67,7 @@ class Hosts:
 		self.action = action
 		self.cost = cost
 		self.local = local
+		self.got_cost = got_cost
 
 
 # INIT GLOBALS
@@ -155,7 +156,6 @@ def send_cmd(sd):
 			send_ack(sd, ACK.CMD_EXECUTE)
 			send_byte_int(sd, len(payload))
 			sd.sendall(payload)
-			print(f"COMMAND SENT {payload}...")
 			break
 
 # TODO: DONT MAKE cost_list global but instead have it sent in 
@@ -170,15 +170,13 @@ def get_lowest_cost():
 	lowest_cost = MAX_INT
 	curr = None
 	for h in obj_hosts:
-		if(not h.local):
+		if( (h.local == False) and (h.got_cost == True) ):
 			if (h.cost < lowest_cost):
 				lowest_cost = h.cost
 				curr = h
-				# ALREADY TRUE
-				h.used = True
-			else:
-				h.used = False
-
+				
+			h.got_cost = False
+			h.used = False
 			# RESET COST
 			h.cost = MAX_INT
 	
@@ -193,7 +191,8 @@ def mark_free(sd):
 	global obj_hosts
 
 	for h in obj_hosts:
-		if (h.sock == sd) and (not h.local):
+		if (h.sock == sd) and (not h.local == True):
+			print("MARK FREE")
 			h.used = False
 			break
 
@@ -210,6 +209,7 @@ def add_cost(sd, cost):
 	for h in obj_hosts:
 		if h.sock == sd:
 			h.cost = cost
+			h.got_cost = True
 			break
 
 
@@ -231,7 +231,7 @@ def get_filename(sd):
 			index = len(h.action.requires) - 1
 			
 			if index > 0:
-				print("FILE AND INDEX {} {}".format(h.action.requires[index], index))
+				#print("FILE AND INDEX {} {}".format(h.action.requires[index], index))
 				file = h.action.requires[index]
 				h.action.requires.pop()
 				return file
@@ -281,6 +281,7 @@ def send_txt_file(sd, filename, path):
 	payload = ""
 	with open(path, "r") as f:
 		payload = f.read()
+	
 	
 	send_file_name(sd, filename)
 
@@ -502,9 +503,10 @@ def handle_conn(sets):
 
 			# WE HAVE ACTIONS TO EXECUTE 
 			if (curr_action < actions_left):
-				if (not sets[curr_action].remote):
+				if (sets[curr_action].remote == False):
 					# 0TH INDEX IS ALWAYS LOCALHOST
 					obj_hosts[0].action = sets[curr_action]
+					
 					sd = create_socket(obj_hosts[0].ip, obj_hosts[0].port)
 					obj_hosts[0].sock = sd
 					msg_queue[sd] = ACK.CMD_SEND_FILE
@@ -516,7 +518,7 @@ def handle_conn(sets):
 					print(f"{actions_executed}  {actions_left}  {curr_action}")
 					# SEND COST REQS TO FREE SERVERS
 					for h in obj_hosts:
-						if (not h.used) and (not h.local):
+						if (h.used == False) and (h.local == False):
 							sd = create_socket(h.ip, h.port)
 							h.sock = sd
 							h.used = True
@@ -524,7 +526,7 @@ def handle_conn(sets):
 							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
 							output_sockets.append(sd)
 
-			if (quote_queue == 0) and cost_waiting:
+			if (quote_queue == 0) and (cost_waiting == True) and (actions_executed == curr_action):
 				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
 				if sets[curr_action].remote:
 					slave = get_lowest_cost()
@@ -532,6 +534,7 @@ def handle_conn(sets):
 					slave.action = sets[curr_action]
 					sd = create_socket(slave.ip, slave.port)
 					slave.sock = sd
+					slave.used = True
 					msg_queue[sd] = ACK.CMD_SEND_FILE
 					curr_action += 1
 					output_sockets.append(sd)
@@ -541,9 +544,10 @@ def handle_conn(sets):
 
 			# GET THE LIST OF READABLE SOCKETS
 			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
-
+			
 			for sock in read_sockets:
 				if sock:
+					#print_objs(obj_hosts)
 					#print(f"{sock.getpeername()} WAITING FOR REPLY...")
 					if sock in input_sockets:
 						input_sockets.remove(sock)
@@ -565,7 +569,7 @@ def handle_conn(sets):
 						cost_waiting = True
 						quote_queue -= 1
 						print("CLOSING CONNECTION...")
-						sock.close()
+						#sock.close()
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
 						r_code = recv_byte_int(sock)
@@ -597,25 +601,25 @@ def handle_conn(sets):
 						print("<----- RECIEVING FILE...")
 						recv_bin_file(sock)
 						print("CLOSING CONNECTION...")
-						actions_executed += 1
+						actions_executed = actions_executed + 1
 						mark_free(sock)
-						sock.close()
+						#sock.close()
 						del msg_queue[sock]
 						# END OF CONNECTION 
 
 					elif sigma == ACK.CMD_NO_OUTPUT:
 						r_code = recv_byte_int(sock)
 						print(f"<------ RECV CODE: {r_code}")
-						actions_executed += 1
+						actions_executed = actions_executed + 1
 						mark_free(sock)
-						sock.close()
+						#sock.close()
 						del msg_queue[sock]
 						
 			for sock in write_sockets:
 				if sock:
 					if sock in output_sockets:
 						output_sockets.remove(sock)
-
+					#print_objs(obj_hosts)
 					# CHECK WHAT YPE OF MSG TO SEND
 					msg_type = msg_queue[sock]
 					#print(msg_queue)
@@ -663,32 +667,35 @@ def handle_conn(sets):
 							else:
 								print(f"{filename} DOES NOT EXSIST!")
 								del msg_queue[sock]
-								sock.close()
+								#sock.close()
 
 		except KeyboardInterrupt:
-			print('Interrupted. Closing sockets...')
-			# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
-			close_sockets(input_sockets)
-			close_sockets(output_sockets)
-			sys.exit()
+		# 	print('Interrupted. Closing sockets...')
+		# 	# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
+		# 	close_sockets(input_sockets)
+		# 	close_sockets(output_sockets)
+		 	sys.exit()
 
-		except Exception as err:
-			print( f'ERROR IN REMOTE HOST WITH:' )
-			print( f'{err}' )
-			close_sockets(input_sockets)
-			close_sockets(output_sockets)
-			sys.exit()
+		# except Exception as err:
+		# 	print( f'ERROR IN REMOTE HOST WITH:' )
+		# 	print( f'{err}' )
+		# 	close_sockets(input_sockets)
+		# 	close_sockets(output_sockets)
+		# 	sys.exit()
 
 
 
 def print_objs(hosts):
-	for host in hosts:
-		print(host.ip, host.port, host.used, host.action, host.cost, host.local)
 
+	for host in hosts:
+		if host.action != None:
+			print("ip:{}\n port:{}\n used:{}\n cmd:{}\n cost:{}\n local:{}".format(host.ip, host.port, host.used, host.action.cmd, host.cost, host.local))
+		else:
+			print("ip:{}\n port:{}\n used:{}\n cost:{}\n local:{}".format(host.ip, host.port, host.used, host.cost, host.local))
 
 def main(argv):
-	dict_hosts, actions = parse_rakefile.read_rake(argv[1])
-
+	#dict_hosts, actions = parse_rakefile.read_rake(argv[1])
+	dict_hosts, actions = parse_rakefile.read_rake("/home/thanh/GitHub/CITS3002-Project/rake-p/hardtest")
 	get_host_obj(dict_hosts)
 	
 	for sets in actions:

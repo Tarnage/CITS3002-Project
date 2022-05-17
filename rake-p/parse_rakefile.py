@@ -30,7 +30,6 @@ def read_rake(filename):
 		host (dict[str]:[int]): key: hostname value: port
 		action_sequence( list( list(Action) ) ): will contain action objects to be run in sequence
 	'''
-
 	with open(filename) as rake_file:
 
 		global deafult_port

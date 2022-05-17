@@ -215,8 +215,11 @@ def recv_text_file(sd):
 
 	buffer = ""
 	while len(buffer) < size:
-		print("reading")
-		buffer += sd.recv(size - len(buffer)).decode(FORMAT)
+		print("reading..")
+		print(f"{len(buffer)}/{size}")
+		buffer = sd.recv(size).decode(FORMAT)
+
+	print(f"{len(buffer)}/{size}")
 
 	try:
 		with open(tmp + filename, "w") as f:
@@ -397,10 +400,10 @@ def handle_conn(host, port):
 		port (int): the port the server will bind 
 	'''	
 
-	global local_host
+	# global local_host
 
-	if (host == "localhost") or (host == "127.0.0.1"):
-		local_host = True
+	# if (host == "localhost") or (host == "127.0.0.1"):
+	# 	local_host = True
 
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
@@ -427,21 +430,24 @@ def handle_conn(host, port):
 			conn, addr = sd.accept()
 			
 			# FORK FOR NEW CONNECTIONS ONLY
-			if conn == sd:
-				print("FORKING")
-				if conn == -1:
+			print("FORKING")
+			if conn == -1:
+				#conn.close()
+				print("ERROR")
+			else:
+				fork = os.fork()
+				if fork < 0:
+					#conn.close()
+					print("FORK ERROR")
+				elif fork == 0:
+					print('CHILD EXECUTING')
+					# os.execl(cmd, "-c", str(conn))
+					handle_fork(conn)
 					conn.close()
+					print("CHILD KILLED")
+					sys.exit()
 				else:
-					fork = os.fork()
-					if fork < 0:
-						conn.close()
-					elif fork == 0:
-						print('CHILD EXECUTING')
-						# os.execl(cmd, "-c", str(conn))
-						handle_fork(conn)
-						conn.close()
-					else:
-						os.wait()
+					os.wait()
 
 			print("RETURNED")
 
@@ -467,6 +473,7 @@ def handle_fork(sock):
 	keep_going = True
 	while keep_going:
 		# SOMETHING TO READ
+		print(f"{sock.getsockname()} LISTENING....")
 		sigma = recv_byte_int(sock)
 		print(f"----> RECIEVING ACK TYPE: {sigma}")
 
@@ -552,7 +559,7 @@ def handle_fork(sock):
 			# sock.close()
 			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
-
+	print("EXITED CHILD")
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
 
