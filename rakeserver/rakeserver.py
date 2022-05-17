@@ -405,6 +405,7 @@ def handle_conn(host, port):
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		sd.bind( (host, port) )
