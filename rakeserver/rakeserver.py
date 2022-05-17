@@ -48,7 +48,6 @@ class Ack:
 
 		self.CMD_ACK = 15
 		self.CMD_NO_OUTPUT = 16
-		self.CMD_RESEND_FILE = 17
 
 
 class FileStats():
@@ -356,11 +355,14 @@ def recv_byte_int(sd):
 	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
+			print("TRYING TO READ INT..")
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
+			print("MORE SIZE = ",more_size)
 			if not more_size:
 				break
 		except socket.error as err:
 			if err.errno == 35:
+				print("NO AVAILIABLE TRYING AGAIN...")
 				time.sleep(0)
 				continue
 		size += more_size
@@ -412,6 +414,7 @@ def handle_conn(host, port):
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
+		sd.setblocking(True)
 		sd.bind( (host, port) )
 		print( f'PORT {port} BINDED...' )
 	except socket.error as err:
@@ -433,20 +436,20 @@ def handle_conn(host, port):
 			# FORK FOR NEW CONNECTIONS ONLY
 			print("FORKING")
 			if conn == -1:
-				conn.shutdown()
+				conn.shutdown(socket.SHUT_WR)
 				conn.close()
 				print("ERROR")
 			else:
 				fork = os.fork()
 				if fork < 0:
-					conn.shutdown()
+					conn.shutdown(socket.SHUT_WR)
 					conn.close()
 					print("FORK ERROR")
 				elif fork == 0:
 					print('CHILD EXECUTING')
 					# os.execl(cmd, "-c", str(conn))
 					handle_fork(conn)
-					conn.shutdown()
+					conn.shutdown(socket.SHUT_WR)
 					conn.close()
 					print("CHILD KILLED")
 					sys.exit()
@@ -458,7 +461,7 @@ def handle_conn(host, port):
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
 		# Make sure we close sockets gracefully
-		conn.shutdown()
+		conn.shutdown(socket.SHUT_WR)
 		sd.close()
 		sys.exit()
 	# except Exception as err:
@@ -476,9 +479,6 @@ def return_file(sd):
 
 def handle_fork(sock):
 	print(f"CHILD PID: {os.getpid()}")
-
-	seq = 0
-
 	keep_going = True
 	while keep_going:
 		# SOMETHING TO READ
@@ -557,17 +557,12 @@ def handle_fork(sock):
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
-			send_byte_int(sock, seq)
-			seq = 1 - seq
+
 
 		elif sigma == ACK.CMD_BIN_FILE:
 			recv_bin_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
-			send_byte_int(sock, seq)
-			seq = 1 - seq
-		
-		elif sigma == ACK.CMD_RESEND_FILE:
-			seq = 1 - seq
+
 
 		# TODO: ERROR 
 		elif sigma == ACK.CMD_ECHO:
