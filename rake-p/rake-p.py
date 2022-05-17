@@ -277,14 +277,15 @@ def send_txt_file(sd, filename, path):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to transfer
 	'''
-	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-
 	payload = ""
 	with open(path, "r") as f:
 		payload = f.read()
+
 	
-	
+
+	print("SENDING CMD_SEND_FILE ---->")
+	send_byte_int(sd, ACK.CMD_SEND_FILE)
+
 	send_file_name(sd, filename)
 
 	send_byte_int(sd, len(payload))
@@ -427,13 +428,17 @@ def recv_byte_int(sd):
 	return result
 
 
-def send_byte_int(sd, payload_len):
-	''' Helper to send the byte size of outgoing payload
+def send_byte_int(sd, payload):
+	''' Helper to send the ints in big endian padded to 4 bytes
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall(size)
+	print(f"PAYLOAD = {payload}")
+	preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
+	print(f"PAYLOAD = {preamble}")
+	test = sd.sendall(preamble)
+	print(f'SENT INT = {test}')
+	print(f'SENT INT = {len(preamble)}')
 
 
 def is_bin_file(path):
@@ -561,6 +566,7 @@ def handle_conn(sets):
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT PAYLOAD
 					if sigma == ACK.CMD_ACK:
+						print(f"RECV ACK {sock.getpeername()}")
 						output_sockets.append(sock)
 
 					elif sigma == ACK.CMD_QUOTE_REPLY:

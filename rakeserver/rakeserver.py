@@ -305,7 +305,7 @@ def recv_filename(sd):
 		try:
 			more_size = sd.recv( size - len(filename) )
 			if not more_size:
-				break
+				time.sleep(0)
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -331,7 +331,7 @@ def recv_cmd(sd, size):
 		try:
 			more_size = sd.recv( size - len(payload) )
 			if not more_size:
-				break
+				time.sleep(0)
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -356,10 +356,10 @@ def recv_byte_int(sd):
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
 			print("TRYING TO READ INT..")
-			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
+			more_size = sd.recv( (MAX_BYTE_SIGMA - len(size)) )
 			print("MORE SIZE = ",more_size)
 			if not more_size:
-				break
+				time.sleep(0)
 		except socket.error as err:
 			if err.errno == 35:
 				print("NO AVAILIABLE TRYING AGAIN...")
@@ -414,6 +414,7 @@ def handle_conn(host, port):
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
+		sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sd.setblocking(True)
 		sd.bind( (host, port) )
 		print( f'PORT {port} BINDED...' )
@@ -557,6 +558,7 @@ def handle_fork(sock):
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
+			time.sleep(0)
 
 
 		elif sigma == ACK.CMD_BIN_FILE:
