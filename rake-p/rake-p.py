@@ -56,6 +56,7 @@ class Ack:
 
 		self.CMD_ACK = 15
 		self.CMD_NO_OUTPUT = 16
+		self.CMD_RESEND_FILE = 17
 
 
 class Hosts:
@@ -68,6 +69,9 @@ class Hosts:
 		self.cost = cost
 		self.local = local
 		self.got_cost = got_cost
+		self.seq = 0
+		self.recv_seq = 0
+		self.curr_act = 0
 
 
 # INIT GLOBALS
@@ -228,12 +232,15 @@ def get_filename(sd):
 	for h in obj_hosts:
 		if h.sock == sd:
 			
-			index = len(h.action.requires) - 1
+			index = h.curr_act
 			
 			if index > 0:
 				#print("FILE AND INDEX {} {}".format(h.action.requires[index], index))
-				file = h.action.requires[index]
-				h.action.requires.pop()
+				if h.seq == h.recv_seq:
+					file = h.action.requires[index]
+					h.curr_act -= 1
+				else:
+					file = h.action.requires[index+1]
 				return file
 			else:
 				return None
@@ -463,11 +470,34 @@ def find_files(filename):
 			return result
 
 
+def incre_seq(sd):
+	global obj_hosts
+	for h in obj_hosts:
+		if h == sd:
+			h.seq = 1 - h.seq
+			break
 
+def append_recv_seq(sd, seq):
+	global obj_hosts
+	for h in obj_hosts:
+		if h == sd:
+			h.recv_seq = seq
+			break
+
+
+def resend_file(sd):
+	global obj_hosts
+	for h in obj_hosts:
+		if h == sd:
+			h.recv_seq = h.seq
+			return True
+	return False
 
 
 def handle_conn(sets):
 	global obj_hosts
+
+	timer = {}
 
 	# SOCKETS WE EXPECT TO READ FROM
 	input_sockets = list()
@@ -532,6 +562,7 @@ def handle_conn(sets):
 					slave = get_lowest_cost()
 					cost_waiting = False
 					slave.action = sets[curr_action]
+					slave.curr_act = len(slave.action.requires) -1
 					sd = create_socket(slave.ip, slave.port)
 					slave.sock = sd
 					slave.used = True
@@ -539,8 +570,19 @@ def handle_conn(sets):
 					curr_action += 1
 					output_sockets.append(sd)
 
-
 			#print_objs(obj_hosts)
+
+			to_remove = list()
+			for waiting in timer:
+				curr = time.time()
+				wait_time = int(curr - timer[waiting])
+				if wait_time > 5:
+					input_sockets.remove(waiting)
+					output_sockets.append(waiting)
+					to_remove.append(waiting)
+			
+			for remove in to_remove:
+				del timer[remove]
 
 			# GET THE LIST OF READABLE SOCKETS
 			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
@@ -559,6 +601,8 @@ def handle_conn(sets):
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT PAYLOAD
 					if sigma == ACK.CMD_ACK:
+						seq = recv_byte_int(sock)
+						append_recv_seq(sock, seq)
 						output_sockets.append(sock)
 
 					elif sigma == ACK.CMD_QUOTE_REPLY:
@@ -658,16 +702,25 @@ def handle_conn(sets):
 						else:
 							path = find_files(filename)
 							if path != None:
+								if resend_file(sock):
+									send_byte_int(sock, ACK.CMD_RESEND_FILE)
+								else:
+									incre_seq(sock)
+
 								if is_bin_file(path):
 									send_bin_file(sd, filename, path)
 								else:
 									send_txt_file(sd, filename, path)
 								msg_queue[sock] = ACK.CMD_SEND_FILE
+
+								timer[sock] = time.time()
+
 								input_sockets.append(sock)
 							else:
 								print(f"{filename} DOES NOT EXSIST!")
 								del msg_queue[sock]
 								#sock.close()
+
 
 		except KeyboardInterrupt:
 		# 	print('Interrupted. Closing sockets...')
