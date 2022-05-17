@@ -425,20 +425,23 @@ def handle_conn(host, port):
 	try:
 		while True:
 			conn, addr = sd.accept()
-			print("FORKING")
-			if conn == -1:
-				conn.close()
-			else:
-				fork = os.fork()
-				if fork < 0:
-					conn.close()
-				elif fork == 0:
-					print('CHILD EXECUTING')
-					# os.execl(cmd, "-c", str(conn))
-					handle_fork(conn)
+			
+			# FORK FOR NEW CONNECTIONS ONLY
+			if conn == sd:
+				print("FORKING")
+				if conn == -1:
 					conn.close()
 				else:
-					os.wait()
+					fork = os.fork()
+					if fork < 0:
+						conn.close()
+					elif fork == 0:
+						print('CHILD EXECUTING')
+						# os.execl(cmd, "-c", str(conn))
+						handle_fork(conn)
+						conn.close()
+					else:
+						os.wait()
 
 			print("RETURNED")
 
@@ -459,9 +462,8 @@ def retrun_status(sd):
 def return_file(sd):
 	pass
 
-def handle_fork(sd):
+def handle_fork(sock):
 	print(f"CHILD PID: {os.getpid()}")
-	sock, addr = sd.accept()
 	keep_going = True
 	while keep_going:
 		# SOMETHING TO READ
