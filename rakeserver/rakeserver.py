@@ -433,17 +433,20 @@ def handle_conn(host, port):
 			# FORK FOR NEW CONNECTIONS ONLY
 			print("FORKING")
 			if conn == -1:
-				#conn.close()
+				conn.shutdown()
+				conn.close()
 				print("ERROR")
 			else:
 				fork = os.fork()
 				if fork < 0:
-					#conn.close()
+					conn.shutdown()
+					conn.close()
 					print("FORK ERROR")
 				elif fork == 0:
 					print('CHILD EXECUTING')
 					# os.execl(cmd, "-c", str(conn))
 					handle_fork(conn)
+					conn.shutdown()
 					conn.close()
 					print("CHILD KILLED")
 					sys.exit()
@@ -455,10 +458,12 @@ def handle_conn(host, port):
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
 		# Make sure we close sockets gracefully
+		conn.shutdown()
 		sd.close()
 		sys.exit()
 	# except Exception as err:
 	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+	#	conn.shutdown()
 	# 	sd.close()
 	# 	sys.exit()
 
@@ -494,6 +499,7 @@ def handle_fork(sock):
 			send_quote(sock)
 			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
 			keep_going = False
+			#sock.shutdown()
 			# sock.close()
 			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 		
@@ -544,7 +550,7 @@ def handle_fork(sock):
 			if remove_temp == True:
 				rm_client_files(sock)
 				# END OF CONNECTION
-
+			#sock.shutdown()
 			# sock.close()
 			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
@@ -566,6 +572,7 @@ def handle_fork(sock):
 		# TODO: ERROR 
 		elif sigma == ACK.CMD_ECHO:
 			pass
+			#sock.shutdown()
 			# sock.close()
 			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
@@ -580,6 +587,7 @@ def close_sockets(sockets):
 			sockets(list): Contains a list of open sockets
 	'''
 	for sock in sockets:
+		#sock.shutdown()
 		sock.close()
 
 

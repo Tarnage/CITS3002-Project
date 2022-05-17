@@ -4,7 +4,6 @@ import parse_rakefile
 import sys
 import socket
 import select
-import subprocess
 import os
 import time
 import random
@@ -79,7 +78,6 @@ class Hosts:
 ACK = Ack()
 obj_hosts = list()
 
-
 def usage():
 	print("Usage: ")
 
@@ -91,6 +89,7 @@ def reset_host():
 	'''
 	global obj_hosts
 	for h in obj_hosts:
+		h.sock.shutdown()
 		h.sock.close()
 		h.used = False
 		h.action = None
@@ -143,6 +142,7 @@ def close_sockets(sockets):
 			sockets(list): Contains a list of open sockets
 	'''
 	for sock in sockets:
+		sock.shutdown()
 		sock.close()
 
 
@@ -613,6 +613,7 @@ def handle_conn(sets):
 						cost_waiting = True
 						quote_queue -= 1
 						print("CLOSING CONNECTION...")
+						#sock.shutdown()
 						#sock.close()
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
@@ -647,6 +648,7 @@ def handle_conn(sets):
 						print("CLOSING CONNECTION...")
 						actions_executed = actions_executed + 1
 						mark_free(sock)
+						#sock.shutdown()
 						#sock.close()
 						del msg_queue[sock]
 						# END OF CONNECTION 
@@ -656,6 +658,7 @@ def handle_conn(sets):
 						print(f"<------ RECV CODE: {r_code}")
 						actions_executed = actions_executed + 1
 						mark_free(sock)
+						#sock.shutdown()
 						#sock.close()
 						del msg_queue[sock]
 						
@@ -719,6 +722,7 @@ def handle_conn(sets):
 							else:
 								print(f"{filename} DOES NOT EXSIST!")
 								del msg_queue[sock]
+								#sock.shutdown()
 								#sock.close()
 
 
