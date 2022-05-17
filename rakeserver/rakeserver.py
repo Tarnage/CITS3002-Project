@@ -48,6 +48,7 @@ class Ack:
 
 		self.CMD_ACK = 15
 		self.CMD_NO_OUTPUT = 16
+		self.CMD_RESEND_FILE = 17
 
 
 class FileStats():
@@ -470,6 +471,9 @@ def return_file(sd):
 
 def handle_fork(sock):
 	print(f"CHILD PID: {os.getpid()}")
+
+	seq = 0
+
 	keep_going = True
 	while keep_going:
 		# SOMETHING TO READ
@@ -547,11 +551,17 @@ def handle_fork(sock):
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
+			send_byte_int(sock, seq)
+			seq = 1 - seq
 
 		elif sigma == ACK.CMD_BIN_FILE:
 			recv_bin_file(sock)
 			send_byte_int(sock, ACK.CMD_ACK)
+			send_byte_int(sock, seq)
+			seq = 1 - seq
 		
+		elif sigma == ACK.CMD_RESEND_FILE:
+			seq = 1 - seq
 
 		# TODO: ERROR 
 		elif sigma == ACK.CMD_ECHO:
