@@ -421,6 +421,7 @@ def handle_conn(host, port):
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
 	print(f"PARENT PID: {os.getpid()}")
+	cmd = "/home/thanh/GitHub/CITS3002-Project/rakeserver/rakeserver.py"
 	try:
 		while True:
 			conn, addr = sd.accept()
@@ -429,13 +430,16 @@ def handle_conn(host, port):
 				conn.close()
 			else:
 				fork = os.fork()
-
 				if fork < 0:
 					conn.close()
-				elif fork > 0:
-					os.wait()
+				elif fork == 0:
+					print('CHILD EXECUTING')
+					# os.execl(cmd, "-c", str(conn))
 					handle_fork(conn)
-			
+					conn.close()
+				else:
+					os.wait()
+
 			print("RETURNED")
 
 	except KeyboardInterrupt:
@@ -455,9 +459,11 @@ def retrun_status(sd):
 def return_file(sd):
 	pass
 
-def handle_fork(sock):
+def handle_fork(sd):
 	print(f"CHILD PID: {os.getpid()}")
-	while True:
+	sock, addr = sd.accept()
+	keep_going = True
+	while keep_going:
 		# SOMETHING TO READ
 		sigma = recv_byte_int(sock)
 		print(f"----> RECIEVING ACK TYPE: {sigma}")
@@ -474,8 +480,9 @@ def handle_fork(sock):
 			print(f'COST QUOTE REQUESTED')
 			send_quote(sock)
 			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-			sock.close()
-			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+			keep_going = False
+			# sock.close()
+			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 		
 		# REQUEST TO RUN COMMAND
 		elif sigma == ACK.CMD_EXECUTE:
@@ -492,6 +499,7 @@ def handle_fork(sock):
 			if (file_attr.filename == "") and (r_code == 0):
 				send_byte_int(sock, ACK.CMD_NO_OUTPUT)
 				send_byte_int(sock, r_code)
+				keep_going = False
 
 			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 			elif r_code == 0:
@@ -499,6 +507,7 @@ def handle_fork(sock):
 				send_byte_int(sock, r_code)
 				send_byte_int(sock, ACK.CMD_RETURN_FILE)
 				send_bin_file(sock, file_attr)
+				keep_going = False
 
 			# EXECUTION FAILED WITH WARNING
 			#TODO: hand error codes
@@ -507,6 +516,7 @@ def handle_fork(sock):
 				send_byte_int(sock, r_code)
 				send_std(sock, proc.stderr)
 				print("STDERR SENT --->")
+				keep_going = False
 
 			# EXECUTION HAD A FATAL ERROR
 			else:
@@ -514,6 +524,7 @@ def handle_fork(sock):
 				send_byte_int(sock, r_code)
 				send_std(sock, proc.stdout)
 				print("STDOUT SENT --->")
+				keep_going = False
 
 			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
 			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
@@ -521,8 +532,8 @@ def handle_fork(sock):
 				rm_client_files(sock)
 				# END OF CONNECTION
 
-			sock.close()
-			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+			# sock.close()
+			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
@@ -535,8 +546,9 @@ def handle_fork(sock):
 
 		# TODO: ERROR 
 		elif sigma == ACK.CMD_ECHO:
-			sock.close()
-			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+			pass
+			# sock.close()
+			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
@@ -568,7 +580,7 @@ if __name__ == "__main__":
 		sys.exit()
 	else:
 		try:
-			opts, args = getopt.getopt(sys.argv[1:], "hdvwi:")
+			opts, args = getopt.getopt(sys.argv[1:], "hdvwi:c")
 			for o, a in opts:
 				if o == "-h":
 					usage(prog)
@@ -581,6 +593,9 @@ if __name__ == "__main__":
 					sleep = True
 				elif o == "-r":
 					remove_temp = True
+				elif o == "-c":
+					print(args[0])
+					handle_fork(int(args[0]))
 				elif o == "-i":
 					if len(args) == 1:
 						main(ip=a, port=int(args[0]))
