@@ -56,13 +56,21 @@ We would have to send the size of the payload after ever type of communication f
     5. Sending the output file, since the output file 
 
 ### Walkthrough of server and client interactions
-1. Server is created by running (python3 rakeserver.py 6328). Opening an port and listens for connections.
+1. Servers are created by running (python3 rakeserver.py 6328). Opening an port based on the command line third argument and listens for connections on that port number and IP address.
 
-2. Client is created by running (python3 rake-p.py). Client uses an socket to successfully connect to the server at the specified port. 
+2. Client is created by running (python3 rake-p.py Rakefile). Client creates and connects sockets for quote while listening for servers. 
 
-3. Client sends a command to the servers (for example echo starting actionset1) with a message asking for the cost of executing the command on that server. It then waits for a response from the server. 
+3. When connection is established with an server the client will initate the connection by sending a preamble represented in 4 bytes and in edian byte order (CMD_QUOTE_REQUEST). 
 
-4. Server receives the command from the client and deterimines the price to run this command (price varies depending on the command type, resources required and how busy the server is). It then sends the price back to the client. 
+4. The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing. 
+
+5. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client recieves the cost and closes the connection. 
+
+5. Steps 3 to 5 are repeated until the client has found server with lowest cost. 
+
+6. Client creates and connects sockets for executing commands on the server with lowest cost. Client determines if it requires files by reading the Rakefile. If it does, client sends required files to the server by sending an preamble (CMD_SEND_FILE) in big edian byte order. 
+
+7. Client will return code status detailing if there was an error or sucess when executing commands. On success the server will send a file and the client will receive the output file from command. If it was an error, client will output an error message and exit the program immediately. 
 
 ## Performance
 ### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
