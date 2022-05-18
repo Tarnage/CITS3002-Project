@@ -228,6 +228,8 @@ def recv_text_file(sd):
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
 
+	print("RECEIVED FILE")
+
 
 def recv_bin_file(sd):
 	''' Receive binary file from server
@@ -355,9 +357,7 @@ def recv_byte_int(sd):
 	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
-			print("TRYING TO READ INT..")
 			more_size = sd.recv( (MAX_BYTE_SIGMA - len(size)) )
-			print("MORE SIZE = ",more_size)
 			if not more_size:
 				time.sleep(0)
 		except socket.error as err:
@@ -395,28 +395,18 @@ def send_bin_file(sd, file_attr):
 	print(f'FILE SENT...')
 
 
-def handle_conn(host, port):
-	'''Non Blocking server version, server will continuously poll the socket for a connection
-		
-		Args:
-		host (str): the ip address the server will bind
-		port (int): the port the server will bind 
-	'''	
-
-	# global local_host
-
-	# if (host == "localhost") or (host == "127.0.0.1"):
-	# 	local_host = True
+def create_server_socket(host, port):
+	listening_sock = 0
 
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
-		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		listening_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
-		sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		sd.setblocking(True)
-		sd.bind( (host, port) )
+		listening_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		listening_sock.setblocking(True)
+		listening_sock.bind( (host, port) )
 		print( f'PORT {port} BINDED...' )
 	except socket.error as err:
 		if err.errno == 98:
@@ -424,46 +414,72 @@ def handle_conn(host, port):
 		else:
 			sys.exit(f'Socket creation failed with error {err}')
 
-
 	# PUT THE SOCKET TO LISTEN MODE
-	sd.listen(DEFAULT_BACKLOG)
+	listening_sock.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
+
+	return listening_sock
+
+
+def new_client_handler(listening):
+	conn, addr = listening.accept()
+	return conn
+
+
+def create_new_proccess(listening_sock, new_client, ack):
+	sigma = ack
+	ret = os.fork()
+	if ret == 0:
+		print("CHILD CREATED...")
+		listening_sock.close()
+		
+		while True:
+			handle_fork(new_client, sigma)
+			print(f"LISTENINGG...{new_client.getpeername()}")
+			print(new_client)
+			sigma = recv_byte_int(new_client)
+			
+			print(f"----> RECIEVING ACK TYPE: {sigma}")
+	elif ret > 0:
+		print("PARENT PROCESS")
+		os.wait()
+	else:
+		print("ERROR FORK FAILED")
+		sys.exit(0)
+	print("EXITED")
+
+
+def handle_conn(host, port):
+	'''Non Blocking server version, server will continuously poll the socket for a connection
+		
+		Args:
+		host (str): the ip address the server will bind
+		port (int): the port the server will bind 
+	'''	
+	listening_sock = 0
+	conn = 0
+	listening_sock = create_server_socket(host, port)
+
 	print(f"PARENT PID: {os.getpid()}")
-	cmd = "/home/thanh/GitHub/CITS3002-Project/rakeserver/rakeserver.py"
 	try:
 		while True:
-			conn, addr = sd.accept()
-			
-			# FORK FOR NEW CONNECTIONS ONLY
-			print("FORKING")
-			if conn == -1:
-				conn.shutdown(socket.SHUT_WR)
-				conn.close()
-				print("ERROR")
-			else:
-				fork = os.fork()
-				if fork < 0:
-					conn.shutdown(socket.SHUT_WR)
-					conn.close()
-					print("FORK ERROR")
-				elif fork == 0:
-					print('CHILD EXECUTING')
-					# os.execl(cmd, "-c", str(conn))
-					handle_fork(conn)
-					conn.shutdown(socket.SHUT_WR)
-					conn.close()
-					print("CHILD KILLED")
-					sys.exit()
-				else:
-					os.wait()
+			conn, addr = listening_sock.accept()
 
-			print("RETURNED")
+			preamble = recv_byte_int(conn)
+
+			if preamble == ACK.CMD_QUOTE_REQUEST:
+				handle_fork(conn, ACK.CMD_QUOTE_REQUEST)
+				conn.shutdown(socket.SHUT_RDWR)
+				conn.close()
+			else:
+				create_new_proccess(listening_sock, conn, preamble)
+				print("RETURNED")
+				conn.shutdown(socket.SHUT_RDWR)
+				conn.close()
 
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
 		# Make sure we close sockets gracefully
-		conn.shutdown(socket.SHUT_WR)
-		sd.close()
 		sys.exit()
 	# except Exception as err:
 	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
@@ -478,102 +494,97 @@ def retrun_status(sd):
 def return_file(sd):
 	pass
 
-def handle_fork(sock):
+def handle_fork(sock, sigma):
 	print(f"CHILD PID: {os.getpid()}")
-	keep_going = True
-	while keep_going:
 		# SOMETHING TO READ
-		print(f"{sock.getsockname()} LISTENING....")
-		sigma = recv_byte_int(sock)
-		print(f"----> RECIEVING ACK TYPE: {sigma}")
-
-		# SLEEP
-		if sleep == True:
-			rand = random.randint(1, 10)
-			timer = os.getpid() % rand + 2
-			print( f'sleep for: {timer}' )
-			time.sleep(timer)
-
-		# REQUEST FOR COST QUOTE
-		if sigma == ACK.CMD_QUOTE_REQUEST:
-			print(f'COST QUOTE REQUESTED')
-			send_quote(sock)
-			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-			keep_going = False
-			#sock.shutdown()
-			# sock.close()
-			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-		
-		# REQUEST TO RUN COMMAND
-		elif sigma == ACK.CMD_EXECUTE:
-			size = recv_byte_int(sock)
-			payload = recv_cmd(sock, size)
-			print(f'REQUEST TO EXECUTE...{payload}')
-			# STORE RETURN CODE IN DICT 
-			proc, file_attr = run_cmd(sock, payload)
-			r_code = proc.returncode
-
-			print(f"<-------- SENDING RETURN STATUS ({r_code})")
-
-			# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
-			if (file_attr.filename == "") and (r_code == 0):
-				send_byte_int(sock, ACK.CMD_NO_OUTPUT)
-				send_byte_int(sock, r_code)
-				keep_going = False
-
-			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
-			elif r_code == 0:
-				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
-				send_byte_int(sock, r_code)
-				send_byte_int(sock, ACK.CMD_RETURN_FILE)
-				send_bin_file(sock, file_attr)
-				keep_going = False
-
-			# EXECUTION FAILED WITH WARNING
-			#TODO: hand error codes
-			elif 0 < r_code < 5:
-				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-				send_byte_int(sock, r_code)
-				send_std(sock, proc.stderr)
-				print("STDERR SENT --->")
-				keep_going = False
-
-			# EXECUTION HAD A FATAL ERROR
-			else:
-				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-				send_byte_int(sock, r_code)
-				send_std(sock, proc.stdout)
-				print("STDOUT SENT --->")
-				keep_going = False
-
-			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
-			if remove_temp == True:
-				rm_client_files(sock)
-				# END OF CONNECTION
-			#sock.shutdown()
-			# sock.close()
-			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-
-		elif sigma == ACK.CMD_SEND_FILE:
-			recv_text_file(sock)
-			send_byte_int(sock, ACK.CMD_ACK)
-			time.sleep(0)
+	print(f"LISTENING ON {sock.getsockname()}...")
+	print(sock)
 
 
-		elif sigma == ACK.CMD_BIN_FILE:
-			recv_bin_file(sock)
-			send_byte_int(sock, ACK.CMD_ACK)
+	# SLEEP
+	if sleep == True:
+		rand = random.randint(1, 10)
+		timer = os.getpid() % rand + 2
+		print( f'sleep for: {timer}' )
+		time.sleep(timer)
+
+	# REQUEST FOR COST QUOTE
+	if sigma == ACK.CMD_QUOTE_REQUEST:
+		print(f'COST QUOTE REQUESTED')
+		send_quote(sock)
+		print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+		#sock.shutdown()
+		# sock.close()
+		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+	
+	# REQUEST TO RUN COMMAND
+	elif sigma == ACK.CMD_EXECUTE:
+		size = recv_byte_int(sock)
+		payload = recv_cmd(sock, size)
+		print(f'REQUEST TO EXECUTE...{payload}')
+		# STORE RETURN CODE IN DICT 
+		proc, file_attr = run_cmd(sock, payload)
+		r_code = proc.returncode
+
+		print(f"<-------- SENDING RETURN STATUS ({r_code})")
+
+		# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+		if (file_attr.filename == "") and (r_code == 0):
+			send_byte_int(sock, ACK.CMD_NO_OUTPUT)
+			send_byte_int(sock, r_code)
+
+		# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
+		elif r_code == 0:
+			send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+			send_byte_int(sock, r_code)
+			send_byte_int(sock, ACK.CMD_RETURN_FILE)
+			send_bin_file(sock, file_attr)
+
+		# EXECUTION FAILED WITH WARNING
+		#TODO: hand error codes
+		elif 0 < r_code < 5:
+			send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+			send_byte_int(sock, r_code)
+			send_std(sock, proc.stderr)
+			print("STDERR SENT --->")
+
+		# EXECUTION HAD A FATAL ERROR
+		else:
+			send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+			send_byte_int(sock, r_code)
+			send_std(sock, proc.stdout)
+			print("STDOUT SENT --->")
 
 
-		# TODO: ERROR 
-		elif sigma == ACK.CMD_ECHO:
-			pass
-			#sock.shutdown()
-			# sock.close()
-			# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+		print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+		# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+		if remove_temp == True:
+			rm_client_files(sock)
+			# END OF CONNECTION
+		#sock.shutdown()
+		# sock.close()
+		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
-	print("EXITED CHILD")
+	elif sigma == ACK.CMD_SEND_FILE:
+		print("ENTERED SEND_FILE_MODE")
+		recv_text_file(sock)
+		time.sleep(1)
+		send_byte_int(sock, ACK.CMD_ACK)
+		print("ACK SENT")
+
+
+	elif sigma == ACK.CMD_BIN_FILE:
+		recv_bin_file(sock)
+		send_byte_int(sock, ACK.CMD_ACK)
+
+
+	# TODO: ERROR 
+	elif sigma == ACK.CMD_ECHO:
+		pass
+		#sock.shutdown()
+		# sock.close()
+		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
 

@@ -115,7 +115,7 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	print( f"CONNECTION SUCCESSFUL" )
-	sd.setblocking(True)
+	sd.setblocking(False)
 	return sd
 
 
@@ -130,6 +130,11 @@ def get_host_obj(hosts):
 		obj_hosts.append(Hosts(None, key, hosts[key]))
 
 
+
+def find(sd):
+	for h in obj_hosts:
+		if h.sock == sd:
+			print(h.sock, h.used, h.local, h.cost, h.action)
 
 
 def close_sockets(sockets):
@@ -191,8 +196,7 @@ def mark_free(sd):
 	global obj_hosts
 
 	for h in obj_hosts:
-		if (h.sock == sd) and (not h.local == True):
-			print("MARK FREE")
+		if (h.sock == sd) and (h.local == False):
 			h.used = False
 			break
 
@@ -259,6 +263,8 @@ def send_file_name(sd, filename):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to send
 	'''
+	print(sd)
+	find(sd)
 	print(f'{sd.getpeername()} SENDING ({filename}) ---->')
 
 	payload = filename.encode(FORMAT)
@@ -433,12 +439,8 @@ def send_byte_int(sd, payload):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	print(f"PAYLOAD = {payload}")
 	preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
-	print(f"PAYLOAD = {preamble}")
-	test = sd.sendall(preamble)
-	print(f'SENT INT = {test}')
-	print(f'SENT INT = {len(preamble)}')
+	sent_bytes = sd.sendall(preamble)
 
 
 def is_bin_file(path):
@@ -553,6 +555,7 @@ def handle_conn(sets):
 			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
 			
 			for sock in read_sockets:
+				print(f"{sock.getsockname()} LISENTING...")
 				if sock:
 					#print_objs(obj_hosts)
 					#print(f"{sock.getpeername()} WAITING FOR REPLY...")
@@ -562,11 +565,11 @@ def handle_conn(sets):
 					# SOMETHING TO READ
 					sigma = recv_byte_int(sock)
 					
-					#print(f"RECIEVED ACK TYPE {sigma}")
+					print(f"RECIEVED ACK TYPE {sigma}")
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT PAYLOAD
 					if sigma == ACK.CMD_ACK:
-						print(f"RECV ACK {sock.getpeername()}")
+						print(f"RECV ACK TO CONTINUE FROM {sock.getpeername()}")
 						output_sockets.append(sock)
 
 					elif sigma == ACK.CMD_QUOTE_REPLY:
@@ -576,8 +579,7 @@ def handle_conn(sets):
 						del msg_queue[sock]
 						cost_waiting = True
 						quote_queue -= 1
-						print("CLOSING CONNECTION...")
-						#sock.close()
+						print(sock)
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
 						r_code = recv_byte_int(sock)
