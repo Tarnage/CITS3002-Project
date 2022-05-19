@@ -102,7 +102,7 @@ def send_quote(sd):
 	cost = calculate_cost()
 	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( cost )
+	sd.send( cost )
 	time.sleep(2)
 
 
@@ -260,7 +260,7 @@ def send_byte_int(sd, preamble):
 			sd(socket): socket descriptor of the connection
 	'''
 	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall(payload)
+	sd.send(payload)
 
 
 def send_filename(sd, filename):
@@ -275,7 +275,7 @@ def send_filename(sd, filename):
 	send_byte_int(sd, len(payload))
 
 	# SEND THE ACTUAL FILE NAME
-	sd.sendall( payload )
+	sd.send( payload )
 
 
 def send_std(sd, payload):
@@ -289,7 +289,7 @@ def send_std(sd, payload):
 	send_byte_int(sd, len(payload))
 
 	# SEND THE ACTUAL FILE NAME
-	sd.sendall( payload )
+	sd.send( payload )
 
 
 # TODO: recv_filename and recv_cmd are the same fucntions
@@ -385,7 +385,7 @@ def send_bin_file(sd, file_attr):
 
 	send_byte_int(sd, len(payload))
 
-	sd.sendall( payload )
+	sd.send( payload )
 	print(f'FILE SENT...')
 
 
