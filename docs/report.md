@@ -26,26 +26,26 @@ Lecturer: Dr Chris McDonald
 
 # Rake Server and Client
 
-## Introduction
+### Introduction
 This project aims to execute multiple instance of server programs on distinct (physical) computers connected using internet protocols, and each of the client programs on the computer. Implementation should not employ specific 3rd party frameworks or resources. Instead opting to use core networking functions such as (classes, methods, libraries,...) of each programming language. 
 
 #
-## Technology Involved
-### Explain why we are using TCP/IP over LAN opposed to UDP or HTTP
+### Technology Involved
+##### Explain why we are using TCP/IP over LAN opposed to UDP or HTTP
 TCP is slower but more reliable than UDP in the transference of data. TCP/IP protocol gurantees the delivery of data to the destination router with features such as deilvery acknowledgements, retransmissions, delay transmissions when the network is congested and easy error detection. The TCP/IP model also has a easier to scale client-server architecture that supports several routing protocols. (refer to diagram for example of why we require delivery acknowledgemnts)
 #
 
-#### Good read about how to allocate buffer size
+<!-- #### Good read about how to allocate buffer size
 #### https://stackoverflow.com/questions/2811006/what-is-a-good-buffer-size-for-socket-programming
 
 #### Explain that we will use the finite state machine(FSMs) concept where the conenctions are individual FSMs 
 
 #### Explain the protocol our program will use
-#### https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python
+#### https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python -->
 
 #
 
-## Success criteria 
+<!-- ## Success criteria 
 - Create connection between local host and remote hosts.
 - Use protocols to ensure client and servers are able to communitcate via integers and strings.
 - Send meaningful data between local hosts and remote hosts.
@@ -54,13 +54,13 @@ TCP is slower but more reliable than UDP in the transference of data. TCP/IP pro
 - Perform compilation of a C program on multiple remote hosts concurrently.
 - Have remote hosts spawn child proccesses to services connections.
 - Have the client send and receive transmissions in a non block fashion using select()
-#
+# -->
+-------------------------
+## Protocol Design
+##### The Protocol we have designed for all communication between client and server programs
 
-## Design
-### Why we would use a simplex connectionless service also known as unacknowledged connectionless service. compared to the others
-We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is reliable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is just wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea)
-
-# Protocol
+<!-- ##### Why we would use a simplex connectionless service also known as unacknowledged connectionless service. compared to the others
+We are using a half-duplex method but dont have timeouts and we dont read msgs. Its kind of a cross between simplex and half-duplex, since connection over LAN is reliable and we cant have a timeout since compile files takes an unknown amount of time. Best we can do is just wait for an acknowledgement, or wait until an error message is sent. (But you may have a good idea) -->
 
 ### Encoding type
 
@@ -115,11 +115,11 @@ The receiving socket will be in a state to receive incoming data.
     - if the receiver is expecting text (CMD_SEND_FILE) it will simply decode and write to a text file.
     - otherwise the receiver is expecting a binary file, in that case the receiver is write the byte directly to the file.
 5. If the receiver is in CMD_RETURN_FILE mode it will simply close the connect, as this mode is only ever each at the end of a action set. Otherwise a CMD_ACK will be sent and repeat step 1-5
-
+![alt text](/docs/diagrams/client_flow.png "Logo Title Text 1")
 # 
-
-## Walkthrough the program
 -------------------------
+## Walkthrough execution sequence employed to copmlie and link and multi-file program
+
 TODO: maybe remove this section when not needed it just repeats everything
 1. Request for cost
 
@@ -152,11 +152,12 @@ TODO: maybe remove this section when not needed it just repeats everything
 7. Client will return code status detailing if there was an error or sucess when executing commands. On success the server will send a file and the client will receive the output file from command. If it was an error, client will output an error message and exit the program immediately. The execution of commands process is shown in the diagram (execute-cmd-protocol.png). 
 
 ## Performance
-### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
+##### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
 
 TODO: EDIT rambling just some ideas. we can talk about LANs vs WLANs vs internet. like would it be quicker on a LAN or over the internet where hosts can be on the other side of the contienent. Limitations of bandwidth connections. security maybe? 
 
 When compiling sufficiantly large programs on a local machine, the compilation process completes in a sequential order. Therefore, if an object file does not have any dependencies, it still has to wait for its turn to compile. When remote compilation is possible, we can decompose the requirements into "action sets", and have a network of computers run in parallel the compilation process for individual object files. For example, assuming a compilation where object file do not have many dependencies such as the program.c example then we can send just the files need create the object file and have the local machine perform the final compilation.
+
 
 
 ## Observations and improvements
