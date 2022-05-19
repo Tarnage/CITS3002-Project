@@ -262,7 +262,7 @@ def send_byte_int(sd, preamble):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	print(f"SENDING to {sd.getpeername()} on {sd.getsockname()}")
+	print(f"SENDING {preamble} to {sd.getpeername()} on {sd.getsockname()}")
 	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send(payload)
 
@@ -400,7 +400,7 @@ def create_server_socket(host, port):
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
-		listening_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		listening_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 		#print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		listening_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -430,17 +430,18 @@ def create_new_proccess(listening_sock, new_client, ack):
 	ret = os.fork()
 	if ret == 0:
 		#print("CHILD CREATED...")
-		#listening_sock.close()
+		listening_sock.close()
 		
 		while True:
-			print(f"CHILD {os.getpid()}...")
+			print(f"CHILD {os.getpid()}...EXCUTING {sigma} FOR {new_client.getpeername()}")
 			handle_fork(new_client, sigma)
-			print(f"LISTENINGG...{new_client.getpeername()}")
+			#print(f"LISTENINGG...{new_client.getpeername()}")
 			#print(new_client)
-
 			#sigma = recv_byte_int(new_client)
-			
 			#print(f"----> RECIEVING ACK TYPE: {sigma}")
+			# new_client.shutdown(socket.SHUT_RDWR)
+			# new_client.close()
+			# break
 	elif ret > 0:
 		#print("PARENT PROCESS")
 		os.wait()
@@ -471,8 +472,8 @@ def handle_conn(host, port):
 			if preamble == ACK.CMD_QUOTE_REQUEST:
 				handle_fork(conn, ACK.CMD_QUOTE_REQUEST)
 				#print("SHUTDOWN ", conn)
-				#conn.shutdown(socket.SHUT_RDWR)
-				#conn.close()
+				# conn.shutdown(socket.SHUT_RDWR)
+				# conn.close()
 			else:
 				create_new_proccess(listening_sock, conn, preamble)
 				#print("RETURNED")
@@ -540,8 +541,8 @@ def handle_fork(sock, sigma):
 			send_byte_int(sock, r_code)
 			send_byte_int(sock, ACK.CMD_RETURN_FILE)
 			send_bin_file(sock, file_attr)
-			#sock.shutdown(socket.SHUT_RDWR)
-			#sock.close()
+			# sock.shutdown(socket.SHUT_RDWR)
+			# sock.close()
 
 		# EXECUTION FAILED WITH WARNING
 		#TODO: hand error codes

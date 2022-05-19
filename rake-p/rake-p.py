@@ -104,7 +104,7 @@ def create_socket(host, port):
 	
 	'''
 	try:
-		sd = socket.socket()
+		sd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 		#print( f"Socket succesfully created! ({host}:{port})" )
 		#print( f'connecting to {host}:{port}...' )
 		sd.connect( (host, port) )
@@ -116,7 +116,7 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	#print( f"CONNECTION SUCCESSFUL" )
-	sd.setblocking(False)
+	sd.setblocking(True)
 	return sd
 
 
@@ -585,7 +585,8 @@ def handle_conn(sets):
 						del msg_queue[sock]
 						cost_waiting = True
 						quote_queue -= 1
-						#sock.close()
+						# sock.shutdown(socket.SHUT_RDWR)
+						# sock.close()
 
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
