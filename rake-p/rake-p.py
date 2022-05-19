@@ -104,7 +104,7 @@ def create_socket(host, port):
 	
 	'''
 	try:
-		sd = socket.socket()
+		sd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 		#print( f"Socket succesfully created! ({host}:{port})" )
 		#print( f'connecting to {host}:{port}...' )
 		sd.connect( (host, port) )
@@ -116,7 +116,7 @@ def create_socket(host, port):
 			sys.exit( f'socket creation failed with error: {err}' )
 
 	#print( f"CONNECTION SUCCESSFUL" )
-	sd.setblocking(False)
+	sd.setblocking(True)
 	return sd
 
 
@@ -585,7 +585,8 @@ def handle_conn(sets):
 						del msg_queue[sock]
 						cost_waiting = True
 						quote_queue -= 1
-						#sock.close()
+						# sock.shutdown(socket.SHUT_RDWR)
+						# sock.close()
 
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
@@ -665,6 +666,7 @@ def handle_conn(sets):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						# NAME OF FILE TO SEND
 						filename = get_filename(sock)
+						print(f"TRYING TO SEND {filename}")
 						# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 						if filename == None:
 							#print(f'SENDING ACK FOR EXECUTE ---->')

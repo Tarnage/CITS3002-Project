@@ -70,3 +70,5 @@ We would have to send the size of the payload after ever type of communication f
 ## Observations and improvements
 
 ## Conclusion
+
+![](./diagrams/client_flow.png)

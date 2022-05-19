@@ -226,7 +226,7 @@ def recv_text_file(sd):
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
 
-	#print("RECEIVED FILE")
+	print("RECEIVED FILE")
 
 
 def recv_bin_file(sd):
@@ -262,7 +262,7 @@ def send_byte_int(sd, preamble):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	print(f"SENDING to {sd.getpeername()} on {sd.getsockname()}")
+	print(f"SENDING {preamble} to {sd.getpeername()} on {sd.getsockname()}")
 	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send(payload)
 
@@ -356,9 +356,10 @@ def recv_byte_int(sd):
 	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
+			print(f"LISTENING ON {sd.getpeername()}...")
 			more_size = sd.recv( (MAX_BYTE_SIGMA - len(size)) )
 			if not more_size:
-				time.sleep(0)
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				#print("NO AVAILIABLE TRYING AGAIN...")
@@ -400,11 +401,11 @@ def create_server_socket(host, port):
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
-		listening_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		listening_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 		#print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		listening_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		listening_sock.setblocking(True)
+		listening_sock.setblocking(False)
 		listening_sock.bind( (host, port) )
 		#print( f'PORT {port} BINDED...' )
 	except socket.error as err:
@@ -431,23 +432,30 @@ def create_new_proccess(listening_sock, new_client, ack):
 	if ret == 0:
 		#print("CHILD CREATED...")
 		#listening_sock.close()
-		
-		while True:
-			print(f"CHILD {os.getpid()}...")
-			handle_fork(new_client, sigma)
-			print(f"LISTENINGG...{new_client.getpeername()}")
+		finished = False
+		while not finished:
+			print(f"CHILD {os.getpid()}...EXCUTING {sigma} FOR {new_client.getpeername()}")
+			finished = handle_fork(new_client, sigma)
+			print(f"IS FINISHED = {finished}")
+			#print(f"LISTENINGG...{new_client.getpeername()}")
 			#print(new_client)
 
-			#sigma = recv_byte_int(new_client)
-			
+			if not finished:
+				sigma = recv_byte_int(new_client)
+				print(f"CHILD {os.getpid()}...EXCUTING {sigma} FOR {new_client.getpeername()}")
+
+			print("PASSED SIGMA")
 			#print(f"----> RECIEVING ACK TYPE: {sigma}")
+			# new_client.shutdown(socket.SHUT_RDWR)
+			# new_client.close()
+			# break
 	elif ret > 0:
 		#print("PARENT PROCESS")
 		os.wait()
 	else:
 		#print("ERROR FORK FAILED")
 		sys.exit(0)
-	#print("EXITED")
+	print("EXITED")
 
 
 def handle_conn(host, port):
@@ -464,15 +472,16 @@ def handle_conn(host, port):
 	#print(f"PARENT PID: {os.getpid()}")
 	try:
 		while True:
+			print(f"PARENT {os.getpid()}")
 			conn, addr = listening_sock.accept()
 
 			preamble = recv_byte_int(conn)
-
+			
 			if preamble == ACK.CMD_QUOTE_REQUEST:
 				handle_fork(conn, ACK.CMD_QUOTE_REQUEST)
 				#print("SHUTDOWN ", conn)
-				#conn.shutdown(socket.SHUT_RDWR)
-				#conn.close()
+				# conn.shutdown(socket.SHUT_RDWR)
+				# conn.close()
 			else:
 				create_new_proccess(listening_sock, conn, preamble)
 				#print("RETURNED")
@@ -499,7 +508,7 @@ def return_file(sd):
 def handle_fork(sock, sigma):
 	#print(f"CHILD PID: {os.getpid()}")
 		# SOMETHING TO READ
-	#print(f"LISTENING ON {sock.getsockname()}...")
+	print(f"LISTENING ON {sock.getsockname()}... GOT-{sigma}")
 	#print(sock)
 
 	# SLEEP
@@ -533,6 +542,7 @@ def handle_fork(sock, sigma):
 		if (file_attr.filename == "") and (r_code == 0):
 			send_byte_int(sock, ACK.CMD_NO_OUTPUT)
 			send_byte_int(sock, r_code)
+			return True
 
 		# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
 		elif r_code == 0:
@@ -540,13 +550,14 @@ def handle_fork(sock, sigma):
 			send_byte_int(sock, r_code)
 			send_byte_int(sock, ACK.CMD_RETURN_FILE)
 			send_bin_file(sock, file_attr)
-			#sock.shutdown(socket.SHUT_RDWR)
-			#sock.close()
+			# sock.shutdown(socket.SHUT_RDWR)
+			# sock.close()
+			return True
 
 		# EXECUTION FAILED WITH WARNING
 		#TODO: hand error codes
 		elif 0 < r_code < 5:
-			send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+			send_byte_int(sock, ACK.CMD_RETURN_STDERR)
 			send_byte_int(sock, r_code)
 			send_std(sock, proc.stderr)
 			#print("STDERR SENT --->")
@@ -569,11 +580,11 @@ def handle_fork(sock, sigma):
 		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
 	elif sigma == ACK.CMD_SEND_FILE:
-		#print("ENTERED SEND_FILE_MODE")
+		print("ENTERED SEND_FILE_MODE")
 		recv_text_file(sock)
 		# time.sleep(1)
 		send_byte_int(sock, ACK.CMD_ACK)
-		#print("ACK SENT")
+		print("ACK SENT")
 
 
 	elif sigma == ACK.CMD_BIN_FILE:
@@ -587,6 +598,8 @@ def handle_fork(sock, sigma):
 		#sock.shutdown()
 		# sock.close()
 		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+
+	return False
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
