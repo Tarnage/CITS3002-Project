@@ -2,7 +2,6 @@
 
 import getopt
 import shutil
-from sre_constants import SUCCESS
 import time
 import random
 import os
@@ -63,10 +62,10 @@ class Client():
     ''' This object represents the connection from client to server
     '''
 
-    def __init__(self, sockfd: socket, addr: tuple, ack: int):
+    def __init__(self, sockfd: socket, addr: tuple, current_ack: int):
         self.sockfd = sockfd
         self.addr = addr
-        self.ack = ack
+        self.current_ack = current_ack
         self.ACK = Ack()
         self.finished = False
 
@@ -188,11 +187,11 @@ class Client():
 
         while not self.finished:
             
-            if(self.ack == self.ACK.CMD_SEND_FILE):
+            if(self.current_ack == self.ACK.CMD_SEND_FILE):
                 print("RECVING FILE")
                 self.recv_txt_file()
 
-            elif(self.ack == self.ACK.CMD_EXECUTE):
+            elif(self.current_ack == self.ACK.CMD_EXECUTE):
                 print("EXECUTING")
                 payload = self.recv_string()
                 print(payload)
