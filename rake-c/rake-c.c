@@ -149,7 +149,7 @@ void recv_string(int sock, char *string, int size)
     memcpy(string, buffer, byte_count);
     string[byte_count] = '\0';
 
-    // printf("%s\n", string);
+    printf("STRING RECEIVED: %s\n", string);
     // return string; 
 
 }
@@ -194,7 +194,7 @@ void recv_bin_file(int sock)
     if(check_folder_exists(TEMP_FOLDER) == -1)
     {   
         // THERE A MACRO FOR 0777?
-        // printf("MAKING NEW FOLDER\n");
+        printf("MAKING NEW FOLDER\n");
         mkdir(TEMP_FOLDER, 0777);
     }   
 
@@ -595,6 +595,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
 
                     if(preamble == CMD_ACK)
                     {   
+                        printf("ACKNOWLEDGEMENT RECEIVED\n");
                         FD_CLR(i, &input_sockets);
                         FD_SET(i, &output_sockets);
                     }
@@ -603,7 +604,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                     {   
                         //recv_cost_reply(i);
                         int cost = recv_byte_int(i);
-                        printf("RECV %i\n", cost);
+                        printf("COST RECEIVED: %i\n", cost);
                         quote_queue--;
                         cost_waiting = true;
                         FD_CLR(i, &input_sockets);
@@ -658,6 +659,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                     CMD curr_req = get_curr_req(i);
                     if(curr_req == CMD_QUOTE_REQUEST)
                     {   
+                        printf("SENDING COST REQUEST\n");
                         send_cost_req(i);
                         // REMOVE FROM OUTPUT
                         FD_CLR(i, &output_sockets);
@@ -724,7 +726,6 @@ int main (int argc, char *argv[])
     
     for (size_t i = 0; i < num_sets; i++)
     {   
-        
         handle_conn(sockets, action_set[i].actions, hosts, action_set[i].action_totals);
     }
 
