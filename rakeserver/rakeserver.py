@@ -405,6 +405,7 @@ def handle_conn(host, port):
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		sd.bind( (host, port) )
@@ -427,14 +428,12 @@ def handle_conn(host, port):
 				conn.close()
 			else:
 				fork = os.fork()
-
 				if fork == -1:
 					conn.close()
 				elif fork == 0:
 					handle_fork(conn)
 				else:
-					conn.close()
-				os.wait() # MAKE SURE CHILD PROCESS RETURNS TO PARENT OTHERWISE ZOMBIES
+					os.wait() # MAKE SURE CHILD PROCESS RETURNS TO PARENT OTHERWISE ZOMBIES
 
 	except KeyboardInterrupt:
 		print('Interrupted. Closing sockets...')
@@ -473,7 +472,6 @@ def handle_fork(sock):
 			send_quote(sock)
 			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
 			sock.close()
-			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 		
 		# REQUEST TO RUN COMMAND
 		elif sigma == ACK.CMD_EXECUTE:
@@ -519,7 +517,6 @@ def handle_fork(sock):
 				# END OF CONNECTION
 
 			sock.close()
-			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
 		elif sigma == ACK.CMD_SEND_FILE:
 			recv_text_file(sock)
