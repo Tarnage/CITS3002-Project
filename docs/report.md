@@ -68,9 +68,9 @@ We would have to send the size of the payload after ever type of communication f
 
 5. Steps 3 to 5 are repeated until the client has found server with lowest cost. 
 
-6. Client creates and connects sockets for executing commands on the server with lowest cost. Client determines if it requires files by reading the Rakefile. If it does, client sends required files to the server by sending an preamble (CMD_SEND_FILE) in big edian byte order. 
+6. Client creates and connects sockets for executing commands on the server with lowest cost. Client determines if it requires files by reading the Rakefile. If it does require files, client sends required files to the server by sending an preamble (CMD_SEND_FILE) in big edian byte order. 
 
-7. Client will return code status detailing if there was an error or sucess when executing commands. On success the server will send a file and the client will receive the output file from command. If it was an error, client will output an error message and exit the program immediately. 
+7. Client will return code status detailing if there was an error or sucess when executing commands. On success the server will send a file and the client will receive the output file from command. If it was an error, client will output an error message and exit the program immediately. The execution of commands process is shown in the diagram (execute-cmd-protocol.png). 
 
 ## Performance
 ### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
