@@ -3,10 +3,10 @@
 # tab = "\t"
 # Currently index out of range when it reaches blank line!
 PORT  = 6327
-HOSTS = 192.168.1.105:6432
+HOSTS = 127.0.1.1 
 
 actionset1:
-	echo starting actionset2
+	echo starting actionset1
 	remote-cc -c program.c
 		requires program.c program.h allfunctions.h
 	remote-cc -c square.c
