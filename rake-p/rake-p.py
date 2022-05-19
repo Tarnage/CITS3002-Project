@@ -666,6 +666,7 @@ def handle_conn(sets):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						# NAME OF FILE TO SEND
 						filename = get_filename(sock)
+						print(f"TRYING TO SEND {filename}")
 						# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 						if filename == None:
 							#print(f'SENDING ACK FOR EXECUTE ---->')
