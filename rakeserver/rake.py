@@ -137,12 +137,7 @@ class Client():
     def recv_txt_file(self):
         ''' Writes strings to a file. This is used to transfer source code from Client to Server
 
-            Args:
-                sd(socket): Clients connection
-                filename(str): Name of file being transferred
-                size(int): Total size of file being sent in bytes.
         '''
-        #TODO: peer dir gets reused to remove the dir maybe put in a dict 
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
         tmp = f"./tmp/{peer_dir}/"
@@ -245,7 +240,6 @@ class Server():
         ''' Set the server to listen for incoming connections
         '''
         self.sockfd.listen()
-        return 1
 
     def accept(self) -> tuple:
         ''' accept() -> (socket object, address info)
@@ -255,7 +249,7 @@ class Server():
     def recv_int(self, client: socket) -> int:
         ''' Helper to get the int of incoming payload
             Args:
-                sd(socket): socket descriptor of the connection
+                sd(client): socket descriptor of the connection
 
             Return:
                 result(int): The int of incoming payload
@@ -278,9 +272,10 @@ class Server():
         return result
 
     def send_int(self, client: socket, preamble: int) -> int:
-        ''' Helper to send the byte size of outgoing payload
+        ''' Helper to send an int to client from this object
             Args:
-                sd(socket): socket descriptor of the connection
+                client(socket): socket descriptor of the connection
+                preamble(int): int to send
             Returns:
                 int: 1 on success 0 on failure
         '''
@@ -291,7 +286,6 @@ class Server():
             return 1
         else:
             return 0
-
 
     def calculate_cost(self) -> int:
         ''' Randomly return a number between 1-10'''
@@ -354,7 +348,6 @@ def handle_conn(server: Server):
                     conn.shutdown(socket.SHUT_RDWR)
                     conn.close()
                 else:
-                    
                     child = os.fork()
                     print("PREAMBLE ", preamble)
                     if child == 0:
