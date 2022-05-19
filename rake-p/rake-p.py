@@ -571,7 +571,7 @@ def handle_conn(sets):
 					# SOMETHING TO READ
 					sigma = recv_byte_int(sock)
 					
-					#print(f"RECIEVED ACK TYPE {sigma}")
+					print(f"RECIEVED ACK TYPE {sigma}")
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT PAYLOAD
 					if sigma == ACK.CMD_ACK:
@@ -580,7 +580,7 @@ def handle_conn(sets):
 
 					elif sigma == ACK.CMD_QUOTE_REPLY:
 						cost = recv_byte_int(sock)
-						#print(f"RECIEVED COST: {cost}")
+						print(f"RECIEVED COST: {cost}")
 						add_cost(sock, cost)
 						del msg_queue[sock]
 						cost_waiting = True
