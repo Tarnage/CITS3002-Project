@@ -15,10 +15,10 @@ class Action:
 		self.requires = requires
 
 # GLOBAL SO RAKE-P CAN ACCESS 		
-deafult_port = 0
+default_port = 0
 
 def get_default_port():
-	return deafult_port
+	return default_port
 
 def read_rake(filename):
 	'''Parse a tab seperated Rakefile
@@ -32,7 +32,7 @@ def read_rake(filename):
 	'''
 	with open(filename) as rake_file:
 
-		global deafult_port
+		global default_port
 
 		# holds current actionset of Action objects
 		# appends the list to action_sequence once all actions in a set is recorded
@@ -52,14 +52,14 @@ def read_rake(filename):
 				# check if line is for port
 				words = line.split()
 				if words[0] == 'PORT':
-					deafult_port = int(words[2])
+					default_port = int(words[2])
 				
 				# checks if line is for hosts
 				if words[0] == "HOSTS":
 					for hostname in words[2:]:
 						host_split = hostname.split(":")
 						if len(host_split) == 1:
-							hosts[host_split[0]] = deafult_port
+							hosts[host_split[0]] = default_port
 						else:
 							hosts[host_split[0]] = int(host_split[1])
 
