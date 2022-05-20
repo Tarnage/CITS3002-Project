@@ -166,8 +166,6 @@ class Connection:
                 filename(str): file name
                 path(str): path to file
         '''
-        
-        #print(f"SENDING BIN FILE {filename}---->")
         payload = b''
         with open(path, 'rb') as f:
             payload = f.read()
@@ -175,7 +173,7 @@ class Connection:
         self.send_string(filename)
         self.send_int(len(payload))
         self.sockfd.send( payload )
-        #print(f'BIN FILE SENT...')
+
 
     def send_txt_file(self, filename: str, path: str):
         ''' Send file contents to server
@@ -184,25 +182,19 @@ class Connection:
                 filename(str): Name of file to transfer
                 path(str): path to file
         '''
-        #print(sd)
         contents = ""
         with open(path, "r") as f:
             contents = f.read()
 
-        #print("SENDING CMD_SEND_FILE ---->")
         payload = contents.encode(FORMAT)
-
         self.send_int(self.ACK.CMD_SEND_FILE)
         self.send_string(filename)
-
         self.send_int(len(payload))
-        print(f"SENDING SIZE {len(payload)}")
         self.sockfd.send( payload )
 
     def send_file(self):
         filename = self.get_next_file()
         path = self.find_files(filename)
-        print(f"PATH: {path}")
         if path != None:
             if self.is_bin_file(path):
                 self.send_bin_file(filename, path)
@@ -262,15 +254,8 @@ class Connection:
         '''
 
         filename = self.recv_string()
-        print(f"RECIEVED {filename}")
         size = self.recv_int()
-
-        #print("ENETERED WRITE MODE...")
-
         self.check_downloads_dir()
-
-        print(f"FILENAME {filename}")
-
         path = f'{DOWNLOADS}/{filename}'
         try:
             with open(path, "wb") as f:
@@ -298,7 +283,6 @@ class Connection:
             r_code = self.recv_int()
 
             if preamble == self.ACK.CMD_RETURN_STATUS:
-                print(f"RETURN CODE: {r_code}")
                 preamble = self.recv_int()
 
                 if preamble == self.ACK.CMD_RETURN_FILE:
@@ -320,14 +304,13 @@ class Connection:
                 sys.exit(r_code)
 
             elif preamble == self.ACK.CMD_NO_OUTPUT:
-                print("ECHO SUCCESS")
+                print("NO OUT PUT FILE")
 
             finished = True
 
         return finished
 
     def write(self) -> bool:
-        print(f"ENTERED WRITE TO... {self.sockfd.getsockname()}")
         if self.current_ack == self.ACK.CMD_SEND_FILE:
             if self.files_remaining() > 0:
                 self.send_file()
@@ -353,8 +336,6 @@ def create_quote_team(hosts: dict) -> dict:
         cost = MAX_INT
         try:
             sd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-            #print( f"Socket succesfully created! ({host}:{port})" )
-            #print( f'connecting to {host}:{port}...' )
             sd.connect( (ip, port) )
             
         except socket.error as err:
@@ -407,13 +388,11 @@ def recv_int(sd: socket) -> int:
                 break
         except socket.error as err:
             if err.errno == 35:
-                #print("NO AVAILIABLE TRYING AGAIN...")
                 time.sleep(0)
                 continue
         size += more_size
 
     result = int.from_bytes(size, BIG_EDIAN)
-    #print(f"RECEIVED INT {result}")
     return result
 
 
@@ -475,7 +454,8 @@ def handle_conn(sets: list, hosts: dict):
                     curr_qoute_req += 1
 
                 # SEND OUT COST REQUESTS FOR THE NEXT ACTION
-                if (curr_qoute_req == next_action) and (sets[next_action].remote) and (quote_recv == 0):
+                if (sets[next_action].remote) and (quote_recv == 0):
+                    print(f"GETTING QUOTE FOR: {curr_qoute_req}")
                     quote_queue = create_quote_team(hosts)
 
                     for sd in quote_queue:
@@ -484,18 +464,15 @@ def handle_conn(sets: list, hosts: dict):
             
                 # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
+                    print(f"ACTION {next_action} SENT TO PROCESS")
                     quote_recv = 0
                     ip, port = get_lowest_quote(quote_queue)
                     quote_queue = dict()
                     new_client = Connection(ip, port, ACK.CMD_SEND_FILE)
                     new_client.add_actions(sets[next_action])
 
-                    fileno = new_client.connect()
                     conn_dict[new_client.sockfd] = new_client
                     output_sockets.append(new_client.sockfd)
-
-                    print("SENDING ACTION: ", next_action)
-
                     next_action += 1
                 
             read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)

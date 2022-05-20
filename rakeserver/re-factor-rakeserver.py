@@ -86,7 +86,6 @@ class Client():
         more_size = b''
         while len(size) < MAX_BYTE_SIGMA:
             try:
-                print(f"LISTENING ON {self.sockfd.getpeername()}...")
                 more_size = self.sockfd.recv( (MAX_BYTE_SIGMA - len(size)) )
                 if not more_size:
                     break
@@ -145,7 +144,6 @@ class Client():
         tmp = f"./tmp/{peer_dir}/"
 
         filename = self.recv_string()
-        #print(f"RECEIVED FILE NAME: {filename}")
         size = self.recv_int()
 
         buffer = ""
@@ -163,8 +161,6 @@ class Client():
         except OSError as err:
             sys.exit(f'File creation failed with error: {err}')
 
-        print("RECEIVED FILE")
-
     def recv_bin_file(self):
         ''' Writes strings to a file. This is used to transfer source code from Client to Server
 
@@ -174,16 +170,15 @@ class Client():
         tmp = f"./tmp/{peer_dir}/"
 
         filename = self.recv_string()
-        #print(f"RECEIVED FILE NAME: {filename}")
         size = self.recv_int()
 
         buffer = b""
         while len(buffer) < size:
-            #print("reading..")
-            #print(f"{len(buffer)}/{size}")
+            print("reading..")
+            print(f"{len(buffer)}/{size}")
             buffer = self.sockfd.recv(size)
 
-        #print(f"{len(buffer)}/{size}")
+        print(f"{len(buffer)}/{size}")
 
         try:
             with open(tmp + filename, "wb") as f:
@@ -191,8 +186,6 @@ class Client():
 
         except OSError as err:
             sys.exit(f'File creation failed with error: {err}')
-
-        print("RECEIVED FILE")
 
     def recv_next_action(self):
         preamble = self.recv_int()
@@ -205,7 +198,6 @@ class Client():
             Returns:
                 int: 1 on success 0 on failure
         '''
-        print(f"SENDING {preamble} to {self.sockfd.getpeername()} on {self.sockfd.getsockname()}")
         payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
         size_sent = self.sockfd.send(payload)
         if size_sent == MAX_BYTE_SIGMA:
@@ -224,14 +216,12 @@ class Client():
         filename = ""
         ctime = 0
         file_size = 0
-        print("PATH", path)
         with os.scandir(path) as dir_entries:
             for entry in dir_entries:
                 info = entry.stat()
                 if info.st_ctime_ns > ctime:
                     
                     filename = entry.name
-                    print(f"FILE NAME {filename}")
                     ctime = info.st_ctime_ns
                     file_size = info.st_size
                     path = entry.path
@@ -251,10 +241,8 @@ class Client():
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
         path = str('./tmp/' + peer_dir)
-        #print(f'EXECUTE REQUEST FROM {raddr}')
-        #print(f'RUNNING COMMAND: {cmd}')
+        print(f'RUNNING COMMAND: {cmd}')
         p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
-        #print(f'COMMAND FINISHED...')
 
         self.scan_dir(path)
         self.path_return_file = path
@@ -272,19 +260,14 @@ class Client():
                 filename(str): file name
                 path(str): path to file
         '''
-        
-        #print(f"SENDING BIN FILE {filename}---->")
         path = self.path_return_file + '/' + self.return_file.filename
         payload = b''
         with open(path, 'rb') as f:
             payload = f.read()
 
         self.send_string(self.return_file.filename)
-
         self.send_int(len(payload))
-
         self.sockfd.send( payload )
-        #print(f'BIN FILE SENT...')
 
     def send_std(self, payload):
         ''' 
@@ -305,24 +288,18 @@ class Client():
 
 
     def proc_req(self):
-        print(f"PROCESSING REQUEST.. {self.sockfd.getpeername()} ")
-
         while not self.finished:
             
             if(self.current_ack == self.ACK.CMD_SEND_FILE):
-                print("RECVING FILE")
                 self.recv_txt_file()
                 self.send_int(self.ACK.CMD_ACK)
 
             elif(self.current_ack == self.ACK.CMD_BIN_FILE):
-                print("RECEIVING BIN FILE")
                 self.recv_bin_file()
                 self.send_int(self.ACK.CMD_ACK)
 
             elif(self.current_ack == self.ACK.CMD_EXECUTE):
-                print("EXECUTING")
                 payload = self.recv_string()
-                print(payload)
                 self.run_cmd(payload)
                 r_code = self.r_output.returncode
 
@@ -337,32 +314,24 @@ class Client():
                     self.send_int(r_code)
                     self.send_int( self.ACK.CMD_RETURN_FILE)
                     self.send_return_file()
-                    # sock.shutdown(socket.SHUT_RDWR)
-                    # sock.close()
 
                 # EXECUTION FAILED WITH WARNING
-                #TODO: hand error codes
                 elif 0 < r_code < 5:
                     self.send_int(self.ACK.CMD_RETURN_STDERR)
                     self.send_int(r_code)
                     self.send_std(self.r_output.stderr)
-                    #print("STDERR SENT --->")
 
                 # EXECUTION HAD A FATAL ERROR
                 else:
                     self.send_int(self.ACK.CMD_RETURN_STDOUT)
                     self.send_int(r_code)
                     self.send_std(self.r_output.stdout)
-                    #print("STDOUT SENT --->")
-
-                    self.send_int(self.ACK.CMD_NO_OUTPUT)
-                    self.send_int(0)
                 
                 self.finished = True
 
             if not self.finished:
                 
-                print("READING NEXT ACTION")
+                print("READING NEXT ACTION...")
                 self.recv_next_action()
 
         
@@ -412,7 +381,6 @@ class Server():
         more_size = b''
         while len(size) < MAX_BYTE_SIGMA:
             try:
-                print(f"LISTENING ON {client.getpeername()}...")
                 more_size = client.recv( (MAX_BYTE_SIGMA - len(size)) )
                 if not more_size:
                     break
@@ -433,7 +401,6 @@ class Server():
             Returns:
                 int: 1 on success 0 on failure
         '''
-        print(f"SENDING {preamble} to {client.getpeername()} on {client.getsockname()}")
         payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
         size_sent = client.send(payload)
         if size_sent == MAX_BYTE_SIGMA:
@@ -500,14 +467,13 @@ def handle_conn(server: Server):
                 conn, addr = server.accept()
                 
                 preamble = server.recv_int(conn)
-                print(f"RECEIVED: {preamble}")
                 if preamble == ACK.CMD_QUOTE_REQUEST:
                     server.send_cost(conn)
                     conn.shutdown(socket.SHUT_RDWR)
                     conn.close()
                 else:
                     child = os.fork()
-                    print("PREAMBLE ", preamble)
+                    print("IN CHILD")
                     if child == 0:
                         client = Client(conn, addr, preamble)
                         client.proc_req()
@@ -568,5 +534,5 @@ if __name__ == "__main__":
 					assert False, "unhandled option"
 
 		except getopt.GetoptError as err:
-			#print(err)
+			print(err)
 			usage(prog)
