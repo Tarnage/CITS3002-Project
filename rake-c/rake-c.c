@@ -210,7 +210,7 @@ void recv_bin_file(int sock)
     FILE *fp = fopen(dir_for_file, "wb");
     if (fp == NULL)
     {
-        printf("PROBLEM\n");
+        printf("PROBLEM: FILE DOES NOT EXIST\n");
         exit(EXIT_FAILURE);
     }
 

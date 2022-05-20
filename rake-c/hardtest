@@ -9,7 +9,7 @@ actionset1:
 #	echo starting actionset1
 	remote-cc -c program.c
 		requires program.c program.h allfunctions.h
-	cc -c square.c
+	remote-cc -c square.c
 		requires square.c allfunctions.h
 	remote-cc -c cube.c
 		requires cube.c allfunctions.h
