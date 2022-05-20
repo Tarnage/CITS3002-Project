@@ -324,7 +324,7 @@ void init_nodes(HOST *hosts)
         head->used = false;
         head->cost = INT_MAX;
         head->curr_req = -1;
-        sockets->local = false;
+        head->local = false;
         head->next = NULL;
 
         head = head->next;
@@ -336,20 +336,19 @@ void init_nodes(HOST *hosts)
 // FOR TESTING PRINT THE CURRENT SOCK LIST
 void print_sock_list(NODE *list)
 {   
-    int i = 0;
+    
     printf("CURRENT SOCKET LIST\n");
-    while(i != num_sockets)
+    while(list != NULL)
     {
         int sock = list->sock;
-        char *ip = list->ip;
+        char *host = list->ip;
         int port = list->port;
         int cost = list->cost;
 
         //printf("%i: (%s:%i)\n", sock, ip, port);
-        printf("%i: (%s:%i) %i\n", sock, ip, port, cost);
+        printf("%i: (%s:%i) %i\n", sock, host, port, cost);
 
-        ++list;
-        ++i;
+        list = list->next;
     }
 }
 
@@ -520,7 +519,8 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
         printf("ACTIONS EXECUTED: %i\n", actions_executed);
         printf("ACTIONS LEFT: %i\n", actions_left);
         printf("NUMBER OF HOSTS IN QUOTE QUEUE: %i\n", quote_queue);
-        if(quote_queue == 0 && cost_waiting)
+        
+        if(quote_queue == 0 && cost_waiting == true)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
             // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
@@ -570,7 +570,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 {   
                     if( (!head->used) && (!head->local) )
                     {   
-                        printf("APPENDING TO FD_SET\n");
+                        printf("APPENDING %s:%i TO FD_SET\n", head->ip, head->port);
                         int socket_desc = create_conn(head->ip, head->port);
                         head->sock = socket_desc;
                         head->used = true;
@@ -578,6 +578,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         quote_queue++;
                         FD_SET(socket_desc, &output_sockets);
                     }
+                    
                     head = head->next;
                 }
             }
@@ -658,7 +659,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         {
                             recv_bin_file(i);
                             FD_CLR(i, &input_sockets);
-                            printf("INCREMENTING ACTIONS EXECUTED\n");
+                            // printf("INCREMENTING ACTIONS EXECUTED\n");
                             ++actions_executed;
 
                             // MARK UNUSED
@@ -670,9 +671,16 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         else if(preamble == CMD_NO_OUTPUT)
                         {   
                             int return_code = recv_byte_int(i);
-                            FD_CLR(i, &input_sockets);
                             printf("NO OUTPUT FILE... RETURN CODE %i\n", return_code);
+                            if(return_code == 0)
+                            {
+                                printf("RETURN CODE 0\n");
+                            }
+                            FD_CLR(i, &input_sockets);
+                            
                             ++actions_executed;
+                            NODE *node = get_node(i);
+                            node->used = false;
                             // close(i);
                         }
                     }
@@ -683,7 +691,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         CMD curr_req = get_curr_req(i);
                         if(curr_req == CMD_QUOTE_REQUEST)
                         {   
-                            printf("SENDING COST REQUEST\n");
+                            // printf("SENDING COST REQUEST\n");
                             send_cost_req(i);
                             // REMOVE FROM OUTPUT
                             FD_CLR(i, &output_sockets);
@@ -744,6 +752,7 @@ int main (int argc, char *argv[])
 
     init_actions(file_name, action_set, hosts);
     init_nodes(hosts);
+    // print_sock_list(sockets);
     //print_action_sets(action_set, num_sets);
 
     for (size_t i = 0; i < num_sets; i++)
