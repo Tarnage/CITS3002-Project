@@ -229,7 +229,9 @@ class Client():
             for entry in dir_entries:
                 info = entry.stat()
                 if info.st_ctime_ns > ctime:
+                    
                     filename = entry.name
+                    print(f"FILE NAME {filename}")
                     ctime = info.st_ctime_ns
                     file_size = info.st_size
                     path = entry.path
@@ -277,9 +279,10 @@ class Client():
         with open(path, 'rb') as f:
             payload = f.read()
 
-        self.send_int(self.ACK.CMD_BIN_FILE)
         self.send_string(self.return_file.filename)
+
         self.send_int(len(payload))
+
         self.sockfd.send( payload )
         #print(f'BIN FILE SENT...')
 
@@ -314,6 +317,7 @@ class Client():
             elif(self.current_ack == self.ACK.CMD_BIN_FILE):
                 print("RECEIVING BIN FILE")
                 self.recv_bin_file()
+                self.send_int(self.ACK.CMD_ACK)
 
             elif(self.current_ack == self.ACK.CMD_EXECUTE):
                 print("EXECUTING")
