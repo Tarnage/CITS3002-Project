@@ -22,6 +22,9 @@ MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
+
+#------------------------------------------------CLASSES------------------------------------------------------------
+
 class Ack:
 	''' ENUM  Class'''
 	def __init__(self):
@@ -49,6 +52,7 @@ class Ack:
 		self.CMD_ACK = 15
 		self.CMD_NO_OUTPUT = 16
 
+
 class FileStats():
 	''' Class to help track files on the server created by the client
 	
@@ -58,10 +62,10 @@ class FileStats():
 		self.size = size
 		self.path = path
 
+
 class Client():
     ''' This object represents the connection from client to server
     '''
-
     def __init__(self, sockfd: socket, addr: tuple, current_ack: int):
         self.sockfd = sockfd
         self.addr = addr
@@ -92,7 +96,6 @@ class Client():
         result = int.from_bytes(size, BIG_EDIAN)
         return result
 
-
     def check_temp_dir(self, peer_dir: str):
         ''' Helper to make sure temp dir exists if not create one
 
@@ -110,7 +113,6 @@ class Client():
                 os.mkdir(f"./tmp/{peer_dir}")
             except OSError as err:
                 sys.exit("Directory creation failed with error: {err}")
-
 
     def recv_string(self):
 
@@ -130,8 +132,6 @@ class Client():
             string += more_size
         
         return string.decode(FORMAT)
-
-
 
     def recv_txt_file(self):
         ''' Writes strings to a file. This is used to transfer source code from Client to Server
@@ -162,10 +162,8 @@ class Client():
 
         print("RECEIVED FILE")
 
-
     def recv_next_action(self):
         pass
-
 
     def send_int(self, preamble: int) -> int:
         ''' Helper to send the byte size of outgoing payload
@@ -181,7 +179,6 @@ class Client():
             return 1
         else:
             return 0
-
 
     def proc_req(self):
 
@@ -210,9 +207,8 @@ class Client():
                 self.recv_next_action()
 
         
-
 class Server():
-    
+    '''Server'''
     def __init__(self, ip: str, port: int, backlog=1):
         self.ip = ip
         self.port = port
@@ -303,6 +299,10 @@ class Server():
         
         self.send_int(client, cost)
         print(f'<---- SENDING QUOTE: {cost}')
+
+
+
+#------------------------------------------------MAIN------------------------------------------------------------
 
 
 # INIT ENUM CLASS

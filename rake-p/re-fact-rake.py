@@ -30,6 +30,8 @@ BIG_EDIAN 		= 'big'
 DOWNLOADS 		= "./downloads"
 MAX_INT 		= sys.maxsize
 
+#------------------------------------------------CLASSES------------------------------------------------------------
+
 class Ack:
     ''' ENUM  Class'''
     def __init__(self):
@@ -69,7 +71,6 @@ class Connection:
         self.ACK = Ack()
         self.action = None
 
-
     def connect(self) -> int:
         '''requests connection to the server and returns the fileno of the socket'''
         try:
@@ -83,7 +84,6 @@ class Connection:
 
         return self.sockfd.fileno()
 
-    
     def send_int(self, payload: int):
         ''' Helper to send the ints in big endian padded to 4 bytes
             Args:
@@ -91,7 +91,6 @@ class Connection:
         '''
         preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
         sent_bytes = self.sockfd.send(preamble)
-
 
     def disconnect(self):
         self.sockfd.shutdown(socket.SHUT_RDWR)
@@ -102,17 +101,14 @@ class Connection:
     def add_actions(self, actions: Action):
         self.actions = actions
 
-
     def files_remaining(self) -> int:
         return (len(self.actions.requires)-1) - (self.next_file_index-1)
-
 
     def get_next_file(self) -> str:
         filename = self.actions.requires[self.next_file_index]
         # INCREMENT AFTER ACK OF CURRENT FILE
         # self.next_file_index += 1
         return filename
-
 
     def find_files(self, filename: str) -> str:
         ''' Searches entire computer for file
@@ -129,7 +125,6 @@ class Connection:
                 # #print(finish - start)
                 return result
 
-
     def send_file(self):
         filename = self.get_next_file()
         path = self.find_files(filename)
@@ -142,7 +137,6 @@ class Connection:
         else:
             print(f"{filename} COULD NOT BE LOCATED!")
             sys.exit(1)
-
 
     def recv_int(self) -> int:
         ''' Helper to get the size of incoming payload also to get expected integers
@@ -169,9 +163,10 @@ class Connection:
         result = int.from_bytes(size, BIG_EDIAN)
         return result
 
-
     def send_cmd(self):
         pass
+
+    def read(self) -> bool:
 
 
     def process(self, read: bool) -> bool:
@@ -216,21 +211,12 @@ class Connection:
                     self.send_cmd()
                     self.current_ack = self.ACK.CMD_RETURN_STATUS
                 
-
-
-
         return finished
             
 
-
-        
-
-#-------------------------------------------------------------------
-# ENUM CLASS
+#------------------------------------------------MAIN------------------------------------------------------------
+# INIT ENUM CLASS
 ACK = Ack()
-
-
-
 
 def create_quote_team(hosts: dict) -> dict:
     '''returns a dictionary of fileno -> Connection Object'''
@@ -278,6 +264,7 @@ def get_lowest_quote(queue: dict) -> tuple:
 
     return (l_ip, l_port)
 
+
 def recv_int(sd: socket) -> int:
     ''' Helper to get the int of incoming payload
         Args:
@@ -305,6 +292,7 @@ def recv_int(sd: socket) -> int:
     #print(f"RECEIVED INT {result}")
     return result
 
+
 def recv_cost(sd: socket) -> int:
     preamble = recv_int(sd)
     if preamble == ACK.CMD_QUOTE_REPLY:
@@ -314,7 +302,7 @@ def recv_cost(sd: socket) -> int:
         print("SOMETHING WENT WRONG RECEIVING THE COST")
 
 
-def send_int(sd: socket, payload: int):
+def send_int(sd: socket, payload: int) -> None:
     ''' Helper to send the ints in big endian padded to 4 bytes
         Args:
             payload(int): int to send
@@ -323,10 +311,8 @@ def send_int(sd: socket, payload: int):
     sent_bytes = sd.send(preamble)
 
 
-
-def send_cost_req(sockfd: socket):
+def send_cost_req(sockfd: socket) -> None:
     send_int(sockfd, ACK.CMD_QUOTE_REQUEST)
-
 
 
 def handle_conn(sets: list, hosts: dict):
@@ -369,7 +355,7 @@ def handle_conn(sets: list, hosts: dict):
                     for sd in quote_queue:
                         output_sockets.extend(sd)
             
-                # IF WE HAVE RECV A QUOTE FROM ALL AVAILIABLE HOSTS
+                # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
                     quote_recv = 0
                     ip, port = get_lowest_quote(quote_queue)
@@ -431,8 +417,6 @@ def handle_conn(sets: list, hosts: dict):
 
         except KeyboardInterrupt:
             sys.exit(1)
-    
-    pass
 
 
 
