@@ -1,0 +1,20 @@
+# A typical Rakefile
+# Add constant for readability for \t
+# tab = "\t"
+# Currently index out of range when it reaches blank line!
+PORT  = 6372
+HOSTS = 127.0.1.1 
+
+actionset1:
+#	echo starting actionset1
+	remote-cc -c program.c
+		requires ./old_src/program.c ./old_src/program.h ./old_src/allfunctions.h
+	remote-cc -c square.c
+		requires ./old_src/square.c ./old_src/allfunctions.h
+	remote-cc -c cube.c
+		requires ./old_src/cube.c ./old_src/allfunctions.h
+
+actionset2:
+#	echo starting actionset2
+	remote-cc -o program program.o square.o cube.o
+		requires ./tmp/program.o ./tmp/square.o ./tmp/cube.o

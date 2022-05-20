@@ -1,0 +1,14 @@
+
+PORT  = 6372
+HOSTS = 127.0.1.1
+
+actionset1:
+	remote-cc -c program.c
+		requires program.c program.h allfunctions.h
+	cc -c program.c
+		requires program.c program.h allfunctions.h
+	cc -c program.c
+		requires program.c program.h allfunctions.h
+
+actionset2:
+	echo starting actionset2
