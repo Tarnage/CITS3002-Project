@@ -67,7 +67,7 @@ local_host = False
 
 
 # OPTSARGS
-sleep = False
+sleep = True
 remove_temp = False
 
 def usage(prog):
@@ -100,9 +100,11 @@ def send_quote(sd):
 	'''
 	send_byte_int(sd, ACK.CMD_QUOTE_REPLY)
 	cost = calculate_cost()
-	#print(f'<---- SENDING QUOTE: {cost}')
+	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send( cost )
+	time.sleep(2)
+
 
 def rm_client_files(sd):
 	'''Helper called at the end of the connection to remove temp files and folders
@@ -154,10 +156,10 @@ def run_cmd(sd, cmd):
 	peer_dir = str(raddr[0]) + "." + str(raddr[1])
 	dir = str('./tmp/' + peer_dir)
 	check_temp_dir(peer_dir)
-	#print(f'EXECUTE REQUEST FROM {raddr}')
-	#print(f'RUNNING COMMAND: {cmd}')
+	print(f'EXECUTE REQUEST FROM {raddr}')
+	print(f'RUNNING COMMAND: {cmd}')
 	p = subprocess.run(cmd, shell=True, cwd=dir, capture_output=True)
-	#print(f'COMMAND FINISHED...')
+	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
 
@@ -208,16 +210,13 @@ def recv_text_file(sd):
 	tmp = f"./tmp/{peer_dir}/"
 
 	filename = recv_filename(sd)
-	#print(f"RECEIVED FILE NAME: {filename}")
+	print(f"RECEIVED FILE NAME: {filename}")
 	size = recv_byte_int(sd)
 
 	buffer = ""
 	while len(buffer) < size:
-		#print("reading..")
-		#print(f"{len(buffer)}/{size}")
-		buffer = sd.recv(size).decode(FORMAT)
-
-	#print(f"{len(buffer)}/{size}")
+		print("reading")
+		buffer += sd.recv(size - len(buffer)).decode(FORMAT)
 
 	try:
 		with open(tmp + filename, "w") as f:
@@ -225,8 +224,6 @@ def recv_text_file(sd):
 
 	except OSError as err:
 		sys.exit(f'File creation failed with error: {err}')
-
-	print("RECEIVED FILE")
 
 
 def recv_bin_file(sd):
@@ -241,12 +238,12 @@ def recv_bin_file(sd):
 	tmp = f"./tmp/{peer_dir}/"
 
 	filename = recv_filename(sd)
-	#print(f"RECEIVED FILE NAME: {filename}")
+	print(f"RECEIVED FILE NAME: {filename}")
 	size = recv_byte_int(sd)
 
 	buffer = b""
 	while len(buffer) < size:
-		#print("reading")
+		print("reading")
 		buffer += sd.recv(size - len(buffer))
 
 	try:
@@ -262,7 +259,6 @@ def send_byte_int(sd, preamble):
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	print(f"SENDING {preamble} to {sd.getpeername()} on {sd.getsockname()}")
 	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	sd.send(payload)
 
@@ -306,7 +302,7 @@ def recv_filename(sd):
 		try:
 			more_size = sd.recv( size - len(filename) )
 			if not more_size:
-				time.sleep(0)
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -315,6 +311,7 @@ def recv_filename(sd):
 		filename += more_size
 	
 	return filename.decode(FORMAT)
+
 
 def recv_cmd(sd, size):
 	''' Helper to get the size of incoming payload
@@ -331,7 +328,7 @@ def recv_cmd(sd, size):
 		try:
 			more_size = sd.recv( size - len(payload) )
 			if not more_size:
-				time.sleep(0)
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -339,7 +336,7 @@ def recv_cmd(sd, size):
 		payload += more_size
 
 	result = payload.decode(FORMAT)
-	#print("returned result")
+	print("returned result")
 	return result
 
 
@@ -355,19 +352,17 @@ def recv_byte_int(sd):
 	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
-			print(f"LISTENING ON {sd.getpeername()}...")
-			more_size = sd.recv( (MAX_BYTE_SIGMA - len(size)) )
+			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
 			if not more_size:
 				break
 		except socket.error as err:
 			if err.errno == 35:
-				#print("NO AVAILIABLE TRYING AGAIN...")
 				time.sleep(0)
 				continue
 		size += more_size
 
 	result = int.from_bytes(size, BIG_EDIAN)
-	#print(f"RECEIVED INT {result}")
+	print(f"RECEIVED INT {result}")
 	return result
 
 
@@ -378,7 +373,7 @@ def send_bin_file(sd, file_attr):
 			sd(socket): Connection to send the file
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	#print(f'<-------SENDING FILE')
+	print(f'<-------SENDING FILE')
 	path = file_attr.path
 	filename = file_attr.filename
 	
@@ -391,70 +386,7 @@ def send_bin_file(sd, file_attr):
 	send_byte_int(sd, len(payload))
 
 	sd.send( payload )
-	#print(f'FILE SENT...')
-
-
-def create_server_socket(host, port):
-	listening_sock = 0
-
-	try:
-		# AF_INET IS THE ADDRESS FAMILY IP4
-		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
-		listening_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-		#print("PORT SUCCESFULLY CREATED!")
-		# BIND SOCKET TO PORT
-		listening_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		listening_sock.setblocking(True)
-		listening_sock.bind( (host, port) )
-		#print( f'PORT {port} BINDED...' )
-	except socket.error as err:
-		if err.errno == 98:
-			sys.exit(f'Binding failed with error: {err}')
-		else:
-			sys.exit(f'Socket creation failed with error {err}')
-
-	# PUT THE SOCKET TO LISTEN MODE
-	listening_sock.listen(DEFAULT_BACKLOG)
-	#print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-
-	return listening_sock
-
-
-def new_client_handler(listening):
-	conn, addr = listening.accept()
-	return conn
-
-
-def create_new_proccess(listening_sock, new_client, ack):
-	sigma = ack
-	ret = os.fork()
-	if ret == 0:
-		#print("CHILD CREATED...")
-		#listening_sock.close()
-		finished = False
-		while not finished:
-			print(f"CHILD {os.getpid()}...EXCUTING {sigma} FOR {new_client.getpeername()}")
-			finished = handle_fork(new_client, sigma)
-			print(f"IS FINISHED = {finished}")
-			#print(f"LISTENINGG...{new_client.getpeername()}")
-			#print(new_client)
-
-			if not finished:
-				sigma = recv_byte_int(new_client)
-				print(f"CHILD {os.getpid()}...EXCUTING {sigma} FOR {new_client.getpeername()}")
-
-			print("PASSED SIGMA")
-			#print(f"----> RECIEVING ACK TYPE: {sigma}")
-			# new_client.shutdown(socket.SHUT_RDWR)
-			# new_client.close()
-			# break
-	elif ret > 0:
-		#print("PARENT PROCESS")
-		os.wait()
-	else:
-		#print("ERROR FORK FAILED")
-		sys.exit(0)
-	print("EXITED")
+	print(f'FILE SENT...')
 
 
 def handle_conn(host, port):
@@ -464,36 +396,55 @@ def handle_conn(host, port):
 		host (str): the ip address the server will bind
 		port (int): the port the server will bind 
 	'''	
-	listening_sock = 0
-	conn = 0
-	listening_sock = create_server_socket(host, port)
 
-	#print(f"PARENT PID: {os.getpid()}")
+	global local_host
+
+	if (host == "localhost") or (host == "127.0.0.1"):
+		local_host = True
+
+	try:
+		# AF_INET IS THE ADDRESS FAMILY IP4
+		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
+		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		print("PORT SUCCESFULLY CREATED!")
+		# BIND SOCKET TO PORT
+		sd.bind( (host, port) )
+		print( f'PORT {port} BINDED...' )
+	except socket.error as err:
+		if err.errno == 98:
+			sys.exit(f'Binding failed with error: {err}')
+		else:
+			sys.exit(f'Socket creation failed with error {err}')
+
+
+	# PUT THE SOCKET TO LISTEN MODE
+	sd.listen(DEFAULT_BACKLOG)
+	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
+	print(f"PARENT PID: {os.getpid()}")
 	try:
 		while True:
-			print(f"PARENT {os.getpid()}")
-			conn, addr = listening_sock.accept()
-			print("RETURN ADDRESS", addr)
-			preamble = recv_byte_int(conn)
-			
-			if preamble == ACK.CMD_QUOTE_REQUEST:
-				handle_fork(conn, ACK.CMD_QUOTE_REQUEST)
-				#print("SHUTDOWN ", conn)
-				# conn.shutdown(socket.SHUT_RDWR)
-				# conn.close()
+			conn, addr = sd.accept()
+			print("FORKING")
+			if conn == -1:
+				conn.close()
 			else:
-				create_new_proccess(listening_sock, conn, preamble)
-				#print("RETURNED")
-				#conn.shutdown(socket.SHUT_RDWR)
-				#conn.close()
+				fork = os.fork()
+
+				if fork < 0:
+					conn.close()
+				elif fork > 0:
+					os.wait()
+					handle_fork(conn)
+					
+			print("RETURNED")
 
 	except KeyboardInterrupt:
-		#print('Interrupted. Closing sockets...')
+		print('Interrupted. Closing sockets...')
 		# Make sure we close sockets gracefully
+		sd.close()
 		sys.exit()
 	# except Exception as err:
-	# 	#print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
-	#	conn.shutdown()
+	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
 	# 	sd.close()
 	# 	sys.exit()
 
@@ -504,101 +455,89 @@ def retrun_status(sd):
 def return_file(sd):
 	pass
 
-def handle_fork(sock, sigma):
-	#print(f"CHILD PID: {os.getpid()}")
+def handle_fork(sock):
+	print(f"CHILD PID: {os.getpid()}")
+	while sock:
 		# SOMETHING TO READ
-	print(f"LISTENING ON {sock.getsockname()}... GOT-{sigma}")
-	#print(sock)
+		sigma = recv_byte_int(sock)
+		print(f"----> RECIEVING ACK TYPE: {sigma}")
 
-	# SLEEP
-	if sleep == True:
-		rand = random.randint(1, 10)
-		timer = os.getpid() % rand + 2
-		#print( f'sleep for: {timer}' )
-		time.sleep(timer)
+		# SLEEP
+		if sleep == True:
+			rand = random.randint(1, 10)
+			timer = os.getpid() % rand + 2
+			print( f'sleep for: {timer}' )
+			time.sleep(timer)
 
-	# REQUEST FOR COST QUOTE
-	if sigma == ACK.CMD_QUOTE_REQUEST:
-		#print(f'COST QUOTE REQUESTED')
-		send_quote(sock)
-		#print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-		#sock.shutdown()
-		# sock.close()
-		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-	
-	# REQUEST TO RUN COMMAND
-	elif sigma == ACK.CMD_EXECUTE:
-		size = recv_byte_int(sock)
-		payload = recv_cmd(sock, size)
-		#print(f'REQUEST TO EXECUTE...{payload}')
-		# STORE RETURN CODE IN DICT 
-		proc, file_attr = run_cmd(sock, payload)
-		r_code = proc.returncode
+		# REQUEST FOR COST QUOTE
+		if sigma == ACK.CMD_QUOTE_REQUEST:
+			print(f'COST QUOTE REQUESTED')
+			send_quote(sock)
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+		
+		# REQUEST TO RUN COMMAND
+		elif sigma == ACK.CMD_EXECUTE:
+			size = recv_byte_int(sock)
+			payload = recv_cmd(sock, size)
+			print(f'REQUEST TO EXECUTE...{payload}')
+			# STORE RETURN CODE IN DICT 
+			proc, file_attr = run_cmd(sock, payload)
+			r_code = proc.returncode
 
-		#print(f"<-------- SENDING RETURN STATUS ({r_code})")
+			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 
-		# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
-		if (file_attr.filename == "") and (r_code == 0):
-			send_byte_int(sock, ACK.CMD_NO_OUTPUT)
-			send_byte_int(sock, r_code)
-			return True
+			# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+			if (file_attr.filename == "") and (r_code == 0):
+				send_byte_int(sock, ACK.CMD_NO_OUTPUT)
+				send_byte_int(sock, r_code)
 
-		# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
-		elif r_code == 0:
-			send_byte_int(sock, ACK.CMD_RETURN_STATUS)
-			send_byte_int(sock, r_code)
-			send_byte_int(sock, ACK.CMD_RETURN_FILE)
-			send_bin_file(sock, file_attr)
-			# sock.shutdown(socket.SHUT_RDWR)
-			# sock.close()
-			return True
+			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
+			elif r_code == 0:
+				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+				send_byte_int(sock, r_code)
+				send_byte_int(sock, ACK.CMD_RETURN_FILE)
+				send_bin_file(sock, file_attr)
 
-		# EXECUTION FAILED WITH WARNING
-		#TODO: hand error codes
-		elif 0 < r_code < 5:
-			send_byte_int(sock, ACK.CMD_RETURN_STDERR)
-			send_byte_int(sock, r_code)
-			send_std(sock, proc.stderr)
-			#print("STDERR SENT --->")
+			# EXECUTION FAILED WITH WARNING
+			#TODO: hand error codes
+			elif 0 < r_code < 5:
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stderr)
+				print("STDERR SENT --->")
 
-		# EXECUTION HAD A FATAL ERROR
-		else:
-			send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
-			send_byte_int(sock, r_code)
-			send_std(sock, proc.stdout)
-			#print("STDOUT SENT --->")
+			# EXECUTION HAD A FATAL ERROR
+			else:
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stdout)
+				print("STDOUT SENT --->")
 
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+			if remove_temp == True:
+				rm_client_files(sock)
+				# END OF CONNECTION
 
-		#print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-		# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
-		if remove_temp == True:
-			rm_client_files(sock)
-			# END OF CONNECTION
-		#sock.shutdown()
-		# sock.close()
-		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
-	elif sigma == ACK.CMD_SEND_FILE:
-		print("ENTERED SEND_FILE_MODE")
-		recv_text_file(sock)
-		# time.sleep(1)
-		send_byte_int(sock, ACK.CMD_ACK)
-		print("ACK SENT")
+		elif sigma == ACK.CMD_SEND_FILE:
+			recv_text_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
 
+		elif sigma == ACK.CMD_BIN_FILE:
+			recv_bin_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
+		
 
-	elif sigma == ACK.CMD_BIN_FILE:
-		recv_bin_file(sock)
-		send_byte_int(sock, ACK.CMD_ACK)
+		# TODO: ERROR 
+		elif sigma == ACK.CMD_ECHO:
+			sock.close()
+			sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
 
-
-	# TODO: ERROR 
-	elif sigma == ACK.CMD_ECHO:
-		pass
-		#sock.shutdown()
-		# sock.close()
-		# sys.exit() # MAKE SURE CHILD PROCESS CLOSES OTHERWISE ZOMBIES
-
-	return False
 
 # WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
 # WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
@@ -610,12 +549,11 @@ def close_sockets(sockets):
 			sockets(list): Contains a list of open sockets
 	'''
 	for sock in sockets:
-		#sock.shutdown()
 		sock.close()
 
 
 def main(ip=SERVER_HOST, port=SERVER_PORT):
-	#print(f"ESTABLISHING CONNECTION ON {ip} {port}")
+	print(f"ESTABLISHING CONNECTION ON {ip} {port}")
 	handle_conn(ip, port)
 
 
@@ -630,35 +568,30 @@ if __name__ == "__main__":
 		sys.exit()
 	else:
 		try:
-			opts, args = getopt.getopt(sys.argv[1:], "hdvwi:c")
+			opts, args = getopt.getopt(sys.argv[1:], "hdvwi:")
 			for o, a in opts:
 				if o == "-h":
 					usage(prog)
 					sys.exit()
 				elif o == "-v":
-					#print("TODO verbose")
-					pass
+					print("TODO verbose")
 				elif o == "-d":
-					#print("TODO default")
-					pass
+					print("TODO default")
 				elif o == "-w":
 					sleep = True
 				elif o == "-r":
 					remove_temp = True
-				elif o == "-c":
-					#print(args[0])
-					handle_fork(int(args[0]))
 				elif o == "-i":
 					if len(args) == 1:
 						main(ip=a, port=int(args[0]))
 					else:
-						#print("Error 2 arguments are required")
+						print("Error 2 arguments are required")
 						usage(prog)
 						sys.exit()
 				else:
 					assert False, "unhandled option"
 
 		except getopt.GetoptError as err:
-			#print(err)
+			print(err)
 			usage(prog)
 		

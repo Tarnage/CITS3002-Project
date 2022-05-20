@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <sys/select.h>
+#include <fcntl.h>
 
 #define MAX_BYTES_SIGMA 4
 #define TEMP_FOLDER "./tmp/"
@@ -51,6 +52,7 @@ typedef struct _node
     int port;
     int cost;
     bool used;
+    bool local;
     CMD curr_req;
     ACTION *actions;
     struct _node *next;

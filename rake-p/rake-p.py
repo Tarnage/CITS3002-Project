@@ -59,7 +59,7 @@ class Ack:
 
 
 class Hosts:
-	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, local=False):
+	def __init__(self, sock, ip, port, used=False, action=None, cost=MAX_INT, got_cost=False, local=False):
 		self.sock = sock
 		self.ip = ip
 		self.port = port
@@ -67,6 +67,7 @@ class Hosts:
 		self.action = action
 		self.cost = cost
 		self.local = local
+		self.got_cost = got_cost
 
 
 # INIT GLOBALS
@@ -103,33 +104,38 @@ def create_socket(host, port):
 	
 	'''
 	try:
-		sd = socket.socket()
-		print( f"Socket succesfully created! ({host}:{port})" )
-		print( f'connecting to {host}:{port}...' )
+		sd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+		#print( f"Socket succesfully created! ({host}:{port})" )
+		#print( f'connecting to {host}:{port}...' )
 		sd.connect( (host, port) )
+		
 	except socket.error as err:
 		if err.errno == 111:
 			sys.exit( ( f'Connection refused with error: {err}' ) )
 		else: 
 			sys.exit( f'socket creation failed with error: {err}' )
 
-	print( f"CONNECTION SUCCESSFUL" )
-	sd.setblocking(False)
+	#print( f"CONNECTION SUCCESSFUL" )
+	sd.setblocking(True)
 	return sd
 
 
 def get_host_obj(hosts):
-	socket_lists = list()
+	global obj_hosts
+	obj_hosts = list()
 	port = parse_rakefile.get_default_port()
 	# ADD LOCAL HOST
-	socket_lists.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
+	obj_hosts.append(Hosts(None, LOCAL_HOST, port, used=True, local=True))
 
 	for key in hosts:
-		socket_lists.append(Hosts(None, key, hosts[key]))
-		print(key, hosts[key])
-	
-	return socket_lists
+		obj_hosts.append(Hosts(None, key, hosts[key]))
 
+
+
+def find(sd):
+	for h in obj_hosts:
+		if h.sock == sd:
+			print(h.sock, h.used, h.local, h.cost, h.action)
 
 
 def close_sockets(sockets):
@@ -152,11 +158,10 @@ def send_cmd(sd):
 	'''
 	for h in obj_hosts:
 		if h.sock == sd:
-			payload = h.action.cmd
+			payload = h.action.cmd.encode(FORMAT)
 			send_ack(sd, ACK.CMD_EXECUTE)
 			send_byte_int(sd, len(payload))
-			sd.sendall(payload.encode(FORMAT))
-			print(f"COMMAND SENT {payload}...")
+			sd.send(payload)
 			break
 
 # TODO: DONT MAKE cost_list global but instead have it sent in 
@@ -171,17 +176,15 @@ def get_lowest_cost():
 	lowest_cost = MAX_INT
 	curr = None
 	for h in obj_hosts:
-		if h.cost < lowest_cost:
-			lowest_cost = h.cost
-			curr = h
-
-			# ALREADY TRUE
-			h.used = True
-		else:
+		if( (h.local == False) and (h.got_cost == True) ):
+			if (h.cost < lowest_cost):
+				lowest_cost = h.cost
+				curr = h
+				
+			h.got_cost = False
 			h.used = False
-
-		# RESET COST
-		h.cost = MAX_INT
+			# RESET COST
+			h.cost = MAX_INT
 	
 	return curr
 
@@ -194,7 +197,7 @@ def mark_free(sd):
 	global obj_hosts
 
 	for h in obj_hosts:
-		if (h.sock == sd) and (not h.local):
+		if (h.sock == sd) and (h.local == False):
 			h.used = False
 			break
 
@@ -211,6 +214,7 @@ def add_cost(sd, cost):
 	for h in obj_hosts:
 		if h.sock == sd:
 			h.cost = cost
+			h.got_cost = True
 			break
 
 
@@ -228,8 +232,11 @@ def get_filename(sd):
 
 	for h in obj_hosts:
 		if h.sock == sd:
+			
 			index = len(h.action.requires) - 1
+			
 			if index > 0:
+				##print("FILE AND INDEX {} {}".format(h.action.requires[index], index))
 				file = h.action.requires[index]
 				h.action.requires.pop()
 				return file
@@ -257,13 +264,17 @@ def send_file_name(sd, filename):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to send
 	'''
-	print(f'SENDING ({filename}) ---->')
+	#print(sd)
+	#find(sd)
+	#print(f'{sd.getpeername()} SENDING ({filename}) ---->')
 
 	payload = filename.encode(FORMAT)
 	send_byte_int(sd, len(payload))
 
 	# SEND THE LENGTH TO EXPECT
-	sd.sendall( payload )
+	sd.send( payload )
+
+	#print("SUCESSFULLY SENT...")
 
 
 def send_txt_file(sd, filename, path):
@@ -273,17 +284,20 @@ def send_txt_file(sd, filename, path):
 			sd(socket): Connection to send the filename
 			filename(str): Name of file to transfer
 	'''
-	sigma = ACK.CMD_SEND_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-
+	#print(sd)
 	payload = ""
 	with open(path, "r") as f:
 		payload = f.read()
+
 	
+
+	#print("SENDING CMD_SEND_FILE ---->")
+	send_byte_int(sd, ACK.CMD_SEND_FILE)
+
 	send_file_name(sd, filename)
 
 	send_byte_int(sd, len(payload))
-	sd.sendall( payload.encode(FORMAT) )
+	sd.send( payload.encode(FORMAT) )
 
 
 
@@ -296,19 +310,19 @@ def send_bin_file(sd, filename, path):
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
 	send_byte_int(sd, ACK.CMD_BIN_FILE)
-	print(f"SENDING BIN FILE {filename}---->")
+	#print(f"SENDING BIN FILE {filename}---->")
 	payload = b''
 	with open(path, 'rb') as f:
 		payload = f.read()
 
 	send_file_name(sd, filename)
 	send_byte_int(sd, len(payload))
-	sd.sendall( payload )
-	print(f'BIN FILE SENT...')
+	sd.send( payload )
+	#print(f'BIN FILE SENT...')
 
 
 def send_filename(sd, filename):
-	sd.sendall(filename.encode(FORMAT))
+	sd.send(filename.encode(FORMAT))
 
 
 # CHANGE TO RECV STRING? JUST ONE FUNC
@@ -337,7 +351,7 @@ def recv_filename(sd):
 # CHANGE TO RECV STRING?
 def recv_std(sd):
 
-	print("-----> RECEIVING ERROR MSG")
+	#print("-----> RECEIVING ERROR MSG")
 	size = recv_byte_int(sd)
 	filename = b''
 	more_size = b''
@@ -365,7 +379,7 @@ def recv_bin_file(sd):
 
 	size = recv_byte_int(sd)
 
-	print("ENETERED WRITE MODE...")
+	#print("ENETERED WRITE MODE...")
 
 	check_downloads_dir()
 
@@ -389,11 +403,11 @@ def send_ack(sd, ack_type):
 			sd(socket): Connection to send the acknowledgment
 			ack_type(int): integer representing the acknowledgment type
 	'''
-	print(f'----> SENDING ACK')
+	#print(f'----> SENDING ACK {ack_type}')
 	
 	# SEND ACK WITH FIXED BYTE ORDER AND SIZE
 	ack = ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( ack )
+	sd.send( ack )
 
 
 def recv_byte_int(sd):
@@ -422,13 +436,13 @@ def recv_byte_int(sd):
 	return result
 
 
-def send_byte_int(sd, payload_len):
-	''' Helper to send the byte size of outgoing payload
+def send_byte_int(sd, payload):
+	''' Helper to send the ints in big endian padded to 4 bytes
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall(size)
+	preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
+	sent_bytes = sd.send(preamble)
 
 
 def is_bin_file(path):
@@ -456,7 +470,7 @@ def find_files(filename):
 		if filename in files:
 			result = (os.path.join(root, filename))
 			# finish = time.time()
-			# print(finish - start)
+			# #print(finish - start)
 			return result
 
 
@@ -487,7 +501,6 @@ def handle_conn(sets):
 
 	# REMAINING ACTIONS IN THIS LOOP
 	actions_left = len(sets)
-	print(f"ACTIONS LEFT = {actions_left}")
 
 	# HOW MANY SOCKETS ARE OUT REQUESTING FOR COST
 	quote_queue = 0
@@ -496,40 +509,27 @@ def handle_conn(sets):
 	cost_waiting = False
 
 	while actions_executed < actions_left :
-		print(f"{actions_executed}  {actions_left}")
 		try:
 			# WE HAVE COSTS FOR THE NEXT ACTION
-			if (quote_queue == 0) and cost_waiting:
-
-				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
-				if sets[curr_action].remote:
-					slave = get_lowest_cost()
-					cost_waiting = False
-					slave.action = sets[curr_action]
-					sd = create_socket(slave.ip, slave.port)
-					slave.sock = sd
-					msg_queue[sd] = ACK.CMD_SEND_FILE
-					curr_action += 1
-					output_sockets.append(sd)
 
 			# WE HAVE ACTIONS TO EXECUTE 
 			if (curr_action < actions_left):
-
-				if (not sets[curr_action].remote):
+				if (sets[curr_action].remote == False):
 					# 0TH INDEX IS ALWAYS LOCALHOST
-					local = obj_hosts[0]
-					local.action = sets[curr_action]
-					sd = create_socket(local.ip, local.port)
-					local.sock = sd
+					obj_hosts[0].action = sets[curr_action]
+					
+					sd = create_socket(obj_hosts[0].ip, obj_hosts[0].port)
+					obj_hosts[0].sock = sd
 					msg_queue[sd] = ACK.CMD_SEND_FILE
 					curr_action += 1
 					output_sockets.append(sd)
 					# actions_executed += 1
 
 				if (curr_action < actions_left):
+					#print(f"{actions_executed}  {actions_left}  {curr_action}")
 					# SEND COST REQS TO FREE SERVERS
 					for h in obj_hosts:
-						if (not h.used) and (not h.local):
+						if (h.used == False) and (h.local == False):
 							sd = create_socket(h.ip, h.port)
 							h.sock = sd
 							h.used = True
@@ -537,23 +537,45 @@ def handle_conn(sets):
 							msg_queue[sd] = ACK.CMD_QUOTE_REQUEST
 							output_sockets.append(sd)
 
+			if (quote_queue == 0) and (cost_waiting == True) and (actions_executed == curr_action):
+				# CHECK WHEN WE HAVE COSTS TO CALCULATE FOR NEXT COMMAND
+				if sets[curr_action].remote:
+					slave = get_lowest_cost()
+					cost_waiting = False
+					slave.action = sets[curr_action]
+					#print()
+					#print(f"SLAVE {slave.ip} {slave.port}")
+					#print()
+					sd = create_socket(slave.ip, slave.port)
+					slave.sock = sd
+						
+					slave.used = True
+					msg_queue[sd] = ACK.CMD_SEND_FILE
+					curr_action += 1
+					output_sockets.append(sd)
+
+
+			##print_objs(obj_hosts)
 
 			# GET THE LIST OF READABLE SOCKETS
 			read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
-
+			
 			for sock in read_sockets:
+				#print(f"{sock.getsockname()} LISENTING...")
 				if sock:
-					print("WAITING FOR REPLY...")
+					##print_objs(obj_hosts)
+					print(f"{sock.getsockname()} WAITING FOR REPLY...")
 					if sock in input_sockets:
 						input_sockets.remove(sock)
 
 					# SOMETHING TO READ
 					sigma = recv_byte_int(sock)
 					
-					#print(f"RECIEVED ACK TYPE {sigma}")
+					print(f"RECIEVED ACK TYPE {sigma}")
 					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
 					# NOW SEND THE NEXT PAYLOAD
 					if sigma == ACK.CMD_ACK:
+						#print(f"RECV ACK TO CONTINUE FROM {sock.getpeername()}")
 						output_sockets.append(sock)
 
 					elif sigma == ACK.CMD_QUOTE_REPLY:
@@ -563,66 +585,69 @@ def handle_conn(sets):
 						del msg_queue[sock]
 						cost_waiting = True
 						quote_queue -= 1
-						print("CLOSING CONNECTION...")
-						sock.close()
+						# sock.shutdown(socket.SHUT_RDWR)
+						# sock.close()
+
 
 					elif sigma == ACK.CMD_RETURN_STATUS:
 						r_code = recv_byte_int(sock)
-						print(f"RECV CODE: {r_code}")
+						#print(f"RECV CODE: {r_code}")
 
 						# EXECUTION WAS SUCCESSFUL, ON SUCCESS A FILE SHOULD BE SENT FROM SERVER
 						if r_code == 0:
 							# EXPECT A FILE SENT FROM SERVER
-							print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
+							#print(f"EXECUTION ON REMOTE HOST WAS SUCCESSFUL!!")
 							msg_queue[sock] = ACK.CMD_RETURN_FILE
 							input_sockets.append(sock)
 							
 					# EXECUTION FAILED WITH WARNING
 					#TODO: handle error codes
 					elif sigma == ACK.CMD_RETURN_STDOUT:
-						print("REVIEVCED A WARNING ERROR")
+						#print("REVIEVCED A WARNING ERROR")
 						code = recv_byte_int(sock)
 						msg = recv_std(sock)
 						raise Exception(msg)
 						
 					# EXECUTION HAD A FATAL ERROR
 					elif sigma == ACK.CMD_RETURN_STDERR:
-						print("REVIEVCED A FATAL ERROR")
+						#print("REVIEVCED A FATAL ERROR")
 						code = recv_byte_int(sock)
 						msg = recv_std(sock)
 						raise Exception(msg)
 						
 					elif sigma == ACK.CMD_RETURN_FILE:
-						print("RECIEVING FILE...")
+						#print("<----- RECIEVING FILE...")
 						recv_bin_file(sock)
-						print("CLOSING CONNECTION...")
-						actions_executed += 1
+						#print("CLOSING CONNECTION...")
+						actions_executed = actions_executed + 1
 						mark_free(sock)
-						sock.close()
+						#sock.shutdown(socket.SHUT_RDWR)
+						#sock.close()
 						del msg_queue[sock]
 						# END OF CONNECTION 
 
 					elif sigma == ACK.CMD_NO_OUTPUT:
 						r_code = recv_byte_int(sock)
-						print(f"RECV CODE: {r_code}")
-						actions_executed += 1
+						#print(f"<------ RECV CODE: {r_code}")
+						actions_executed = actions_executed + 1
 						mark_free(sock)
-						sock.close()
+						#sock.close()
 						del msg_queue[sock]
 						
 			for sock in write_sockets:
 				if sock:
 					if sock in output_sockets:
 						output_sockets.remove(sock)
-
+					##print_objs(obj_hosts)
 					# CHECK WHAT YPE OF MSG TO SEND
 					msg_type = msg_queue[sock]
-					print(f"SENDING MESSAGE...")
+					##print(msg_queue)
+					print(f"{sock.getpeername()} from {sock.getsockname()}SENDING MESSAGE ----->")
 
 					# SLEEP
 					# rand = random.randint(1, 10)
 					# timer = os.getpid() % rand + 2
-					# #print( f'sleep for: {timer}' )
+					# ##print( f'sleep for: {timer}' )
 					# time.sleep(timer)
 
 					# WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
@@ -641,10 +666,10 @@ def handle_conn(sets):
 					elif msg_type == ACK.CMD_SEND_FILE:
 						# NAME OF FILE TO SEND
 						filename = get_filename(sock)
-
+						print(f"TRYING TO SEND {filename}")
 						# WHEN WE HAVE SENT ALL THE FILES WE NOW WANT TO SEND A COMMAND TO EXECUTE
 						if filename == None:
-							print(f'SENDING ACK FOR EXECUTE ---->')
+							#print(f'SENDING ACK FOR EXECUTE ---->')
 							send_cmd(sock)
 							# WHEN THEN WAIT FOR THE RETURN STATUS
 							msg_queue[sock] = ACK.CMD_RETURN_STATUS
@@ -660,39 +685,40 @@ def handle_conn(sets):
 								msg_queue[sock] = ACK.CMD_SEND_FILE
 								input_sockets.append(sock)
 							else:
-								print(f"{filename} DOES NOT EXSIST!")
+								#print(f"{filename} DOES NOT EXSIST!")
 								del msg_queue[sock]
-								sock.close()
+								#sock.close()
 
 		except KeyboardInterrupt:
-			print('Interrupted. Closing sockets...')
-			# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
-			close_sockets(input_sockets)
-			close_sockets(output_sockets)
-			sys.exit()
+		# 	#print('Interrupted. Closing sockets...')
+		# 	# MAKE SURE WE CLOSE SOCKETS GRACEFULLY
+		# 	close_sockets(input_sockets)
+		# 	close_sockets(output_sockets)
+		 	sys.exit()
 
-		except Exception as err:
-			print( f'ERROR IN REMOTE HOST WITH:' )
-			print( f'{err}' )
-			close_sockets(input_sockets)
-			close_sockets(output_sockets)
-			sys.exit()
+		# except Exception as err:
+		# 	#print( f'ERROR IN REMOTE HOST WITH:' )
+		# 	#print( f'{err}' )
+		# 	close_sockets(input_sockets)
+		# 	close_sockets(output_sockets)
+		# 	sys.exit()
 
 
 
 def print_objs(hosts):
+
 	for host in hosts:
-		print(host.sock, host.ip, host.port, host.used)
+		if host.action != None:
+			print("ip:{}\n port:{}\n used:{}\n cmd:{}\n cost:{}\n local:{}".format(host.ip, host.port, host.used, host.action.cmd, host.cost, host.local))
+		else:
+			print("ip:{}\n port:{}\n used:{}\n cost:{}\n local:{}".format(host.ip, host.port, host.used, host.cost, host.local))
 
 def main(argv):
-	dict_hosts, actions = parse_rakefile.read_rake(argv[1])
-
-	global obj_hosts
-	obj_hosts = get_host_obj(dict_hosts)
-	count = 0
+	#dict_hosts, actions = parse_rakefile.read_rake(argv[1])
+	dict_hosts, actions = parse_rakefile.read_rake("/home/thanh/GitHub/CITS3002-Project/rake-p/hardtest")
+	get_host_obj(dict_hosts)
+	
 	for sets in actions:
-		count += 1
-		print(f"EXECTUING ACTIONSET {count}")
 		handle_conn(list(sets))
 		
 if __name__ == "__main__":

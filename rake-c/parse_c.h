@@ -15,6 +15,8 @@ extern  char    *strdup(const char *str);
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
+
 #include "strsplit.h"
 
 //-----------------------------------GLOBALS----------------------------------------------
@@ -22,6 +24,7 @@ extern  char    *strdup(const char *str);
 int num_hosts;
 int num_actions;
 int num_sets;
+int default_port;
 
 //-----------------------------------MACROS----------------------------------------------
 

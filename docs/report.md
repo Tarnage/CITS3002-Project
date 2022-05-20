@@ -167,3 +167,5 @@ Add timers and check for errors, though ethernet is reliable, it could be too re
 
 
 ## Conclusion
+
+![](./diagrams/client_flow.png)
