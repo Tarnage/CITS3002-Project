@@ -101,17 +101,14 @@ void send_file(int sd, char *filename)
 {
     printf("FILE SENDING PROCESS STARTED\n");
     send_byte_int(sd, CMD_SEND_FILE);
-    printf("SENDING FILE NAME ----> %s\n", filename);
-    
-#ifdef USE_FIND_FILE
-    char *path = find_file(filename, );
-#else
-    char *path = filename;
-#endif
+    char *last = strrchr(filename, '/');
 
-    send_string(sd, filename);
+    char* real_file_name = strdup(last+1);
+    printf("SENDING FILE NAME ----> %s\n", real_file_name);
 
-    FILE *fp = fopen(path, "rb");
+    send_string(sd, real_file_name);
+
+    FILE *fp = fopen(filename, "rb");
 
     if (fp == NULL)
     {
@@ -120,7 +117,7 @@ void send_file(int sd, char *filename)
     else 
     {
         struct stat st;
-        stat(path, &st);
+        stat(filename, &st);
         int size = st.st_size;
         char buffer[size]; 
         
