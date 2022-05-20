@@ -224,8 +224,7 @@ class Client():
         filename = ""
         ctime = 0
         file_size = 0
-        path = ""
-
+        print("PATH", path)
         with os.scandir(path) as dir_entries:
             for entry in dir_entries:
                 info = entry.stat()
@@ -250,6 +249,7 @@ class Client():
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
         path = str('./tmp/' + peer_dir)
+        print("PATHHHHHH", path)
         #print(f'EXECUTE REQUEST FROM {raddr}')
         #print(f'RUNNING COMMAND: {cmd}')
         p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
