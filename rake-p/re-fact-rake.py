@@ -124,6 +124,77 @@ class Connection:
                 # finish = time.time()
                 # #print(finish - start)
                 return result
+    
+    def recv_string(self):
+        size = self.recv_int()
+        string = b''
+        more_size = b''
+        while len(string) < size:
+            try:
+                more_size = self.sockfd.recv( size - len(string) )
+                if not more_size:
+                    break
+            except socket.error as err:
+                if err.errno == 35:
+                    time.sleep(0)
+                    continue
+
+            string += more_size
+        
+        return string.decode(FORMAT)
+
+    def send_string(self, string: str):
+        payload = string.encode(FORMAT)
+        self.send_int(len(payload))
+        self.sockfd.send(payload)
+
+    def is_bin_file(self, path: str) -> bool:
+        ''' Helper to ensure we send the file in the right format
+            Args:
+                filename(str): location to the file.
+        '''
+        try:
+            with open(path, 'tr') as check_file:  # try open file in text mode
+                check_file.read()
+                return False
+        except:  # if fail then file is non-text (binary)
+            return True
+
+    def send_bin_file(self, filename: str, path: str):
+        ''' Transfer binary file
+        
+            Args:
+                filename(str): file name
+                path(str): path to file
+        '''
+        
+        #print(f"SENDING BIN FILE {filename}---->")
+        payload = b''
+        with open(path, 'rb') as f:
+            payload = f.read()
+        self.send_int(self.ACK.CMD_BIN_FILE)
+        self.send_string(filename)
+        self.send_int(len(payload))
+        self.sockfd.send( payload )
+        #print(f'BIN FILE SENT...')
+
+    def send_txt_file(self, filename: str, path: str):
+        ''' Send file contents to server
+
+            Args:
+                filename(str): Name of file to transfer
+                path(str): path to file
+        '''
+        #print(sd)
+        payload = ""
+        with open(path, "r") as f:
+            payload = f.read()
+
+        #print("SENDING CMD_SEND_FILE ---->")
+        self.send_int(self.ACK.CMD_SEND_FILE)
+        self.send_string(filename)
+        self.send_int(len(payload))
+        self.sockfd.send( payload )
 
     def send_file(self):
         filename = self.get_next_file()
@@ -164,55 +235,98 @@ class Connection:
         return result
 
     def send_cmd(self):
-        pass
+        payload = self.actions.cmd
+        self.send_int(self.ACK.CMD_EXECUTE)
+        self.send_string(payload)
+
+
+    def check_downloads_dir(self):
+        ''' Helper to make sure temp dir exists if not create one
+
+            Args;
+                peer_dir(str): name of the directory to check
+        '''
+        if not os.path.isdir(DOWNLOADS):
+            try:
+                os.mkdir(DOWNLOADS)
+            except OSError as err:
+                sys.exit("Directory creation failed with error: {err}")
+
+    def recv_file(self):
+        ''' Receive binary file from server
+            Args:
+                sd(socket): Connection file is being sent from
+        '''
+
+        filename = self.recv_string()
+
+        size = self.recv_int()
+
+        #print("ENETERED WRITE MODE...")
+
+        self.check_downloads_dir()
+
+        path = f'{DOWNLOADS}/{filename}'
+        try:
+            with open(path, "wb") as f:
+                buffer = b""
+                while len(buffer) < size:
+                    buffer += self.sockfd.recv(size - len(buffer))
+
+                f.write(buffer)
+
+        except OSError as err:
+            sys.exit(f'File creation failed with error: {err}')
+
+
 
     def read(self) -> bool:
-
-
-    def process(self, read: bool) -> bool:
         finished = False
+        preamble = self.recv_int()
+        
+        # CONNECTION OBJECTS ONLY EXPECT AN ACK FOR THE NEXT ACTION
+        # OR A RETURN STATUS
+        if preamble == self.ACK.CMD_ACK:
+            # INCREMENT INDEX FOR THE NEXT FILE
+            self.next_file_index += 1
+        else:
+            r_code = self.recv_int()
 
-        if read:
-            preamble = self.recv_int()
-            
-            if preamble == self.ACK.CMD_ACK:
-                # SEND THE NEXT FILE
-                self.next_file_index += 1
-                pass
-
-            elif preamble == self.ACK.CMD_RETURN_STATUS:
-                r_code = self.recv_int()
+            if preamble == self.ACK.CMD_RETURN_STATUS:
+                print(f"RETURN CODE: {r_code}")
                 preamble = self.recv_int()
 
                 if preamble == self.ACK.CMD_RETURN_FILE:
                     self.recv_file()
                 else:
                     print("SOMETHING WENT WRONG RECVEING THE FILE")
-                
-                finished = True
-
 
             elif preamble == self.ACK.CMD_RETURN_STDERR:
-                finished = True
+                print(f"RETURN CODE: {r_code}")
+                pass
 
             elif preamble == self.ACK.CMD_RETURN_STDOUT:
-                finished = True
+                print(f"RETURN CODE: {r_code}")
+                pass
 
             elif preamble == self.ACK.CMD_NO_OUTPUT:
                 print("WORKED")
-                r_code = self.recv_int()
-                finished = True
-        
-        else:
-            if self.current_ack == self.ACK.CMD_SEND_FILE:
-                if self.files_remaining() > 0:
-                    self.send_file()
-                else:
-                    self.send_cmd()
-                    self.current_ack = self.ACK.CMD_RETURN_STATUS
+
+            finished = True
+
+        return finished
+
+    def write(self) -> bool:
+        finished = False
+
+        if self.current_ack == self.ACK.CMD_SEND_FILE:
+            if self.files_remaining() > 0:
+                self.send_file()
+            else:
+                self.send_cmd()
+                self.current_ack = self.ACK.CMD_RETURN_STATUS
                 
         return finished
-            
 
 #------------------------------------------------MAIN------------------------------------------------------------
 # INIT ENUM CLASS
@@ -377,7 +491,7 @@ def handle_conn(sets: list, hosts: dict):
                     if sockfd in conn_dict:
                         conn = conn_dict[sockfd]
 
-                        finished = conn.process(read=True)
+                        finished = conn.read()
 
                         if not finished:
                             output_sockets.append(sockfd)
@@ -402,7 +516,7 @@ def handle_conn(sets: list, hosts: dict):
                     if sockfd in conn_dict:
                         conn = conn_dict[sockfd]
 
-                        finished = conn.process(read=False)
+                        finished = conn.write()
 
                         if not finished:
                             input_sockets.append(sockfd)
