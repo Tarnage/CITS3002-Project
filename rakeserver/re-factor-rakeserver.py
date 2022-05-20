@@ -278,7 +278,7 @@ class Client():
             payload = f.read()
 
         self.send_int(self.ACK.CMD_BIN_FILE)
-        self.send_string(self.return_file)
+        self.send_string(self.return_file.filename)
         self.send_int(len(payload))
         self.sockfd.send( payload )
         #print(f'BIN FILE SENT...')
@@ -512,8 +512,6 @@ def handle_conn(server: Server):
                         os.wait()
                     else:
                         sys.exit(1)
-
-                
 
         except KeyboardInterrupt:
             sys.exit(1)
