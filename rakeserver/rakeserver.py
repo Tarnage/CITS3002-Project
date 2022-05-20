@@ -405,7 +405,7 @@ def create_server_socket(host, port):
 		#print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		listening_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		listening_sock.setblocking(False)
+		listening_sock.setblocking(True)
 		listening_sock.bind( (host, port) )
 		#print( f'PORT {port} BINDED...' )
 	except socket.error as err:

@@ -6,7 +6,7 @@ PORT  = 6372
 HOSTS = 127.0.1.1 
 
 actionset1:
-	echo starting actionset1
+#	echo starting actionset1
 	remote-cc -c program.c
 		requires program.c program.h allfunctions.h
 	remote-cc -c square.c
@@ -15,6 +15,6 @@ actionset1:
 		requires cube.c allfunctions.h
 
 actionset2:
-	echo starting actionset2
+#	echo starting actionset2
 	remote-cc -o program program.o square.o cube.o
 		requires program.o square.o cube.o

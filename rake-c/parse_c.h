@@ -35,7 +35,7 @@ int default_port;
 typedef struct _action
 {
     char *command; 
-    int is_remote;
+    bool is_remote;
     int req_count;
     char **requirements; 
 } ACTION;
