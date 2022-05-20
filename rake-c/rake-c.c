@@ -629,7 +629,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             if (return_code > 0 && return_code < 5)
                             {
                                 preamble = recv_byte_int(i);
-                                printf("RECEIVED: %i/n");
+                                printf("RECEIVED: %i/n", preamble);
                                 change_state(i, preamble);
                             }
                         }
@@ -643,6 +643,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         {
                             recv_bin_file(i);
                             FD_CLR(i, &input_sockets);
+                            printf("INCREMENTING ACTIONS EXECUTED\n");
                             ++actions_executed;
 
                             // MARK UNUSED
@@ -698,6 +699,8 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                                 // WAIT FOR RETURN STATUS
                                 FD_CLR(i, &output_sockets);
                                 FD_SET(i, &input_sockets);
+
+                                
                             
                             }
                         }
