@@ -25,8 +25,6 @@ TIMEOUT 		= 5
 MAX_BYTE_SIGMA 	= 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN 		= 'big'
-# LOCATION OF RECV FILES
-DOWNLOADS 		= "./temp"
 MAX_INT 		= sys.maxsize
 
 #------------------------------------------------CLASSES------------------------------------------------------------
@@ -217,18 +215,6 @@ class Connection:
         self.send_int(self.ACK.CMD_EXECUTE)
         self.send_string(payload)
 
-    def check_downloads_dir(self):
-        ''' Helper to make sure temp dir exists if not create one
-
-            Args;
-                peer_dir(str): name of the directory to check
-        '''
-        if not os.path.isdir(DOWNLOADS):
-            try:
-                os.mkdir(DOWNLOADS)
-            except OSError as err:
-                sys.exit("Directory creation failed with error: {err}")
-
     def recv_file(self):
         ''' Receive binary file from server
             Args:
@@ -237,10 +223,8 @@ class Connection:
 
         filename = self.recv_string()
         size = self.recv_int()
-        self.check_downloads_dir()
-        path = f'{DOWNLOADS}/{filename}'
         try:
-            with open(path, "wb") as f:
+            with open(filename, "wb") as f:
                 buffer = b""
                 while len(buffer) < size:
                     buffer += self.sockfd.recv(size - len(buffer))
