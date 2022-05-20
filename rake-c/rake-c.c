@@ -100,10 +100,26 @@ void send_string(int sd, char *payload)
 void send_file(int sd, char *filename)
 {
     printf("FILE SENDING PROCESS STARTED\n");
-    send_byte_int(sd, CMD_SEND_FILE);
     char *last = strrchr(filename, '/');
 
     char* real_file_name = strdup(last+1);
+
+    if(strstr(filename, ".") != NULL)
+    {
+        if(strstr(filename, ".o") != NULL)
+        {
+            send_byte_int(sd, CMD_BIN_FILE);
+        }   
+        else
+        {
+            send_byte_int(sd, CMD_SEND_FILE);
+        }
+    }
+    else
+    {
+        send_byte_int(sd, CMD_BIN_FILE);
+    }
+    
     printf("SENDING FILE NAME ----> %s\n", real_file_name);
 
     send_string(sd, real_file_name);
