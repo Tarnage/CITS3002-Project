@@ -262,12 +262,14 @@ class Connection:
         '''
 
         filename = self.recv_string()
-
+        print(f"RECIEVED {filename}")
         size = self.recv_int()
 
         #print("ENETERED WRITE MODE...")
 
         self.check_downloads_dir()
+
+        print(f"FILENAME {filename}")
 
         path = f'{DOWNLOADS}/{filename}'
         try:
