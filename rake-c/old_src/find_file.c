@@ -37,11 +37,15 @@ int find_file(char *filename, char *buffer, char *dirname)
         char            pathname[MAXPATHLEN];
 
         //  SENDS FORMATTED STRING TO STRING POINTER POINTED BY pathname
+
         sprintf(pathname, "%s/%s", dirname, dp->d_name);
         //printf("%s\n", pathname);
+        printf("%s\n", dp->d_name);
         //  DETERMINE ATTRIBUTES OF THIS DIRECTORY ENTRY
-        if(stat(pathname, &stat_info) != 0) 
-        {
+        if(lstat(pathname, &stat_info) != 0) 
+        {   
+            printf("STAT: %i\n", stat(pathname, &stat_info));
+            printf("Error\n");
             perror( pathname );
             exit(EXIT_FAILURE);
         }
@@ -49,7 +53,7 @@ int find_file(char *filename, char *buffer, char *dirname)
         //  CHECKS IF FILE IS A DIRECTORY AND RECURSIVELY READS FILES 
         if( S_ISDIR(stat_info.st_mode) 
             && (!STRCMP(dp->d_name, ".")) 
-            && (!STRCMP(dp->d_name, "..")) )
+            && (!STRCMP(dp->d_name, "..")))
         {
             find_file(filename, buffer, pathname);
         }
@@ -71,14 +75,14 @@ int find_file(char *filename, char *buffer, char *dirname)
     return 1;
 }
 
-// int main(int argc, char const *argv[])
-// {   
-//     char *filename = "program.c";
-//     char *dir = "../..";
-//     char *buffer = "";
-//     find_file(filename, buffer, dir);
+int main(int argc, char const *argv[])
+{   
+     char *filename = "program.c";
+     char *dir = "../";
+     char *buffer = "";
+     int new = find_file(filename, buffer, dir);
 
-//     //printf("%s\n", buffer);
+     printf("%s\n", buffer);
 
-//     return 0;
-// }
+     return 0;
+}

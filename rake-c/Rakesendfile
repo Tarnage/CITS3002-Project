@@ -1,6 +1,6 @@
 
-PORT  = 63289
-HOSTS = 127.0.0.1
+PORT  = 6372
+HOSTS = 127.0.1.1
 
 actionset1:
 	remote-cc -c program.c
