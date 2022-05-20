@@ -185,20 +185,24 @@ class Connection:
                 path(str): path to file
         '''
         #print(sd)
-        payload = ""
+        contents = ""
         with open(path, "r") as f:
-            payload = f.read()
+            contents = f.read()
 
         #print("SENDING CMD_SEND_FILE ---->")
+        payload = contents.encode(FORMAT)
+
         self.send_int(self.ACK.CMD_SEND_FILE)
         self.send_string(filename)
+
         self.send_int(len(payload))
+        print(f"SENDING SIZE {len(payload)}")
         self.sockfd.send( payload )
 
     def send_file(self):
         filename = self.get_next_file()
         path = self.find_files(filename)
-
+        print(f"PATH: {path}")
         if path != None:
             if self.is_bin_file(path):
                 self.send_bin_file(filename, path)
@@ -321,7 +325,7 @@ class Connection:
         return finished
 
     def write(self) -> bool:
-
+        print(f"ENTERED WRITE TO... {self.sockfd.getsockname()}")
         if self.current_ack == self.ACK.CMD_SEND_FILE:
             if self.files_remaining() > 0:
                 self.send_file()
@@ -342,6 +346,7 @@ def create_quote_team(hosts: dict) -> dict:
     slaves = dict()
 
     for ip in hosts:
+
         port = hosts[ip]
         cost = MAX_INT
         try:
@@ -357,7 +362,7 @@ def create_quote_team(hosts: dict) -> dict:
                 sys.exit( f'socket creation failed with error: {err}' )
 
         fileno = sd.fileno()
-        slaves[sd] = (ip, hosts, cost)
+        slaves[sd] = (ip, hosts[ip], cost)
 
     return slaves
 
@@ -395,7 +400,6 @@ def recv_int(sd: socket) -> int:
     more_size = b''
     while len(size) < MAX_BYTE_SIGMA:
         try:
-            print(f"LISTENING ON {sd.getpeername()}...")
             more_size = sd.recv( (MAX_BYTE_SIGMA - len(size)) )
             if not more_size:
                 break
@@ -466,13 +470,15 @@ def handle_conn(sets: list, hosts: dict):
                     local_host.current_ack = local_host.ACK.CMD_SEND_FILE
                     output_sockets.append(local_host.sockfd)
                     next_action += 1
+                    curr_qoute_req += 1
 
                 # SEND OUT COST REQUESTS FOR THE NEXT ACTION
-                if (next_action < remaing_actions) and (sets[next_action].remote) and (quote_recv == 0):
+                if (curr_qoute_req == next_action) and (sets[next_action].remote) and (quote_recv == 0):
                     quote_queue = create_quote_team(hosts)
 
                     for sd in quote_queue:
                         output_sockets.append(sd)
+                    curr_qoute_req += 1
             
                 # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
@@ -485,6 +491,8 @@ def handle_conn(sets: list, hosts: dict):
                     fileno = new_client.connect()
                     conn_dict[new_client.sockfd] = new_client
                     output_sockets.append(new_client.sockfd)
+
+                    print("SENDING ACTION: ", next_action)
 
                     next_action += 1
                 

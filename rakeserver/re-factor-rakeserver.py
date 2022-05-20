@@ -150,11 +150,11 @@ class Client():
 
         buffer = ""
         while len(buffer) < size:
-            #print("reading..")
-            #print(f"{len(buffer)}/{size}")
+            print("reading..")
+            print(f"{len(buffer)}/{size}")
             buffer = self.sockfd.recv(size).decode(FORMAT)
 
-        #print(f"{len(buffer)}/{size}")
+        print(f"{len(buffer)}/{size}")
 
         try:
             with open(tmp + filename, "w") as f:
@@ -249,7 +249,6 @@ class Client():
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
         path = str('./tmp/' + peer_dir)
-        print("PATHHHHHH", path)
         #print(f'EXECUTE REQUEST FROM {raddr}')
         #print(f'RUNNING COMMAND: {cmd}')
         p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
@@ -273,8 +272,9 @@ class Client():
         '''
         
         #print(f"SENDING BIN FILE {filename}---->")
+        path = self.path_return_file + '/' + self.return_file.filename
         payload = b''
-        with open(self.path_return_file, 'rb') as f:
+        with open(path, 'rb') as f:
             payload = f.read()
 
         self.send_int(self.ACK.CMD_BIN_FILE)
@@ -302,12 +302,14 @@ class Client():
 
 
     def proc_req(self):
+        print(f"PROCESSING REQUEST.. {self.sockfd.getpeername()} ")
 
         while not self.finished:
             
             if(self.current_ack == self.ACK.CMD_SEND_FILE):
                 print("RECVING FILE")
                 self.recv_txt_file()
+                self.send_int(self.ACK.CMD_ACK)
 
             elif(self.current_ack == self.ACK.CMD_BIN_FILE):
                 print("RECEIVING BIN FILE")
@@ -317,13 +319,11 @@ class Client():
                 print("EXECUTING")
                 payload = self.recv_string()
                 print(payload)
-                # TODO: run cmd
-                # TODO: return code to client
                 self.run_cmd(payload)
                 r_code = self.r_output.returncode
 
                 # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
-                if (self.return_file == "") and (r_code == 0):
+                if (self.return_file.filename == "") and (r_code == 0):
                     self.send_int(self.ACK.CMD_NO_OUTPUT)
                     self.send_int(r_code)
 
@@ -357,6 +357,7 @@ class Client():
                 self.finished = True
 
             if not self.finished:
+                
                 print("READING NEXT ACTION")
                 self.recv_next_action()
 
@@ -495,7 +496,7 @@ def handle_conn(server: Server):
                 conn, addr = server.accept()
                 
                 preamble = server.recv_int(conn)
-
+                print(f"RECEIVED: {preamble}")
                 if preamble == ACK.CMD_QUOTE_REQUEST:
                     server.send_cost(conn)
                     conn.shutdown(socket.SHUT_RDWR)
