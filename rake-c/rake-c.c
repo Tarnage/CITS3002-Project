@@ -555,7 +555,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 // printf("APPEND\n");
                 sockets->sock = socket_desc;
                 sockets->curr_req = CMD_SEND_FILE;
-                // sockets->actions = &actions[current_action];
+                sockets->actions = &actions[current_action];
                 FD_SET(socket_desc, &output_sockets);
                 ++current_action;
             }
@@ -680,8 +680,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                             ++actions_executed;
                             NODE *node = get_node(i);
                             node->used = false;
-                            printf("FINISHED\n");
-                            close(i);
+                            // close(i);
                         }
                     }
 
@@ -722,6 +721,9 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                                 // WAIT FOR RETURN STATUS
                                 FD_CLR(i, &output_sockets);
                                 FD_SET(i, &input_sockets);
+
+                                
+                            
                             }
                         }
                     }
