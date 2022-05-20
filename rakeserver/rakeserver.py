@@ -316,7 +316,6 @@ def recv_filename(sd):
 	
 	return filename.decode(FORMAT)
 
-
 def recv_cmd(sd, size):
 	''' Helper to get the size of incoming payload
 		Args:
@@ -474,7 +473,7 @@ def handle_conn(host, port):
 		while True:
 			print(f"PARENT {os.getpid()}")
 			conn, addr = listening_sock.accept()
-
+			print("RETURN ADDRESS", addr)
 			preamble = recv_byte_int(conn)
 			
 			if preamble == ACK.CMD_QUOTE_REQUEST:
