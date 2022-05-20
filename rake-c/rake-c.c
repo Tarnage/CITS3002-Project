@@ -10,7 +10,7 @@
 #define LOCAL_HOST   "127.0.0.1"
 #define MAX_BYTES    1024
 #define MAX_SOCKETS  FD_SETSIZE
-//#define USE_FIND_FILE
+// #define USE_FIND_FILE
 
 //--------------------GLOBALS-------------------
 int num_sockets = 0;
@@ -104,7 +104,7 @@ void send_file(int sd, char *filename)
     printf("SENDING FILE NAME ----> %s\n", filename);
     
 #ifdef USE_FIND_FILE
-    char *path = find_file(filename);
+    char *path = find_file(filename, );
 #else
     char *path = filename;
 #endif
