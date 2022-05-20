@@ -18,4 +18,4 @@ actionset1:
 actionset2:
 	echo starting actionset2
 	remote-cc -o program program.o square.o cube.o
-		requires program.o square.o cube.o
+		requires ./temp/program.o ./temp/square.o ./temp/cube.o

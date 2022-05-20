@@ -26,7 +26,7 @@ MAX_BYTE_SIGMA 	= 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN 		= 'big'
 # LOCATION OF RECV FILES
-DOWNLOADS 		= "./downloads"
+DOWNLOADS 		= "./temp"
 MAX_INT 		= sys.maxsize
 
 #------------------------------------------------CLASSES------------------------------------------------------------
@@ -104,26 +104,10 @@ class Connection:
         return (len(self.actions.requires)-1) - (self.next_file_index-1)
 
     def get_next_file(self) -> str:
-        filename = self.actions.requires[self.next_file_index]
-        # INCREMENT AFTER ACK OF CURRENT FILE
-        # self.next_file_index += 1
-        return filename
+        path = self.actions.requires[self.next_file_index]
+        filename = path.split("/")[-1]
+        return filename, path
 
-    def find_files(self, filename: str) -> str:
-        ''' Searches entire computer for file
-            Args:
-                filename(str): file name to find
-        '''
-        result = None
-        # start = time.time()
-        # TOP-DOWN FROM THE ROOT
-        for root, dir, files in os.walk("/"):
-            if filename in files:
-                result = (os.path.join(root, filename))
-                # finish = time.time()
-                # #print(finish - start)
-                return result
-    
     def recv_string(self):
         size = self.recv_int()
         string = b''
@@ -193,8 +177,7 @@ class Connection:
         self.sockfd.send( payload )
 
     def send_file(self):
-        filename = self.get_next_file()
-        path = self.find_files(filename)
+        filename, path = self.get_next_file()
         if path != None:
             if self.is_bin_file(path):
                 self.send_bin_file(filename, path)
@@ -234,7 +217,6 @@ class Connection:
         self.send_int(self.ACK.CMD_EXECUTE)
         self.send_string(payload)
 
-
     def check_downloads_dir(self):
         ''' Helper to make sure temp dir exists if not create one
 
@@ -268,8 +250,6 @@ class Connection:
         except OSError as err:
             sys.exit(f'File creation failed with error: {err}')
 
-
-
     def read(self) -> bool:
         finished = False
         preamble = self.recv_int()
@@ -287,6 +267,7 @@ class Connection:
 
                 if preamble == self.ACK.CMD_RETURN_FILE:
                     self.recv_file()
+                    print("RECV FILE")
                 else:
                     print("SOMETHING WENT WRONG RECVEING THE FILE")
                     sys.exit(1)
@@ -365,6 +346,7 @@ def get_lowest_quote(queue: dict) -> tuple:
     for key in queue:
         ip, port, cost = queue[key]
         if cost < lowest:
+            lowest = cost
             l_ip = ip
             l_port = port
 
@@ -446,7 +428,7 @@ def handle_conn(sets: list, hosts: dict):
                 if not sets[next_action].remote:
                     local_host.add_actions(sets[next_action])
 
-                    fileno = local_host.connect()
+                    local_host.connect()
                     conn_dict[local_host.sockfd] = local_host
                     local_host.current_ack = local_host.ACK.CMD_SEND_FILE
                     output_sockets.append(local_host.sockfd)
@@ -454,7 +436,7 @@ def handle_conn(sets: list, hosts: dict):
                     curr_qoute_req += 1
 
                 # SEND OUT COST REQUESTS FOR THE NEXT ACTION
-                if (sets[next_action].remote) and (quote_recv == 0):
+                if (curr_qoute_req == next_action) and (sets[next_action].remote) and (quote_recv == 0):
                     print(f"GETTING QUOTE FOR: {curr_qoute_req}")
                     quote_queue = create_quote_team(hosts)
 
@@ -470,7 +452,7 @@ def handle_conn(sets: list, hosts: dict):
                     quote_queue = dict()
                     new_client = Connection(ip, port, ACK.CMD_SEND_FILE)
                     new_client.add_actions(sets[next_action])
-
+                    new_client.connect()
                     conn_dict[new_client.sockfd] = new_client
                     output_sockets.append(new_client.sockfd)
                     next_action += 1
@@ -522,8 +504,6 @@ def handle_conn(sets: list, hosts: dict):
 
         except KeyboardInterrupt:
             sys.exit(1)
-
-
 
 def main(argv):
     dict_hosts, actions = parse_rakefile.read_rake(argv[1])

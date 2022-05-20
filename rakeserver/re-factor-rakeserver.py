@@ -303,6 +303,8 @@ class Client():
                 self.run_cmd(payload)
                 r_code = self.r_output.returncode
 
+                print(f"RETURN FILE: {self.return_file.filename}")
+
                 # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
                 if (self.return_file.filename == "") and (r_code == 0):
                     self.send_int(self.ACK.CMD_NO_OUTPUT)
