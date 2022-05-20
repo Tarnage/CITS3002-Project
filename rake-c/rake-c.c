@@ -625,7 +625,13 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         
                         if (preamble == CMD_RETURN_STDOUT)
                         {
-                            continue;
+                            int return_code = recv_byte_int(i);
+                            if (return_code > 0 && return_code < 5)
+                            {
+                                preamble = recv_byte_int(i);
+                                printf("RECEIVED: %i/n");
+                                change_state(i, preamble);
+                            }
                         }
                         
                         else if (preamble == CMD_RETURN_STDERR)
