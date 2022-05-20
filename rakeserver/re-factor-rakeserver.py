@@ -72,6 +72,9 @@ class Client():
         self.current_ack = current_ack
         self.ACK = Ack()
         self.finished = False
+        self.return_file = None
+        self.path_return_file = None
+        self.r_output = None
 
     def recv_int(self) -> int:
         ''' Helper to get the int of incoming payload
@@ -162,8 +165,38 @@ class Client():
 
         print("RECEIVED FILE")
 
+    def recv_bin_file(self):
+        ''' Writes strings to a file. This is used to transfer source code from Client to Server
+
+        '''
+        peer_dir = f'{self.addr[0]}.{self.addr[1]}'
+        self.check_temp_dir(peer_dir)
+        tmp = f"./tmp/{peer_dir}/"
+
+        filename = self.recv_string()
+        #print(f"RECEIVED FILE NAME: {filename}")
+        size = self.recv_int()
+
+        buffer = b""
+        while len(buffer) < size:
+            #print("reading..")
+            #print(f"{len(buffer)}/{size}")
+            buffer = self.sockfd.recv(size)
+
+        #print(f"{len(buffer)}/{size}")
+
+        try:
+            with open(tmp + filename, "wb") as f:
+                f.write(buffer)
+
+        except OSError as err:
+            sys.exit(f'File creation failed with error: {err}')
+
+        print("RECEIVED FILE")
+
     def recv_next_action(self):
-        pass
+        preamble = self.recv_int()
+        self.current_ack = preamble
 
     def send_int(self, preamble: int) -> int:
         ''' Helper to send the byte size of outgoing payload
@@ -180,6 +213,94 @@ class Client():
         else:
             return 0
 
+    def scan_dir(self, path: str):
+        ''' Helper for run_cmd() This function will return a FileStats object 
+            containg the details of the newley created file
+
+            Args:
+                path(str): The directory path of the target
+        '''
+
+        filename = ""
+        ctime = 0
+        file_size = 0
+        path = ""
+
+        with os.scandir(path) as dir_entries:
+            for entry in dir_entries:
+                info = entry.stat()
+                if info.st_ctime_ns > ctime:
+                    filename = entry.name
+                    ctime = info.st_ctime_ns
+                    file_size = info.st_size
+                    path = entry.path
+                    
+        self.return_file = FileStats(filename, file_size, path)
+
+    def run_cmd(self, cmd: str) -> bool:
+        ''' Runs the cmd sent by the client
+
+            Args:
+                sd(socket): Used to create a directory with the peers name
+                cmd(str): to be executed in the shell
+
+            Returns (tuple): (int)return code, (FileStat Object) 
+        
+        '''
+        peer_dir = f'{self.addr[0]}.{self.addr[1]}'
+        self.check_temp_dir(peer_dir)
+        path = str('./tmp/' + peer_dir)
+        #print(f'EXECUTE REQUEST FROM {raddr}')
+        #print(f'RUNNING COMMAND: {cmd}')
+        p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
+        #print(f'COMMAND FINISHED...')
+
+        self.scan_dir(path)
+        self.path_return_file = path
+        self.r_output = p
+
+    def send_string(self, string: str):
+        payload = string.encode(FORMAT)
+        self.send_int(len(payload))
+        self.sockfd.send(payload)
+
+    def send_return_file(self):
+        ''' Transfer binary file
+        
+            Args:
+                filename(str): file name
+                path(str): path to file
+        '''
+        
+        #print(f"SENDING BIN FILE {filename}---->")
+        payload = b''
+        with open(self.path_return_file, 'rb') as f:
+            payload = f.read()
+
+        self.send_int(self.ACK.CMD_BIN_FILE)
+        self.send_string(self.return_file)
+        self.send_int(len(payload))
+        self.sockfd.send( payload )
+        #print(f'BIN FILE SENT...')
+
+    def send_std(self, payload):
+        ''' 
+        
+            Args:
+                sd(socket): Connection to send the filename
+                file_attr(FileStat Oject): Object contains the file stats
+        '''
+        # MAKE SURE ITS IN THE RIGHT ENCDOING
+        decode = payload.decode(FORMAT)
+        encode = decode.encode(FORMAT)
+
+        # SEND THE SIZE OF THE NAME FIRST
+        self.send_int(len(encode))
+
+        # SEND THE ACTUAL PAYLOAD
+        self.sockfd.send( encode )
+
+
     def proc_req(self):
 
         while not self.finished:
@@ -188,22 +309,55 @@ class Client():
                 print("RECVING FILE")
                 self.recv_txt_file()
 
+            elif(self.current_ack == self.ACK.CMD_BIN_FILE):
+                print("RECEIVING BIN FILE")
+                self.recv_bin_file()
+
             elif(self.current_ack == self.ACK.CMD_EXECUTE):
                 print("EXECUTING")
                 payload = self.recv_string()
                 print(payload)
                 # TODO: run cmd
                 # TODO: return code to client
+                self.run_cmd(payload)
+                r_code = self.r_output.returncode
 
-                time.sleep(2)
+                # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+                if (self.return_file == "") and (r_code == 0):
+                    self.send_int(self.ACK.CMD_NO_OUTPUT)
+                    self.send_int(r_code)
 
-                self.send_int(self.ACK.CMD_NO_OUTPUT)
-                self.send_int(0)
+                # EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
+                elif r_code == 0:
+                    self.send_int(self.ACK.CMD_RETURN_STATUS)
+                    self.send_int(r_code)
+                    self.send_int( self.ACK.CMD_RETURN_FILE)
+                    self.send_return_file()
+                    # sock.shutdown(socket.SHUT_RDWR)
+                    # sock.close()
+
+                # EXECUTION FAILED WITH WARNING
+                #TODO: hand error codes
+                elif 0 < r_code < 5:
+                    self.send_int(self.ACK.CMD_RETURN_STDERR)
+                    self.send_int(r_code)
+                    self.send_std(self.r_output.stderr)
+                    #print("STDERR SENT --->")
+
+                # EXECUTION HAD A FATAL ERROR
+                else:
+                    self.send_int(self.ACK.CMD_RETURN_STDOUT)
+                    self.send_int(r_code)
+                    self.send_std(self.r_output.stdout)
+                    #print("STDOUT SENT --->")
+
+                    self.send_int(self.ACK.CMD_NO_OUTPUT)
+                    self.send_int(0)
+                
                 self.finished = True
 
             if not self.finished:
                 print("READING NEXT ACTION")
-                break
                 self.recv_next_action()
 
         

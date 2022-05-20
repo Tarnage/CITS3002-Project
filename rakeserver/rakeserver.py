@@ -316,7 +316,6 @@ def recv_filename(sd):
 	
 	return filename.decode(FORMAT)
 
-
 def recv_cmd(sd, size):
 	''' Helper to get the size of incoming payload
 		Args:

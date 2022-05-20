@@ -5,7 +5,6 @@ from parse_rakefile import Action
 import sys
 import socket
 import select
-import subprocess
 import os
 import time
 import random
@@ -300,24 +299,28 @@ class Connection:
                     self.recv_file()
                 else:
                     print("SOMETHING WENT WRONG RECVEING THE FILE")
+                    sys.exit(1)
 
             elif preamble == self.ACK.CMD_RETURN_STDERR:
+                err_msg = self.recv_string()
                 print(f"RETURN CODE: {r_code}")
-                pass
+                print(f"ERROR FROM SERVER: {err_msg}")
+                sys.exit(r_code)
 
             elif preamble == self.ACK.CMD_RETURN_STDOUT:
+                err_msg = self.recv_string()
                 print(f"RETURN CODE: {r_code}")
-                pass
+                print(f"ERROR FROM SERVER: {err_msg}")
+                sys.exit(r_code)
 
             elif preamble == self.ACK.CMD_NO_OUTPUT:
-                print("WORKED")
+                print("ECHO SUCCESS")
 
             finished = True
 
         return finished
 
     def write(self) -> bool:
-        finished = False
 
         if self.current_ack == self.ACK.CMD_SEND_FILE:
             if self.files_remaining() > 0:
@@ -325,8 +328,9 @@ class Connection:
             else:
                 self.send_cmd()
                 self.current_ack = self.ACK.CMD_RETURN_STATUS
-                
-        return finished
+        
+        # NEVER FINISED UNTIL WE GET A RETURN FILE OR MESSAGE FROM SERVER
+        return False
 
 #------------------------------------------------MAIN------------------------------------------------------------
 # INIT ENUM CLASS
@@ -353,7 +357,7 @@ def create_quote_team(hosts: dict) -> dict:
                 sys.exit( f'socket creation failed with error: {err}' )
 
         fileno = sd.fileno()
-        slaves[fileno] = (ip, hosts, cost)
+        slaves[sd] = (ip, hosts, cost)
 
     return slaves
 
@@ -446,20 +450,21 @@ def handle_conn(sets: list, hosts: dict):
     quote_queue = dict()
     quote_recv = 0
     curr_qoute_req = 0
+
     print("REMAINING ACTIONS ",remaing_actions)
     while actions_exe < remaing_actions:
         try:
 
             # IF WE STILL HAVE ACTIONS TO EXE OR GET COST FOR
             if next_action < remaing_actions:
-                print("CHECKING",sets[next_action].remote)
                 # IF ITS A LOCAL CMD USE LOCAL HOST OBJ
                 if not sets[next_action].remote:
                     local_host.add_actions(sets[next_action])
+
                     fileno = local_host.connect()
-                    conn_dict[fileno] = local_host
+                    conn_dict[local_host.sockfd] = local_host
                     local_host.current_ack = local_host.ACK.CMD_SEND_FILE
-                    output_sockets.append(fileno)
+                    output_sockets.append(local_host.sockfd)
                     next_action += 1
 
                 # SEND OUT COST REQUESTS FOR THE NEXT ACTION
@@ -467,7 +472,7 @@ def handle_conn(sets: list, hosts: dict):
                     quote_queue = create_quote_team(hosts)
 
                     for sd in quote_queue:
-                        output_sockets.extend(sd)
+                        output_sockets.append(sd)
             
                 # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
@@ -476,9 +481,11 @@ def handle_conn(sets: list, hosts: dict):
                     quote_queue = dict()
                     new_client = Connection(ip, port, ACK.CMD_SEND_FILE)
                     new_client.add_actions(sets[next_action])
+
                     fileno = new_client.connect()
-                    conn_dict[fileno] = new_client
-                    output_sockets.append(fileno)
+                    conn_dict[new_client.sockfd] = new_client
+                    output_sockets.append(new_client.sockfd)
+
                     next_action += 1
                 
             read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
@@ -503,7 +510,7 @@ def handle_conn(sets: list, hosts: dict):
                     # ITS A COST REQ
                     else:
                         cost = recv_cost(sockfd)
-                        ip, port, curr_cost = quote_queue[sockfd]
+                        (ip, port, curr_cost) = quote_queue[sockfd]
                         curr_cost = cost
                         quote_queue[sockfd] = (ip, port, curr_cost)
                         quote_recv += 1
@@ -518,11 +525,8 @@ def handle_conn(sets: list, hosts: dict):
 
                         finished = conn.write()
 
-                        if not finished:
-                            input_sockets.append(sockfd)
-                        else:
-                            conn.disconnect()
-                            del conn_dict[sockfd]
+                        # CLIENT ALWAYS EXPECTS A RESPONSE AFTER A WRITE
+                        input_sockets.append(sockfd)
 
                     # ITS A COST REQ
                     else:
