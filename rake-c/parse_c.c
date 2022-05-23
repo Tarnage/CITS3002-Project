@@ -54,7 +54,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
             }
             char *port_val = &line[i];
             default_port = atoi(port_val);
-            printf("DEFAULT PORT: %i\n", default_port);
+            //printf("DEFAULT PORT: %i\n", default_port);
         }
 
         // CHECK IF THE LINE GIVES THE HOST NAMES
@@ -62,7 +62,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         {   
             int nwords = 0;
             char **words = strsplit(line, &nwords);
-
+            num_hosts = nwords - 2;
             // START FROM 2 BECAUSE 0 AND 1 ARE NOT NEEDED
             for(int i = 2; i < nwords; i++)
             {   
@@ -85,7 +85,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 }
-                num_hosts++;
+                
             }
         }
 
