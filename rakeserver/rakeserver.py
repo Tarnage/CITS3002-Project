@@ -391,8 +391,9 @@ class Server():
             self.sockfd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
             self.sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sockfd.bind( (self.ip, self.port) )
+            print(f"SERVER: {self.ip}:{self.port}")
         except socket.error as err:
-            if err.erro == 98:
+            if err.errno == 98:
                 print(f'Binding failed with error: {err}')
                 
             else:
