@@ -8,6 +8,7 @@ import os
 import socket
 import sys
 import subprocess
+import signal
 
 # DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
@@ -21,6 +22,13 @@ DEFAULT_BACKLOG = 5
 MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
+
+# IF LOCAL HOST SERVER
+local_host = False
+
+# OPTSARGS
+sleep = True
+remove_temp = True
 
 
 #------------------------------------------------CLASSES------------------------------------------------------------
@@ -286,55 +294,79 @@ class Client():
         # SEND THE ACTUAL PAYLOAD
         self.sockfd.send( encode )
 
+    def rm_client_files(self):
+        '''Helper called at the end of the connection to remove temp files and folders'''
+        peer_dir = f'{self.addr[0]}.{self.addr[1]}'
+        tmp = f"./tmp/{peer_dir}/"
+
+        if os.path.isdir(tmp):
+            try:
+                shutil.rmtree(tmp, ignore_errors=False)
+            except OSError as err:
+                sys.exit("Error occured while deleting temp directory: {err}")
+
+    def disconnect(self):
+        self.sockfd.shutdown(socket.SHUT_RDWR)
+        self.sockfd.close()
+        self.sockfd = -1
 
     def proc_req(self):
-        while not self.finished:
-            
-            if(self.current_ack == self.ACK.CMD_SEND_FILE):
-                self.recv_txt_file()
-                self.send_int(self.ACK.CMD_ACK)
-
-            elif(self.current_ack == self.ACK.CMD_BIN_FILE):
-                self.recv_bin_file()
-                self.send_int(self.ACK.CMD_ACK)
-
-            elif(self.current_ack == self.ACK.CMD_EXECUTE):
-                payload = self.recv_string()
-                self.run_cmd(payload)
-                r_code = self.r_output.returncode
-
-                print(f"RETURN FILE: {self.return_file.filename}")
-
-                # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
-                if (self.return_file.filename == "") and (r_code == 0):
-                    self.send_int(self.ACK.CMD_NO_OUTPUT)
-                    self.send_int(r_code)
-
-                # EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
-                elif r_code == 0:
-                    self.send_int(self.ACK.CMD_RETURN_STATUS)
-                    self.send_int(r_code)
-                    self.send_int( self.ACK.CMD_RETURN_FILE)
-                    self.send_return_file()
-
-                # EXECUTION FAILED WITH WARNING
-                elif 0 < r_code < 5:
-                    self.send_int(self.ACK.CMD_RETURN_STDERR)
-                    self.send_int(r_code)
-                    self.send_std(self.r_output.stderr)
-
-                # EXECUTION HAD A FATAL ERROR
-                else:
-                    self.send_int(self.ACK.CMD_RETURN_STDOUT)
-                    self.send_int(r_code)
-                    self.send_std(self.r_output.stdout)
+        try:
+            while not self.finished:
                 
-                self.finished = True
+               	if sleep:
+                    rand = random.randint(1, 10)
+                    timer = os.getpid() % rand + 2
+                    #print( f'sleep for: {timer}' )
+                    time.sleep(timer)
 
-            if not self.finished:
-                
-                print("READING NEXT ACTION...")
-                self.recv_next_action()
+                if(self.current_ack == self.ACK.CMD_SEND_FILE):
+                    self.recv_txt_file()
+                    self.send_int(self.ACK.CMD_ACK)
+
+                elif(self.current_ack == self.ACK.CMD_BIN_FILE):
+                    self.recv_bin_file()
+                    self.send_int(self.ACK.CMD_ACK)
+
+                elif(self.current_ack == self.ACK.CMD_EXECUTE):
+                    payload = self.recv_string()
+                    self.run_cmd(payload)
+                    r_code = self.r_output.returncode
+
+                    print(f"RETURN FILE: {self.return_file.filename}")
+
+                    # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+                    if (self.return_file.filename == "") and (r_code == 0):
+                        self.send_int(self.ACK.CMD_NO_OUTPUT)
+                        self.send_int(r_code)
+
+                    # EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
+                    elif r_code == 0:
+                        self.send_int(self.ACK.CMD_RETURN_STATUS)
+                        self.send_int(r_code)
+                        self.send_int( self.ACK.CMD_RETURN_FILE)
+                        self.send_return_file()
+
+                    # EXECUTION FAILED WITH WARNING
+                    elif 0 < r_code < 5:
+                        self.send_int(self.ACK.CMD_RETURN_STDERR)
+                        self.send_int(r_code)
+                        self.send_std(self.r_output.stderr)
+
+                    # EXECUTION HAD A FATAL ERROR
+                    else:
+                        self.send_int(self.ACK.CMD_RETURN_STDOUT)
+                        self.send_int(r_code)
+                        self.send_std(self.r_output.stdout)
+                    
+                    self.finished = True
+
+                if not self.finished:
+                    
+                    print("READING NEXT ACTION...")
+                    self.recv_next_action()
+        except Exception as err:
+            print(f"ERROR: Connection to {self.sockfd.getpeername()} disconnected!")
 
         
 class Server():
@@ -413,8 +445,8 @@ class Server():
     def calculate_cost(self) -> int:
         ''' Randomly return a number between 1-10'''
         # seed for testing
-        # seed(1)
-        return random.randint(1, 10)
+        random.seed(time.time() % 8)
+        return random.randint(1, 100)
 
     def send_cost(self, client: socket) -> int:
         ''' Sends a random number between 1-10 to a socket
@@ -422,26 +454,18 @@ class Server():
             Args:
                 sd(socket): Which socket to send the quote.
         '''
-        self.send_int(client, self.ACK.CMD_QUOTE_REPLY)
-        cost = self.calculate_cost()
-        
-        self.send_int(client, cost)
-        print(f'<---- SENDING QUOTE: {cost}')
-
-
+        try:
+            self.send_int(client, self.ACK.CMD_QUOTE_REPLY)
+            cost = self.calculate_cost()
+            
+            self.send_int(client, cost)
+            print(f'<---- SENDING QUOTE: {cost}')
+        except socket.error as err:
+            print(f"Error {err}\nConnection to {client.getpeername()} disconnected!")
 
 #------------------------------------------------MAIN------------------------------------------------------------
-
-
 # INIT ENUM CLASS
 ACK = Ack()
-
-# IF LOCAL HOST SERVER
-local_host = False
-
-# OPTSARGS
-sleep = False
-remove_temp = False
 
 def usage(prog):
 	print(f"Usage: {prog} [OPTIONS]...PORT...")
@@ -465,28 +489,38 @@ def handle_conn(server: Server):
 
         try:
             while True:
-                print("BACK IN PARENT")
                 conn, addr = server.accept()
                 
                 preamble = server.recv_int(conn)
+
+                if sleep:
+                    rand = random.randint(1, 5)
+                    timer = os.getpid() % rand + 2
+                    #print( f'sleep for: {timer}' )
+                    time.sleep(timer)
+
                 if preamble == ACK.CMD_QUOTE_REQUEST:
                     server.send_cost(conn)
                     conn.shutdown(socket.SHUT_RDWR)
                     conn.close()
                 else:
                     child = os.fork()
-                    print("IN CHILD")
                     if child == 0:
                         client = Client(conn, addr, preamble)
                         client.proc_req()
-
+                        if remove_temp:
+                            client.rm_client_files()
+                        client.disconnect()
+                        sys.exit(0)
                     elif child > 0:
-                        os.wait()
+                        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
                     else:
                         sys.exit(1)
 
         except KeyboardInterrupt:
             sys.exit(1)
+        except socket.error as err:
+            print(f"Error {err}\nConnection to {addr} disconnected!")
 
 
 
