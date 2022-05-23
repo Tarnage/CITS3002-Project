@@ -258,18 +258,20 @@ class Connection:
 
             elif preamble == self.ACK.CMD_RETURN_STDERR:
                 err_msg = self.recv_string()
+                print(f"ERROR FROM {self.sockfd.getpeername()}:")
                 print(f"RETURN CODE: {r_code}")
-                print(f"ERROR FROM SERVER: {err_msg}")
+                sys.stderr.write(err_msg)
                 sys.exit(r_code)
 
             elif preamble == self.ACK.CMD_RETURN_STDOUT:
                 err_msg = self.recv_string()
+                print(f"ERROR FROM {self.sockfd.getpeername()}:")
                 print(f"RETURN CODE: {r_code}")
-                print(f"ERROR FROM SERVER: {err_msg}")
+                sys.stdout.write(err_msg)
                 sys.exit(r_code)
 
             elif preamble == self.ACK.CMD_NO_OUTPUT:
-                print("NO OUT PUT FILE")
+                pass
 
             finished = True
 
@@ -291,7 +293,12 @@ class Connection:
 ACK = Ack()
 
 def create_quote_team(hosts: dict) -> dict:
-    '''returns a dictionary of fileno -> Connection Object'''
+    ''' Creates the connections to all available hosts
+        Args:
+            hosts(dict): key=ip(str), value=ports(int)
+        Return:
+            slaves(dict): key=socket, value=tuple(ip(str), port(int), cost(int)) 
+    '''
 
     slaves = dict()
 
@@ -316,19 +323,28 @@ def create_quote_team(hosts: dict) -> dict:
 
 
 def create_local_host() -> Connection:
-    '''Helper to create the local host connection'''
+    ''' Helper to create the local host connection
+        Return:
+            Connection(obj): connection representing local host
+    '''
     default_port = parse_rakefile.get_default_port()
     return Connection(LOCAL_HOST, default_port, current_ack=-1)
 
 
-def get_lowest_quote(queue: dict) -> tuple:
+def get_lowest_quote(slaves: dict) -> tuple:
+    ''' Helper to calculate lowest cost
+        Args:
+            slaves(dict): key=socket, value=tuple(ip(str), port(int), cost(int))
+        Return:
+            Tuple(str, int): The connection with the lowest quote
+    '''
 
     lowest = MAX_INT
     l_ip = ""
     l_port = -1
 
-    for key in queue:
-        ip, port, cost = queue[key]
+    for key in slaves:
+        ip, port, cost = slaves[key]
         if cost < lowest:
             lowest = cost
             l_ip = ip
@@ -341,9 +357,8 @@ def recv_int(sd: socket) -> int:
     ''' Helper to get the int of incoming payload
         Args:
             sd(socket): socket descriptor of the connection
-
         Return:
-            result(int): The int of incoming payload
+            result(int): The int of received
     '''
     size = b''
     more_size = b''
@@ -363,28 +378,44 @@ def recv_int(sd: socket) -> int:
 
 
 def recv_cost(sd: socket) -> int:
+    ''' Helper to receive cost - Will return MAX_INT if preamble is not what is expected.
+        Args:
+            sd(socket): socket descriptor of the connection
+        Return:
+            result(int): The cost of received
+    '''
     preamble = recv_int(sd)
     if preamble == ACK.CMD_QUOTE_REPLY:
         cost = recv_int(sd)
         return cost
     else:
         print("SOMETHING WENT WRONG RECEIVING THE COST")
+        return MAX_INT
 
 
 def send_int(sd: socket, payload: int) -> None:
-    ''' Helper to send the ints in big endian padded to 4 bytes
+    ''' Helper to send integers, such as ENUMS and costs
         Args:
+            sd(socket): the connection to send
             payload(int): int to send
     '''
     preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
     sent_bytes = sd.send(preamble)
 
 
-def send_cost_req(sockfd: socket) -> None:
-    send_int(sockfd, ACK.CMD_QUOTE_REQUEST)
-
+def send_cost_req(sd: socket) -> None:
+    ''' Helper to send quote request
+        Args:
+            sd(socket): the connection to send
+    '''
+    send_int(sd, ACK.CMD_QUOTE_REQUEST)
 
 def handle_conn(sets: list, hosts: dict):
+    ''' Handles the main logic of the program
+        Args:
+            sets(list): the Rakefile after the parse.
+            hosts(dict): key=ip value=ports
+    '''
 
     input_sockets = list()
     output_sockets = list()
@@ -392,6 +423,7 @@ def handle_conn(sets: list, hosts: dict):
     # conn_dict KEY=fileno, VALUE=Connection Object
     conn_dict = dict()
 
+    # LOCAL HOST CONNECTION
     local_host = create_local_host()
 
     actions_exe = 0
@@ -402,7 +434,6 @@ def handle_conn(sets: list, hosts: dict):
     quote_recv = 0
     curr_qoute_req = 0
 
-    print("REMAINING ACTIONS ",remaing_actions)
     while actions_exe < remaing_actions:
         try:
 
@@ -430,7 +461,7 @@ def handle_conn(sets: list, hosts: dict):
             
                 # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
-                    print(f"ACTION {next_action} SENT TO PROCESS")
+                    print(f"ACTION no-{next_action} SENT TO PROCESS")
                     quote_recv = 0
                     ip, port = get_lowest_quote(quote_queue)
                     quote_queue = dict()
@@ -441,13 +472,14 @@ def handle_conn(sets: list, hosts: dict):
                     output_sockets.append(new_client.sockfd)
                     next_action += 1
                 
-            read_sockets, write_sockets, error_sockets = select.select(input_sockets, output_sockets, [], TIMEOUT)
+            read_sockets, write_sockets, _ = select.select(input_sockets, output_sockets, [], TIMEOUT)
 
             for sockfd in read_sockets:
                 if sockfd:
                     if sockfd in input_sockets:
                         input_sockets.remove(sockfd)
                     
+                    # ITS EXPECTING AN ACK
                     if sockfd in conn_dict:
                         conn = conn_dict[sockfd]
 
@@ -473,6 +505,7 @@ def handle_conn(sets: list, hosts: dict):
                     if sockfd in output_sockets:
                         output_sockets.remove(sockfd)
                     
+                    # ITS SENDING AN ACTION
                     if sockfd in conn_dict:
                         conn = conn_dict[sockfd]
 
@@ -487,11 +520,12 @@ def handle_conn(sets: list, hosts: dict):
                         input_sockets.append(sockfd)
 
         except KeyboardInterrupt:
+            for sock in conn_dict:
+                conn_dict[sock].disconnect()
             sys.exit(1)
 
 def main(argv):
     dict_hosts, actions = parse_rakefile.read_rake(argv[1])
-    #dict_hosts, actions = parse_rakefile.read_rake("/home/thanh/GitHub/CITS3002-Project/rake-p/hardtest")
 
     for sets in actions:
         handle_conn(sets, dict_hosts)
