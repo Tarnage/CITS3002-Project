@@ -483,7 +483,38 @@ void send_cmd(int sd, char *cmd)
     send_string(sd, cmd);
 }
 
+void recv_stderr(int sd)
+{
+    // GET THE LENGTH OF THE STRING
+    int size = recv_byte_int(sd);
 
+    // INITIALISE A CHAR ARRAY 
+    char warning[size];
+    
+    // GET THE STRING ITSELF 
+    recv_string(sd, warning, size);
+
+    // PRINT TO STDERR
+    fprintf(stderr, warning); 
+}
+
+void recv_stdout(int sd)
+{
+    // GET STRING LENGTH
+    int size = recv_byte_int(sd);
+    
+    // INITIALISE CHAR ARRAY
+    char error[size];
+
+    // GET STRING
+    recv_string(sd, error, size);
+
+    // PRINT TO STDOUT
+    fprintf(stdout, error);
+
+    // EXIT WITH FAILURE?
+    // exit(EXIT_FAILURE);
+}
 
 // MAIN CONNECTION HANDLER
 void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals) 
@@ -642,17 +673,19 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         if (preamble == CMD_RETURN_STDOUT)
                         {
                             int return_code = recv_byte_int(i);
-                            if (return_code > 0 && return_code < 5)
+                            if (return_code > 5)
                             {
-                                preamble = recv_byte_int(i);
-                                printf("RECEIVED: %i/n", preamble);
-                                change_state(i, preamble);
+                                recv_stdout(i);
                             }
                         }
                         
                         else if (preamble == CMD_RETURN_STDERR)
                         {
-                            continue; 
+                            int return_code = recv_byte_int(i);
+                            if (return_code > 0 && return_code < 5)
+                            {
+                                recv_stderr(i);
+                            }
                         }
 
                         else if(preamble == CMD_RETURN_FILE)
