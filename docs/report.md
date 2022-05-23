@@ -1,18 +1,10 @@
 # CITS3002 Report
 
-
-
-
-
-
 | Name        | Student Number 
 | ------------- |:-------------:| 
 | Thanh Nguyen       | 22914578 | 
 | Anfernee Pontilan Alviar      | 22886082      |   
 | Ethan Pui | 22704879      |    
-
-
-
 
 Date Submitted:  
 
@@ -27,6 +19,7 @@ Lecturer: Dr Chris McDonald
 # Rake Server and Client
 
 ### Introduction
+ <font size=1>
 This project aims to execute multiple instance of server programs on distinct (physical) computers connected using internet protocols, and each of the client programs on the computer. Implementation should not employ specific 3rd party frameworks or resources. Instead opting to use core networking functions such as (classes, methods, libraries,...) of each programming language. 
 
 <!-- #
@@ -41,7 +34,7 @@ TCP is slower but more reliable than UDP in the transference of data. TCP/IP pro
 
 #### Explain the protocol our program will use
 #### https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python -->
-#
+
 <!-- ## Success criteria 
 - Create connection between local host and remote hosts.
 - Use protocols to ensure client and servers are able to communitcate via integers and strings.
@@ -79,9 +72,9 @@ When the initial connection is accepted by the server the client will send a int
 
 Once the preamble is accepted by the server it will return a an integer represented by CMD_QUOTE_REPLY followed by the cost also in an integer and all padded to 4 bytes and using the big edian byte order.
 
-<center>
-	<img src="/docs/diagrams/cost_protocol.png" alt="cost protocol" width="400" height="400">
-</center>
+<div style="text-align: center;">
+	<img src="/diagrams/cost_protocol.png" alt="cost protocol" width="400" height="400">
+</div>
 
 ### Send File Protocol
 Once the appropriate file is located and buffered into memory, the sending connection will first start by 
@@ -100,6 +93,10 @@ Once the server has all required files, the client will do the following.
 4. If the return code does not equal zero, something went wrong and the server will send the error message.
     - The server will send the size of the message as an integer followed by the message, the message will have the utf-8 encoding
 5. If the return code equals zero, the client will wait the file. Protocol for receive file below.
+
+<center>
+	<img src="/diagrams/execute-cmd-protocol.png" alt="execute cmd protocol" width="400" height="500">
+</center>
 
 ### Receive File Protocol
 The receiving socket will be in a state to receive incoming data.
@@ -159,6 +156,10 @@ then do the server)
 
 8. Client will return code status detailing if there was an error or sucess when executing commands. On success the server will send a file and the client will receive the output file from command. If it was an error, client will output an error message and exit the program immediately. The execution of commands process is shown in the diagram (execute-cmd-protocol.png). 
 
+<center>
+	<img src="/diagrams/client_flow.png" alt="client flow" width="400" height="500">
+</center>
+
 ## Performance
 ##### conditions under which remote compliation and linking appears to perform better (faster) than just using your local machine
 
@@ -175,3 +176,5 @@ Add timers and check for errors, though ethernet is reliable, it could be too re
 
 
 ## Conclusion
+
+</font>
