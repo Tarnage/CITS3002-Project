@@ -27,7 +27,7 @@ void init_actions(char *file_name, ACTION_SET *actions, HOST *hosts)
 // HELPER TO CHECK THAT WE RECEIVE BYTES
 void print_bytes(char *buffer)
 {   
-    printf("BYTES ");
+    //printf("BYTES ");
     for (int i = 0; i < 4; i++)
     {
         printf("%02X ", buffer[i]);
@@ -43,7 +43,7 @@ void send_byte_int(int sd, CMD preamble)
     int cmd  = htonl( preamble );
 
     // SEND THE REQ
-    printf("SENDING INT ----> %d\n", preamble);
+    //printf("SENDING INT ----> %d\n", preamble);
     send(sd, &cmd, sizeof(cmd), 0);
 }
 
@@ -57,7 +57,7 @@ int recv_byte_int(int sock)
     int byte_count = 0; // SHOULD BE 4
     
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
-    printf("BYTE COUNT SHOULD BE 4 == %i\n", byte_count);
+    //printf("BYTE COUNT SHOULD BE 4 == %i\n", byte_count);
     if(byte_count < 4){
         printf("INTEGER NOT RECEIVED\n");
         exit(EXIT_FAILURE);
@@ -91,7 +91,7 @@ void send_string(int sd, char *payload)
 	send_byte_int(sd, size);
     
 	send(sd, payload, size, 0);
-    printf("SENDING STRING ----> %s\n", payload);
+    //printf("SENDING STRING ----> %s\n", payload);
     // free(result);
 }
 
@@ -99,7 +99,7 @@ void send_string(int sd, char *payload)
 // SEND TEXT FILE TO SERVER
 void send_file(int sd, char *filename)
 {
-    printf("FILE SENDING PROCESS STARTED\n");
+    //printf("FILE SENDING PROCESS STARTED\n");
     char *last = strrchr(filename, '/');
 
     char* real_file_name = strdup(last+1);
@@ -120,7 +120,7 @@ void send_file(int sd, char *filename)
         send_byte_int(sd, CMD_BIN_FILE);
     }
     
-    printf("SENDING FILE NAME ----> %s\n", real_file_name);
+    //printf("SENDING FILE NAME ----> %s\n", real_file_name);
 
     send_string(sd, real_file_name);
 
@@ -163,7 +163,7 @@ void recv_string(int sock, char *string, int size)
     memcpy(string, buffer, byte_count);
     string[byte_count] = '\0';
 
-    printf("STRING RECEIVED: %s\n", string);
+    //printf("STRING RECEIVED: %s\n", string);
     // return string; 
 
 }
@@ -189,17 +189,17 @@ void recv_bin_file(int sock)
 {
     // RECEIVE THE SIZE OF THE FILENAME
     int str_size = recv_byte_int(sock);
-    printf("SIZE OF FILE NAME: %d\n", str_size);
+    //printf("SIZE OF FILE NAME: %d\n", str_size);
     char filename[str_size]; 
 
     // RECEIVE THE FILENAME 
     recv_string(sock, filename, str_size);
-    printf("FILE NAME: %s\n", filename);
+    //printf("FILE NAME: %s\n", filename);
 
     // RECEIVE THE SIZE OF THE FILE
-    printf("RECEIVING FILE SIZE\n");
+    //printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
-    printf("FILE SIZE: %d BYTES\n", file_size);
+    //printf("FILE SIZE: %d BYTES\n", file_size);
 
     // TODO: MAKE THIS A CHECK FUNCTION
     // #DEFINE "./tmp/"
@@ -299,7 +299,7 @@ int create_conn(char *host, int port)
 
 
 // HELPER TO FILL OUT SOCK LIST WITH CONNECTIONS
-void init_nodes(HOST *hosts)
+void init_nodes(HOST *hosts, int n_hosts)
 {    
     sockets = (NODE*)malloc(sizeof(NODE));
 
@@ -313,42 +313,37 @@ void init_nodes(HOST *hosts)
     sockets->next = (NODE*)malloc(sizeof(NODE));
 
     NODE *head = sockets->next;
-    while(hosts->name != NULL)
+    for(size_t i = 0; i < n_hosts; ++i)
     {   
-        if (head == NULL)
-        {
-            head = (NODE*)malloc(sizeof(NODE));
-        }
-        head->ip = hosts->name;
-        head->port = hosts->port;
+        head->ip = hosts[i].name;
+        head->port = hosts[i].port;
         head->used = false;
         head->cost = INT_MAX;
         head->curr_req = -1;
         head->local = false;
-        head->next = NULL;
-
+        head->next = (NODE*)malloc(sizeof(NODE));
         head = head->next;
-        ++hosts;
     }
+    head = NULL;
 }
 
 
 // FOR TESTING PRINT THE CURRENT SOCK LIST
 void print_sock_list(NODE *list)
 {   
-    
+    NODE *temp = list;
     printf("CURRENT SOCKET LIST\n");
-    while(list != NULL)
+    while(temp->next != NULL)
     {
-        int sock = list->sock;
-        char *host = list->ip;
-        int port = list->port;
-        int cost = list->cost;
+        int sock = temp->sock;
+        char *host = temp->ip;
+        int port = temp->port;
+        int cost = temp->cost;
 
         //printf("%i: (%s:%i)\n", sock, ip, port);
         printf("%i: (%s:%i) %i\n", sock, host, port, cost);
 
-        list = list->next;
+        temp = temp->next;
     }
 }
 
@@ -376,9 +371,10 @@ NODE* get_lowest_cost()
     reset_socket_node(list);
 
     list = list->next;
-
+    printf("%s\n", list->ip);
     while(list != NULL)
-    {
+    {   
+        printf("%s\n", list->ip);
         if(list->cost < min)
         {
             low_host = list;
@@ -453,14 +449,14 @@ void change_state(int sd, CMD state)
 void recv_cost_reply(int sd)
 {
     int cost = recv_byte_int(sd);
-    printf("COST RECEIVED: %d\n", cost);
+    //printf("COST RECEIVED: %d\n", cost);
     add_quote(sd, cost);
 }
 
 
 void send_cost_req(int sd)
 {   
-    printf("SENDING COST REQUEST ---->\n");
+    //printf("SENDING COST REQUEST ---->\n");
     send_byte_int(sd, CMD_QUOTE_REQUEST);
     // SET THE NODE TO EXPECT A REPLY
     change_state(sd, CMD_QUOTE_REPLY);
@@ -477,7 +473,7 @@ NODE *get_node(int sd)
 
 void send_cmd(int sd, char *cmd)
 {   
-    printf("SENDING COMMAND ----> %s\n", cmd);
+    //printf("SENDING COMMAND ----> %s\n", cmd);
     // TODO send command to server to execute
     send_byte_int(sd, CMD_EXECUTE);
     send_string(sd, cmd);
@@ -515,18 +511,21 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
     
     while (actions_executed < actions_left)
     {   
-        printf("ACTION NUMBER: %i\n", current_action);
-        printf("ACTIONS EXECUTED: %i\n", actions_executed);
-        printf("ACTIONS LEFT: %i\n", actions_left);
-        printf("NUMBER OF HOSTS IN QUOTE QUEUE: %i\n", quote_queue);
+        // printf("ACTION NUMBER: %i\n", current_action);
+        // printf("ACTIONS EXECUTED: %i\n", actions_executed);
+        // printf("ACTIONS LEFT: %i\n", actions_left);
+        // printf("NUMBER OF HOSTS IN QUOTE QUEUE: %i\n", quote_queue);
         
         if(quote_queue == 0 && cost_waiting == true)
         {
             // CHECK WHEN THERE ARE COSTS FOR NEXT COMMAND CALCULATION
             // THEN USE THE LOWEST RETURN CONNECTION TO EXECUTE THE NEXT ACTION
+
+
+            // TODO: LOOP THROUGH ALL HOSTS TO SEND TO FIND QUOTE
             if( actions[current_action].is_remote )
             {   
-                printf("PICKING LOWEST COST...\n");
+                //printf("PICKING LOWEST COST...\n");
                 NODE *slave = get_lowest_cost();
                 cost_waiting = false;
 
@@ -537,7 +536,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[current_action];
                 FD_SET(socket_desc, &output_sockets);
-                printf("SUCCESS\n");
+                //printf("SUCCESS\n");
                 current_action++;
             }
         }
@@ -550,7 +549,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
             {
                 // RUN PROCESS - USE system()??
                 // FIRST NODE IN sockets IS THE LOCAL_HOST
-                printf("LOCAL ACTION - CONNECTING TO LOCALHOST\n");
+                //printf("LOCAL ACTION - CONNECTING TO LOCALHOST\n");
                 int socket_desc = create_conn(sockets->ip, sockets->port);
                 // printf("APPEND\n");
                 sockets->sock = socket_desc;
@@ -566,7 +565,7 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                 // BUILDING THE FD_SET
                 // HEAD IS LOCAL HOST
                 NODE *head = sockets->next;
-                while(head != NULL)
+                while(head->next != NULL)
                 {   
                     if( (!head->used) && (!head->local) )
                     {   
@@ -578,7 +577,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                         quote_queue++;
                         FD_SET(socket_desc, &output_sockets);
                     }
-                    
                     head = head->next;
                 }
             }
@@ -608,11 +606,11 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                     {   
                         //sleep(2);
                         int preamble = recv_byte_int(i);
-                        printf("PREAMBLE NUMBER: %d\n", preamble);
+                        //printf("PREAMBLE NUMBER: %d\n", preamble);
 
                         if(preamble == CMD_ACK)
                         {   
-                            printf("ACKNOWLEDGEMENT RECEIVED\n");
+                            //printf("ACKNOWLEDGEMENT RECEIVED\n");
                             FD_CLR(i, &input_sockets);
                             FD_SET(i, &output_sockets);
                         }
@@ -686,7 +684,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
 
                     if (FD_ISSET(i, &output_sockets))
                     {   
-                        sleep(2);
                         CMD curr_req = get_curr_req(i);
                         if(curr_req == CMD_QUOTE_REQUEST)
                         {   
@@ -711,7 +708,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                                 curr->actions->req_count--;
                                 FD_CLR(i, &output_sockets);
                                 FD_SET(i, &input_sockets);
-                                
                             }
                             else
                             {   
@@ -721,9 +717,6 @@ void handle_conn(NODE *sockets, ACTION* actions, HOST *hosts, int action_totals)
                                 // WAIT FOR RETURN STATUS
                                 FD_CLR(i, &output_sockets);
                                 FD_SET(i, &input_sockets);
-
-                                
-                            
                             }
                         }
                     }
@@ -747,11 +740,9 @@ int main (int argc, char *argv[])
     
     HOST hosts[MAX_HOSTS];
     ACTION_SET action_set[MAX_ACTIONS];
-
-
     init_actions(file_name, action_set, hosts);
-    init_nodes(hosts);
-    // print_sock_list(sockets);
+    init_nodes(hosts, num_hosts);
+    //print_sock_list(sockets);
     //print_action_sets(action_set, num_sets);
 
     for (size_t i = 0; i < num_sets; i++)
