@@ -29,12 +29,11 @@ Lecturer: Dr Chris McDonald
 ### Introduction
 This project aims to execute multiple instance of server programs on distinct (physical) computers connected using internet protocols, and each of the client programs on the computer. Implementation should not employ specific 3rd party frameworks or resources. Instead opting to use core networking functions such as (classes, methods, libraries,...) of each programming language. 
 
-#
+<!-- #
 ### Technology Involved
 ##### Explain why we are using TCP/IP over LAN opposed to UDP or HTTP
-TCP is slower but more reliable than UDP in the transference of data. TCP/IP protocol gurantees the delivery of data to the destination router with features such as deilvery acknowledgements, retransmissions, delay transmissions when the network is congested and easy error detection. The TCP/IP model also has a easier to scale client-server architecture that supports several routing protocols. (refer to diagram for example of why we require delivery acknowledgemnts)
-#
-
+TCP is slower but more reliable than UDP in the transference of data. TCP/IP protocol gurantees the delivery of data to the destination router with features such as delivery acknowledgements, retransmissions, delay transmissions when the network is congested and easy error detection. The TCP/IP model also has a easier to scale client-server architecture that supports several routing protocols. (refer to diagram for example of why we require delivery acknowledgemnts)
+# -->
 <!-- #### Good read about how to allocate buffer size
 #### https://stackoverflow.com/questions/2811006/what-is-a-good-buffer-size-for-socket-programming
 
@@ -42,9 +41,7 @@ TCP is slower but more reliable than UDP in the transference of data. TCP/IP pro
 
 #### Explain the protocol our program will use
 #### https://stackoverflow.com/questions/52722787/problem-sending-binary-files-via-sockets-python -->
-
 #
-
 <!-- ## Success criteria 
 - Create connection between local host and remote hosts.
 - Use protocols to ensure client and servers are able to communitcate via integers and strings.
@@ -82,6 +79,10 @@ When the initial connection is accepted by the server the client will send a int
 
 Once the preamble is accepted by the server it will return a an integer represented by CMD_QUOTE_REPLY followed by the cost also in an integer and all padded to 4 bytes and using the big edian byte order.
 
+<center>
+	<img src="/docs/diagrams/cost_protocol.png" alt="cost protocol" width="400" height="400">
+</center>
+
 ### Send File Protocol
 Once the appropriate file is located and buffered into memory, the sending connection will first start by 
 1. sending the preamble CMD_SEND_FILE if the file is a text file or CMD_BIN_FILE if the file is a binary file.
@@ -115,10 +116,10 @@ The receiving socket will be in a state to receive incoming data.
     - if the receiver is expecting text (CMD_SEND_FILE) it will simply decode and write to a text file.
     - otherwise the receiver is expecting a binary file, in that case the receiver is write the byte directly to the file.
 5. If the receiver is in CMD_RETURN_FILE mode it will simply close the connect, as this mode is only ever each at the end of a action set. Otherwise a CMD_ACK will be sent and repeat step 1-5
-![alt text](/docs/diagrams/client_flow.png "Logo Title Text 1")
+
 # 
 -------------------------
-## Walkthrough execution sequence employed to copmlie and link and multi-file program
+## Walkthrough execution sequence employed to compile and link and multi-file program
 
 TODO: maybe remove this section when not needed it just repeats everything
 1. Request for cost
