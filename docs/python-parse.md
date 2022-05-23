@@ -64,7 +64,7 @@ class Action:
 		self.requires = requires
 ```
 
-Straight forward class, just has public memebr variables for now.
+Straight forward class, just has public member variables for now.
 
 Each object(command) in sets is a new instance of this class.
 

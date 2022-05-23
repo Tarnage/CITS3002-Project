@@ -13,8 +13,12 @@
 #include "parse_c.h"
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <limits.h>
+#include <sys/select.h>
 
 #define MAX_BYTES_SIGMA 4
+#define TEMP_FOLDER "./tmp/"
+#define MAX_QUEUE_ITEMS 64
 
 typedef enum _cmd{
     CMD_ECHO,
@@ -32,7 +36,8 @@ typedef enum _cmd{
     CMD_RETURN_STDOUT,
     CMD_RETURN_STDERR,
     CMD_RETURN_FILE,
-    CMD_ACK
+    CMD_ACK,
+    CMD_NO_OUTPUT
 } CMD;
 
 
@@ -45,7 +50,11 @@ typedef struct _node
     char *ip;
     int port;
     int cost;
+    bool used;
+    CMD curr_req;
+    ACTION *actions;
     struct _node *next;
-}NODE;
+    
+} NODE;
 
 #endif

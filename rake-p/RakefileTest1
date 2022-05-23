@@ -3,7 +3,7 @@
 # tab = "\t"
 # Currently index out of range when it reaches blank line!
 PORT  = 6328
-HOSTS = 127.0.1.1
+HOSTS = 127.0.0.1
 
 actionset1:
 	remote-echo starting actionset1

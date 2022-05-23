@@ -6,7 +6,6 @@ import time
 import random
 import os
 import socket
-import select
 import sys
 import subprocess
 
@@ -14,13 +13,10 @@ import subprocess
 SERVER_PORT = 50008
 #SERVER_HOST = socket.gethostbyname(socket.gethostname())
 SERVER_HOST = '127.0.0.1'
-# MAX SIZE OF BLOCKS WHEN READING IN STREAM DATA
-MAX_BYTES = 1024
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
 FORMAT = 'utf-8'
 # HOW MANY CONNECTIONS THE SERVER CAN ACCEPT
 DEFAULT_BACKLOG = 5
-TIMEOUT 		= 0.5
 # INTS OR ACKS ARE 8 BYTES LONG
 MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
@@ -51,6 +47,7 @@ class Ack:
 		self.CMD_RETURN_FILE = 14
 
 		self.CMD_ACK = 15
+		self.CMD_NO_OUTPUT = 16
 
 
 class FileStats():
@@ -64,6 +61,10 @@ class FileStats():
 
 # INIT ENUM CLASS
 ACK = Ack()
+
+# IF LOCAL HOST SERVER
+local_host = False
+
 
 # OPTSARGS
 sleep = False
@@ -97,7 +98,7 @@ def send_quote(sd):
 		Args:
 			sd(socket): Which socket to send the quote.
 	'''
-	send_ack(sd, ACK.CMD_QUOTE_REPLY)
+	send_byte_int(sd, ACK.CMD_QUOTE_REPLY)
 	cost = calculate_cost()
 	print(f'<---- SENDING QUOTE: {cost}')
 	cost = cost.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
@@ -156,12 +157,12 @@ def run_cmd(sd, cmd):
 	check_temp_dir(peer_dir)
 	print(f'EXECUTE REQUEST FROM {raddr}')
 	print(f'RUNNING COMMAND: {cmd}')
-	p = subprocess.run(cmd, shell=True, cwd=dir)
+	p = subprocess.run(cmd, shell=True, cwd=dir, capture_output=True)
 	print(f'COMMAND FINISHED...')
 
 	file_attr = scan_dir(f'./tmp/{peer_dir}')
 
-	return p.returncode, file_attr
+	return p, file_attr
 
 
 def scan_dir(dir):
@@ -224,45 +225,42 @@ def recv_text_file(sd):
 		sys.exit(f'File creation failed with error: {err}')
 
 
-#-------------------------------ALL DOING THE SAME THING CHANGE TO ONE------------------------------------
-# TODO: SAME AS send_byte_size remove?
-# TODO: C VERSION USES JUST ONE CALLED send_byte_int
-def send_ack(sd, ack_type):
-	'''Helper sends acknowledgments to a connection
-	
+def recv_bin_file(sd):
+	''' Receive binary file from server
 		Args:
-			sd(socket): Connection to send the acknowledgment
-			ack_type(int): integer representing the acknowledgment type
+			sd(socket): Connection file is being sent from
 	'''
-	print(f'<---- SENDING ACK')
-	sd.sendall( ack_type.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN) )
 
-# TODO: SAME AS send_ack remove one?
-# TODO: C VERSION USES JUST ONE CALLED send_byte_int
-def send_file_size(sd, size):
-	''' Send file size to client
-	
-		Args:
-			sd(socket): Connection to send the filename
-			file_attr(FileStat Oject): Object contains the file stats
-	'''
-	# sigma = ACK.CMD_SEND_SIZE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	# size = file_attr.size
-	payload = size.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	# sd.sendall( sigma )
-	sd.sendall( payload )
+	raddr = sd.getpeername()
+	peer_dir = f'{raddr[0]}.{raddr[1]}'
+	check_temp_dir(peer_dir)
+	tmp = f"./tmp/{peer_dir}/"
 
-# TODO: SAME AS send_ack remove one?
-# TODO: C VERSION USES JUST ONE CALLED send_byte_int
-def send_byte_size(sd, payload_len):
+	filename = recv_filename(sd)
+	print(f"RECEIVED FILE NAME: {filename}")
+	size = recv_byte_int(sd)
+
+	buffer = b""
+	while len(buffer) < size:
+		print("reading")
+		buffer += sd.recv(size - len(buffer))
+
+	try:
+		with open(tmp + filename, "wb") as f:
+			f.write(buffer)
+
+	except OSError as err:
+		sys.exit(f'File creation failed with error: {err}')
+
+
+def send_byte_int(sd, preamble):
 	''' Helper to send the byte size of outgoing payload
 		Args:
 			sd(socket): socket descriptor of the connection
 	'''
-	size = payload_len.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.send(size)
+	payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
+	sd.send(payload)
 
-#-----------------------------------------------------------------------------------------------------------
 
 def send_filename(sd, filename):
 	''' Send filename to client
@@ -271,22 +269,39 @@ def send_filename(sd, filename):
 			sd(socket): Connection to send the filename
 			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	# sigma = ACK.CMD_SEND_NAME.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
 	# SEND THE SIZE OF THE NAME FIRST
-	send_byte_size(sd, len(filename))
+	payload = filename.encode(FORMAT)
+	send_byte_int(sd, len(payload))
+
 	# SEND THE ACTUAL FILE NAME
-	sd.sendall(filename.encode(FORMAT))
+	sd.sendall( payload )
 
 
+def send_std(sd, payload):
+	''' Send filename to client
+	
+		Args:
+			sd(socket): Connection to send the filename
+			file_attr(FileStat Oject): Object contains the file stats
+	'''
+	# SEND THE SIZE OF THE NAME FIRST
+	send_byte_int(sd, len(payload))
+
+	# SEND THE ACTUAL FILE NAME
+	sd.sendall( payload )
+
+
+# TODO: recv_filename and recv_cmd are the same fucntions
 def recv_filename(sd):
 
 	size = recv_byte_int(sd)
 	filename = b''
+	more_size = b''
 	while len(filename) < size:
 		try:
 			more_size = sd.recv( size - len(filename) )
 			if not more_size:
-				time.sleep(0)
+				break
 		except socket.error as err:
 			if err.errno == 35:
 				time.sleep(0)
@@ -297,30 +312,31 @@ def recv_filename(sd):
 	return filename.decode(FORMAT)
 
 
-
-def send_bin_file(sd, file_attr):
-	''' Transfer binary file
-	
+def recv_cmd(sd, size):
+	''' Helper to get the size of incoming payload
 		Args:
-			sd(socket): Connection to send the file
-			file_attr(FileStat Oject): Object contains the file stats
+			sd(socket): socket descriptor of the connection
+			size(int): the size of bytes to expect
+
+		Return:
+			result(str): The command sent from client
 	'''
-	print(f'<-------SENDING FILE')
-	filename = file_attr.path
-	size = file_attr.size
-
-	sigma = ACK.CMD_RETURN_FILE.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-	sd.sendall( sigma )
-
-	send_filename(sd, filename)
-	send_file_size(sd, size)
-
 	payload = b''
-	with open(filename, 'rb') as f:
-		payload = f.read()
+	more_size = b''
+	while len(payload) < size:
+		try:
+			more_size = sd.recv( size - len(payload) )
+			if not more_size:
+				break
+		except socket.error as err:
+			if err.errno == 35:
+				time.sleep(0)
+				continue
+		payload += more_size
 
-	sd.sendall( payload )
-	print(f'FILE SENT...')
+	result = payload.decode(FORMAT)
+	print("returned result")
+	return result
 
 
 def recv_byte_int(sd):
@@ -332,6 +348,7 @@ def recv_byte_int(sd):
 			result(int): The size of incoming payload
 	'''
 	size = b''
+	more_size = b''
 	while len(size) < MAX_BYTE_SIGMA:
 		try:
 			more_size = sd.recv( MAX_BYTE_SIGMA - len(size) )
@@ -348,30 +365,27 @@ def recv_byte_int(sd):
 	return result
 
 
-def recv_cmd(sd, size):
-	''' Helper to get the size of incoming payload
+def send_bin_file(sd, file_attr):
+	''' Transfer binary file
+	
 		Args:
-			sd(socket): socket descriptor of the connection
-			size(int): the size of bytes to expect
-
-		Return:
-			result(str): The command sent from client
+			sd(socket): Connection to send the file
+			file_attr(FileStat Oject): Object contains the file stats
 	'''
-	payload = b''
-	while len(payload) < size:
-		try:
-			more_size = sd.recv( size - len(payload) )
-			if not more_size:
-				raise Exception("Short file length received")
-		except socket.error as err:
-			if err.errno == 35:
-				time.sleep(0)
-				continue
-		payload += more_size
+	print(f'<-------SENDING FILE')
+	path = file_attr.path
+	filename = file_attr.filename
+	
+	send_filename(sd, filename)
 
-	result = payload.decode(FORMAT)
-	print("returned result")
-	return result
+	payload = b''
+	with open(path, 'rb') as f:
+		payload = f.read()
+
+	send_byte_int(sd, len(payload))
+
+	sd.sendall( payload )
+	print(f'FILE SENT...')
 
 
 def handle_conn(host, port):
@@ -382,10 +396,16 @@ def handle_conn(host, port):
 		port (int): the port the server will bind 
 	'''	
 
+	global local_host
+
+	if (host == "localhost") or (host == "127.0.0.1"):
+		local_host = True
+
 	try:
 		# AF_INET IS THE ADDRESS FAMILY IP4
 		# SOCK_STREAM MEANS TCP PROTOCOL IS USED
 		sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		sd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		print("PORT SUCCESFULLY CREATED!")
 		# BIND SOCKET TO PORT
 		sd.bind( (host, port) )
@@ -400,181 +420,115 @@ def handle_conn(host, port):
 	# PUT THE SOCKET TO LISTEN MODE
 	sd.listen(DEFAULT_BACKLOG)
 	print( f"SERVER IS LISTENING FOR CONNECTIONS..." )
-	sd.setblocking(False)
-
-	# SOCKETS WE EXPECT TO READ FROM
-	input_sockets = [sd]
-	# SOCKETS WE EXPECT TO WRITE TO
-	output_sockets  = []
-	# OUTGOING MESSAGE QUEUES
-	# TRACKS WHAT ACKS SOCKETS ARE WAITING FOR
-	msg_queue = {}
-
-	# KEEP TRACK OF SOCKETS NEEDING ACKS
-	ack_queue = {}
-
-	# STORE FILE NAMES WE ARE EXPECTING TO RECV
-	filename = {}
-
-	# STORE FILE SIZES WE ARE EXPECTING TO RECV
-	file_size = {}
-
-	# STORE RETURN CODES
-	return_code = {}
-
-	# STORE FILES WE NEED TO SEND BACK TO CLIENT 
-	file_to_send = {}
-
-	while True:
-
-		try:
-			# GET THE LIST OF READABLE SOCKETS
-			read_sockets, write_sockets, _ = select.select(input_sockets, output_sockets, [], TIMEOUT)
-
-			for sock in read_sockets:
-				print("Reading...")
-				if sock == sd:
-					# ESTABLISH CONNECTION WITH CLIENT
-					conn, addr = sd.accept()
-
-					# ADD CONECTION TO LIST OF SOCKETS
-					input_sockets.append(conn)
-					print(f'CONNECTED TO :{addr}')
-
+	print(f"PARENT PID: {os.getpid()}")
+	try:
+		while True:
+			conn, addr = sd.accept()
+			if conn == -1:
+				conn.close()
+			else:
+				fork = os.fork()
+				if fork == -1:
+					conn.close()
+				elif fork == 0:
+					handle_fork(conn)
 				else:
-					# REMOVE SOCKET FROM INPUT SOCKETS LIST
-					# AS WE CONNECT TO IT
+					os.wait() # MAKE SURE CHILD PROCESS RETURNS TO PARENT OTHERWISE ZOMBIES
 
-					if sock in input_sockets:
-						input_sockets.remove(sock)
-						
-					# SOMETHING TO READ
-					sigma = recv_byte_int(sock)
-					# RECIEVED ACK THAT LAST DATAGRAM WAS RECIEVED
-					# NOW SEND THE NEXT 
-					if sigma == ACK.CMD_ACK:
-						print("ACK RECIEVED")
-						output_sockets.append(sock)
+	except KeyboardInterrupt:
+		print('Interrupted. Closing sockets...')
+		# Make sure we close sockets gracefully
+		sd.close()
+		sys.exit()
+	# except Exception as err:
+	# 	print( f'ERROR occurred in {handle_conn.__name__} with code: {err}' )
+	# 	sd.close()
+	# 	sys.exit()
 
-					# ELSE THE INITIAL CONNECTION REQUEST 
-					elif sigma > 0:
 
-						print(f"----> RECIEVING ACK TYPE: {sigma}")
+def retrun_status(sd):
+	pass
 
-						# REQUEST FOR COST QUOTE
-						if sigma == ACK.CMD_QUOTE_REQUEST:
-							print(f'COST QUOTE REQUESTED')
-							# TRACK WHAT THIS WILL DO NEXT
-							msg_queue[sock] = sigma
-							# PREPARE IT FOR WRITING
-							output_sockets.append(sock)
-						
-						# REQUEST TO RUN COMMAND
-						elif sigma == ACK.CMD_EXECUTE:
-							size = recv_byte_int(sock)
-							payload = recv_cmd(sock, size)
-							print(f'REQUEST TO EXECUTE...{payload}')
-							# STORE RETURN CODE IN DICT 
-							r_code, file_attr = run_cmd(sock, payload)
-							file_to_send[sock] = file_attr
-							return_code[sock] = r_code
-							msg_queue[sock] = ACK.CMD_RETURN_STATUS
-							output_sockets.append(sock)
-						
-						elif sigma == ACK.CMD_SEND_FILE:
-							recv_text_file(sock)
-							msg_queue[sock] = ACK.CMD_EXECUTE
-							ack_queue[sock] = True
-							output_sockets.append(sock)
+def return_file(sd):
+	pass
 
-					# INTERPRET EMPTY RESULT AS CLOSED CONNECTION
-					else:
-						print(f'Closing connections')
-						if sock in output_sockets:
-							output_sockets.remove(sock)
-						if sock in input_sockets:
-							input_sockets.remove(sock)
-						sock.close()
+def handle_fork(sock):
+	print(f"CHILD PID: {os.getpid()}")
+	while True:
+		# SOMETHING TO READ
+		sigma = recv_byte_int(sock)
+		print(f"----> RECIEVING ACK TYPE: {sigma}")
 
-			for sock in write_sockets:
-				if sock:
-					print("Sending...")
-					# REMOVE CURRENT SOCKET FROM WRITING LIST
-					if sock in output_sockets:
-						output_sockets.remove(sock)
+		# SLEEP
+		if sleep == True:
+			rand = random.randint(1, 10)
+			timer = os.getpid() % rand + 2
+			print( f'sleep for: {timer}' )
+			time.sleep(timer)
 
-					# WHAT TYPE OF MSG IS THIS SOCKET SENDING
-					msg_type = msg_queue[sock]
+		# REQUEST FOR COST QUOTE
+		if sigma == ACK.CMD_QUOTE_REQUEST:
+			print(f'COST QUOTE REQUESTED')
+			send_quote(sock)
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			sock.close()
+		
+		# REQUEST TO RUN COMMAND
+		elif sigma == ACK.CMD_EXECUTE:
+			size = recv_byte_int(sock)
+			payload = recv_cmd(sock, size)
+			print(f'REQUEST TO EXECUTE...{payload}')
+			# STORE RETURN CODE IN DICT 
+			proc, file_attr = run_cmd(sock, payload)
+			r_code = proc.returncode
 
-					# SLEEP
-					if sleep == True:
-						rand = random.randint(1, 10)
-						timer = os.getpid() % rand + 2
-						print( f'sleep for: {timer}' )
-						time.sleep(timer)
+			print(f"<-------- SENDING RETURN STATUS ({r_code})")
 
-					# WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
-					# WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
-					if sock in ack_queue:
-						send_ack(sock, ACK.CMD_ACK)
-						input_sockets.append(sock)
-						del ack_queue[sock]
+			# IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
+			if (file_attr.filename == "") and (r_code == 0):
+				send_byte_int(sock, ACK.CMD_NO_OUTPUT)
+				send_byte_int(sock, r_code)
 
-					# SEND ACK, THAT AFTER THIS I WILL SEND QUOTE
-					elif msg_type == ACK.CMD_QUOTE_REQUEST:
-						send_quote(sock)
-						del msg_queue[sock]
-						# SEND REPLY AND CLOSE THE CONNECTION
-						print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
-						sock.close()
-					
-					elif msg_type == ACK.CMD_RETURN_STATUS:
-						r_code = return_code[sock]
-						print(f"<-------- SENDING RETURN STATUS ({r_code})")
+			# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
+			elif r_code == 0:
+				send_byte_int(sock, ACK.CMD_RETURN_STATUS)
+				send_byte_int(sock, r_code)
+				send_byte_int(sock, ACK.CMD_RETURN_FILE)
+				send_bin_file(sock, file_attr)
+			# EXECUTION FAILED WITH WARNING
+			#TODO: hand error codes
+			elif 0 < r_code < 5:
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stderr)
+				print("STDERR SENT --->")
 
-						# EXECUTION WAS SUCCESSFUL, NOW WE GET READY TO SEND THE OUTPUT FILE
-						if r_code == 0:
-							sigma = ACK.CMD_RETURN_STATUS.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-							payload = r_code.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-							sock.sendall( sigma )
-							sock.sendall( payload )
+			# EXECUTION HAD A FATAL ERROR
+			else:
+				send_byte_int(sock, ACK.CMD_RETURN_STDOUT)
+				send_byte_int(sock, r_code)
+				send_std(sock, proc.stdout)
+				print("STDOUT SENT --->")
 
-							# TODO: THIS FUNCTION DOESNT LIKE TO BE CALLED
-							# SEEMS LIKE CONNECTION GETS CLOSED BEFORE WE CAN SEND DATA
-							# COULD BE A NON BLOCKING / SELECT() ISSUE
-							#send_return_status(sock)
+			print(f"CLOSING CONNECTION WITH {sock.getpeername()}")
+			# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
+			if remove_temp == True:
+				rm_client_files(sock)
+				# END OF CONNECTION
 
-							msg_queue[sock] = ACK.CMD_RETURN_FILE
-						# EXECUTION FAILED WITH WARNING
-						#TODO: hand error codes
-						elif 0 < r_code < 5:
-							pass
-						# EXECUTION HAD A FATAL ERROR
-						else:
-							pass
+			sock.close()
 
-						input_sockets.append(sock)
+		elif sigma == ACK.CMD_SEND_FILE:
+			recv_text_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
 
-					elif msg_type == ACK.CMD_RETURN_FILE:
-						print("entered here")
-						file_attr = file_to_send[sock]
-						send_bin_file(sock, file_attr)
-						print("CLOSING CONNECTION...")
-						del msg_queue[sock]
-						# DELETE THE TEMP FOLDER CREATED FOR THE CLIENT
-						if remove_temp == True:
-							rm_client_files(sock)
-						# END OF CONNECTION
-						sock.close()
-						
+		elif sigma == ACK.CMD_BIN_FILE:
+			recv_bin_file(sock)
+			send_byte_int(sock, ACK.CMD_ACK)
 
-		except KeyboardInterrupt:
-			print('Interrupted. Closing sockets...')
-			# Make sure we close sockets gracefully
-			close_sockets(input_sockets)
-			close_sockets(output_sockets)
-			sys.exit()
 
+# WHEN SOCKETS ARE IN ack_queue THEY ARE EXPECTING TO RECIEVE FILES
+# WE SEND AN ACK TO SIGNAL THE CLIENT WE ARE READY FOR THE NEXT PAYLOAD
 
 def close_sockets(sockets):
 	''' Helper to close all connections when an error ocurrs or a Interrupt

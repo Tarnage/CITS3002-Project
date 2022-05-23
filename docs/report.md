@@ -135,6 +135,7 @@ TODO: maybe remove this section when not needed it just repeats everything
 ---------------------
 
 ### Walkthrough of server and client interactions
+
 (Mention functions being called and what it returns
 just follow one socket and its journey
 first do just the client
@@ -149,6 +150,7 @@ then do the server)
 4. The server that is waiting for this preamble recieves (CMD_QUOTE_REQUEST) and sends back an preamble (CMD_QUOTE_REPLY). If the preamble is not correctly converted on the client side the server will not be able to recognize the preamble and thus do nothing. 
 
 5. The client waiting for an reply recieves the preamble (CMD_QUOTE_REPLY) amd waits for an second reply of the cost in edian byte order. Server sends cost and closes the connection, client recieves the cost and closes the connection. 
+
 
 6. Steps 3 to 5 are repeated until the client has found server with lowest cost. 
 

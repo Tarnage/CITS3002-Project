@@ -6,3 +6,5 @@ rake-c/client_socket
 .vscode
 *.log
 *tmp*
+*downloads*
+libGLEW.a
