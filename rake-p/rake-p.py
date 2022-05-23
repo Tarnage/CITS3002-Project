@@ -58,6 +58,9 @@ class Ack:
 
 
 class Connection:
+    ''' Object that represents each connection
+        This object is used to track files to send or receive.
+    '''
     def __init__(self, ip: str, port: int, current_ack: int):
         self.ip = ip
         self.port = port
@@ -68,7 +71,7 @@ class Connection:
         self.ACK = Ack()
         self.action = None
 
-    def connect(self) -> int:
+    def connect(self):
         '''requests connection to the server and returns the fileno of the socket'''
         try:
             self.sockfd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -79,29 +82,39 @@ class Connection:
             else: 
                 sys.exit( f'socket creation failed with error: {err}' )
 
-        return self.sockfd.fileno()
-
-    def send_int(self, payload: int):
+    def send_int(self, payload: int) -> int:
         ''' Helper to send the ints in big endian padded to 4 bytes
             Args:
                 payload(int): int to send
+            Return:
+                sent_bytes(int): The number of bytes sent
         '''
         preamble = payload.to_bytes(MAX_BYTE_SIGMA, byteorder=BIG_EDIAN)
         sent_bytes = self.sockfd.send(preamble)
+        return sent_bytes
 
     def disconnect(self):
+        ''' Shutdown connection
+        '''
         self.sockfd.shutdown(socket.SHUT_RDWR)
         self.sockfd.close()
         self.sockfd = -1
 
-
     def add_actions(self, actions: Action):
+        ''' Assigns the action property to an Action object
+        '''
         self.actions = actions
 
     def files_remaining(self) -> int:
+        ''' Returns the number of files left to send
+        '''
         return (len(self.actions.requires)-1) - (self.next_file_index-1)
 
     def get_next_file(self) -> str:
+        ''' Extracts the filename from the path
+            Return:
+                tuple: (filename, path)
+        '''
         path = self.actions.requires[self.next_file_index]
         filename = path.split("/")[-1]
         return filename, path
@@ -125,6 +138,10 @@ class Connection:
         return string.decode(FORMAT)
 
     def send_string(self, string: str):
+        ''' Helper that formats a string and sends it to the connection
+            Args:
+                string(str): payload
+        '''
         payload = string.encode(FORMAT)
         self.send_int(len(payload))
         self.sockfd.send(payload)
@@ -216,9 +233,7 @@ class Connection:
         self.send_string(payload)
 
     def recv_file(self):
-        ''' Receive binary file from server
-            Args:
-                sd(socket): Connection file is being sent from
+        ''' Receive binary file from server connection
         '''
 
         filename = self.recv_string()

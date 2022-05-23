@@ -24,10 +24,13 @@ MAX_BYTE_SIGMA = 4
 BIG_EDIAN = 'big'
 
 # IF LOCAL HOST SERVER
-local_host = False
+is_local_host = False
 
 # OPTSARGS
 sleep = True
+rand = random.randint(1, 3)
+sleep_timer = os.getpid() % rand + 2
+#print( f'sleep for: {timer}' )
 remove_temp = True
 
 
@@ -63,7 +66,6 @@ class Ack:
 
 class FileStats():
 	''' Class to help track files on the server created by the client
-	
 	'''
 	def __init__(self, filename, size, path):
 		self.filename = filename
@@ -73,6 +75,7 @@ class FileStats():
 
 class Client():
     ''' This object represents the connection from client to server
+        A new Client instance is created everytime the program forks a process
     '''
     def __init__(self, sockfd: socket, addr: tuple, current_ack: int):
         self.sockfd = sockfd
@@ -86,7 +89,6 @@ class Client():
 
     def recv_int(self) -> int:
         ''' Helper to get the int of incoming payload
-            Args:
             Return:
                 result(int): The int of incoming payload
         '''
@@ -107,8 +109,7 @@ class Client():
         return result
 
     def check_temp_dir(self, peer_dir: str):
-        ''' Helper to make sure temp dir exists if not create one
-
+        ''' Helper to make sure temp directory exists if not create one
             Args;
                 peer_dir(str): name of the directory to check
         '''
@@ -124,8 +125,11 @@ class Client():
             except OSError as err:
                 sys.exit("Directory creation failed with error: {err}")
 
-    def recv_string(self):
-
+    def recv_string(self) -> str:
+        ''' Helper to receive strings from the connection
+            Return:
+                (str): received from the connection   
+        '''
         size = self.recv_int()
         string = b''
         more_size = b''
@@ -143,9 +147,8 @@ class Client():
         
         return string.decode(FORMAT)
 
-    def recv_txt_file(self):
+    def recv_txt_file(self) -> None:
         ''' Writes strings to a file. This is used to transfer source code from Client to Server
-
         '''
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
@@ -157,9 +160,10 @@ class Client():
         buffer = ""
         while len(buffer) < size:
             print("reading..")
-            print(f"{len(buffer)}/{size}")
+            print(f"{len(buffer)}/{size}", end="\r")
             buffer = self.sockfd.recv(size).decode(FORMAT)
-
+        if sleep:
+            time.sleep(sleep_timer)
         print(f"{len(buffer)}/{size}")
 
         try:
@@ -169,9 +173,8 @@ class Client():
         except OSError as err:
             sys.exit(f'File creation failed with error: {err}')
 
-    def recv_bin_file(self):
+    def recv_bin_file(self) -> None:
         ''' Writes strings to a file. This is used to transfer source code from Client to Server
-
         '''
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
@@ -183,9 +186,10 @@ class Client():
         buffer = b""
         while len(buffer) < size:
             print("reading..")
-            print(f"{len(buffer)}/{size}")
+            print(f"{len(buffer)}/{size}", end="\r")
             buffer = self.sockfd.recv(size)
-
+        if sleep:
+            time.sleep(sleep_timer)
         print(f"{len(buffer)}/{size}")
 
         try:
@@ -195,32 +199,29 @@ class Client():
         except OSError as err:
             sys.exit(f'File creation failed with error: {err}')
 
-    def recv_next_action(self):
+    def recv_next_action(self) -> None:
+        ''' Helper to read next action
+        '''
         preamble = self.recv_int()
         self.current_ack = preamble
 
     def send_int(self, preamble: int) -> int:
-        ''' Helper to send the byte size of outgoing payload
+        ''' Helper to send the ints in big endian padded to 4 bytes
             Args:
-                sd(socket): socket descriptor of the connection
-            Returns:
-                int: 1 on success 0 on failure
+                payload(int): int to send
+            Return:
+                sent_bytes(int): The number of bytes sent
         '''
         payload = preamble.to_bytes(MAX_BYTE_SIGMA, BIG_EDIAN)
-        size_sent = self.sockfd.send(payload)
-        if size_sent == MAX_BYTE_SIGMA:
-            return 1
-        else:
-            return 0
+        sent_bytes = self.sockfd.send(payload)
+        return sent_bytes
 
     def scan_dir(self, path: str):
-        ''' Helper for run_cmd() This function will return a FileStats object 
-            containg the details of the newley created file
-
+        ''' Helper for run_cmd() This function will assign a FileStats object
+            to current objects return_file property
             Args:
                 path(str): The directory path of the target
         '''
-
         filename = ""
         ctime = 0
         file_size = 0
@@ -228,7 +229,6 @@ class Client():
             for entry in dir_entries:
                 info = entry.stat()
                 if info.st_ctime_ns > ctime:
-                    
                     filename = entry.name
                     ctime = info.st_ctime_ns
                     file_size = info.st_size
@@ -236,15 +236,13 @@ class Client():
                     
         self.return_file = FileStats(filename, file_size, path)
 
-    def run_cmd(self, cmd: str) -> bool:
+    def run_cmd(self, cmd: str) -> None:
         ''' Runs the cmd sent by the client
-
+            This function will assign path_return_file property to a string pointing to 
+            the directory of the output file, if any.
+            r_output will be assign to the compeleted process containing the return codes, stderr, stdout if any.
             Args:
-                sd(socket): Used to create a directory with the peers name
                 cmd(str): to be executed in the shell
-
-            Returns (tuple): (int)return code, (FileStat Object) 
-        
         '''
         peer_dir = f'{self.addr[0]}.{self.addr[1]}'
         self.check_temp_dir(peer_dir)
@@ -257,16 +255,18 @@ class Client():
         self.r_output = p
 
     def send_string(self, string: str):
+        ''' Helper that formats a string and sends it to the connection
+            Args:
+                string(str): payload
+        '''
         payload = string.encode(FORMAT)
         self.send_int(len(payload))
         self.sockfd.send(payload)
 
     def send_return_file(self):
-        ''' Transfer binary file
-        
-            Args:
-                filename(str): file name
-                path(str): path to file
+        ''' Returns the output file.
+            Information on the return file is found
+            in the return_file property
         '''
         path = self.path_return_file + '/' + self.return_file.filename
         payload = b''
@@ -276,13 +276,13 @@ class Client():
         self.send_string(self.return_file.filename)
         self.send_int(len(payload))
         self.sockfd.send( payload )
+        print(f"RETURNED: {self.return_file.filename}")
 
-    def send_std(self, payload):
-        ''' 
-        
+    def send_std(self, payload: bytes):
+        ''' This function will decode and encode to ensure correct formatting
+            before it is formatted into utf-8 and sent
             Args:
-                sd(socket): Connection to send the filename
-                file_attr(FileStat Oject): Object contains the file stats
+                payload(bytes): The std messgae to send
         '''
         # MAKE SURE ITS IN THE RIGHT ENCDOING
         decode = payload.decode(FORMAT)
@@ -306,19 +306,22 @@ class Client():
                 sys.exit("Error occured while deleting temp directory: {err}")
 
     def disconnect(self):
+        ''' Shutdown connection
+        '''
         self.sockfd.shutdown(socket.SHUT_RDWR)
         self.sockfd.close()
         self.sockfd = -1
 
     def proc_req(self):
+        ''' Main processing loop
+            Only exits once a return code and/or file is sent, this represents the
+            compeletion of the connection
+        '''
         try:
             while not self.finished:
                 
                	if sleep:
-                    rand = random.randint(1, 10)
-                    timer = os.getpid() % rand + 2
-                    #print( f'sleep for: {timer}' )
-                    time.sleep(timer)
+                    time.sleep(sleep_timer)
 
                 if(self.current_ack == self.ACK.CMD_SEND_FILE):
                     self.recv_txt_file()
@@ -332,8 +335,6 @@ class Client():
                     payload = self.recv_string()
                     self.run_cmd(payload)
                     r_code = self.r_output.returncode
-
-                    print(f"RETURN FILE: {self.return_file.filename}")
 
                     # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
                     if (self.return_file.filename == "") and (r_code == 0):
@@ -370,7 +371,9 @@ class Client():
 
         
 class Server():
-    '''Server'''
+    ''' Server Class
+        Contains some methods to handle the server
+    '''
     def __init__(self, ip: str, port: int, backlog=1):
         self.ip = ip
         self.port = port
@@ -378,7 +381,12 @@ class Server():
         self.backlog = backlog
         self.ACK = Ack()
 
-    def create_server(self):
+    def create_server(self) -> int:
+        ''' Binds the object to an ip and port
+            Note: it does not start listening until the listen() method is called.
+            Return:
+                int: 1 on success 0 on failure
+        '''
         try:
             self.sockfd = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
             self.sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -393,13 +401,15 @@ class Server():
 
         return 1
 
-    def listen(self):
+    def listen(self) -> None:
         ''' Set the server to listen for incoming connections
         '''
         self.sockfd.listen()
 
     def accept(self) -> tuple:
-        ''' accept() -> (socket object, address info)
+        ''' Accepts clients requesting connection
+            Return:
+                tuple: (socket object, address info)
         '''
         return self.sockfd.accept()
 
@@ -407,7 +417,6 @@ class Server():
         ''' Helper to get the int of incoming payload
             Args:
                 sd(client): socket descriptor of the connection
-
             Return:
                 result(int): The int of incoming payload
         '''
@@ -443,12 +452,12 @@ class Server():
             return 0
 
     def calculate_cost(self) -> int:
-        ''' Randomly return a number between 1-10'''
+        ''' Randomly return a number between 1-100'''
         # seed for testing
         random.seed(time.time() % 8)
         return random.randint(1, 100)
 
-    def send_cost(self, client: socket) -> int:
+    def send_cost(self, client: socket):
         ''' Sends a random number between 1-10 to a socket
 
             Args:
@@ -481,23 +490,20 @@ def usage(prog):
 	print("\t-i\trequires ip and port as arguments. i.e. ./rakeserver -i 127.0.0.1 80006\n")
 	print("\t-r\twill remove temporary files and folders created during the connection of a client\n")
 
-def handle_conn(server: Server):
 
+def handle_conn(server: Server) -> None:
+    ''' Main function to deal with client connections
+        Args:
+            server(Server): Instance of a Server class
+    '''
     if server.create_server():
-
         server.listen()
-
         try:
             while True:
                 conn, addr = server.accept()
-                
                 preamble = server.recv_int(conn)
-
                 if sleep:
-                    rand = random.randint(1, 5)
-                    timer = os.getpid() % rand + 2
-                    #print( f'sleep for: {timer}' )
-                    time.sleep(timer)
+                    time.sleep(sleep_timer)
 
                 if preamble == ACK.CMD_QUOTE_REQUEST:
                     server.send_cost(conn)
@@ -516,25 +522,19 @@ def handle_conn(server: Server):
                         signal.signal(signal.SIGCHLD, signal.SIG_IGN)
                     else:
                         sys.exit(1)
-
         except KeyboardInterrupt:
             sys.exit(1)
         except socket.error as err:
             print(f"Error {err}\nConnection to {addr} disconnected!")
 
 
-
-
-
 def main(ip=SERVER_HOST, port=SERVER_PORT):
-    #print(f"ESTABLISHING CONNECTION ON {ip} {port}")
     server = Server(ip, port, DEFAULT_BACKLOG)
 
     handle_conn(server)
 
 
 if __name__ == "__main__":
-	# TODO move all this into main
 	prog = sys.argv[0][1:]
 
 	if (len(sys.argv) == 2 and sys.argv[1].isnumeric()):
@@ -550,10 +550,10 @@ if __name__ == "__main__":
 					usage(prog)
 					sys.exit()
 				elif o == "-v":
-					#print("TODO verbose")
+					print("TODO verbose")
 					pass
 				elif o == "-d":
-					#print("TODO default")
+					print("TODO default")
 					pass
 				elif o == "-w":
 					sleep = True
