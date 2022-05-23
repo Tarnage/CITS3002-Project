@@ -9,11 +9,11 @@ HOSTS = 127.0.1.1 127.0.3.1
 actionset1:
 	echo starting actionset1
 	remote-cc -c program.c
-		requires program.c program.h allfunctions.h
+		requires test_files/program.c test_files/program.h test_files/allfunctions.h
 	remote-cc -c square.c
-		requires square.c allfunctions.h
+		requires test_files/square.c test_files/allfunctions.h
 	remote-cc -c cube.c
-		requires cube.c allfunctions.h
+		requires test_files/cube.c test_files/allfunctions.h
 
 actionset2:
 	echo starting actionset2
