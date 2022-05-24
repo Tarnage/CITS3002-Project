@@ -206,12 +206,13 @@ int create_conn(char *host, int port)
 }
 
 
+// CREATE THE LOCAL HOST NODE 
 void create_local_node(NODE *local)
 {   
     create_node(local, LOCAL_HOST, default_port);
 }
 
-
+// FIND THE LOWEST COST HOST/PORT PAIR IN THE LIST 
 char *get_lowest_cost(NODE *list, int *port)
 {   
     int curr = INT_MAX;
@@ -261,6 +262,7 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
 }
 
 
+// WRAPPER FUNCTION FOR SENDING COST REQUEST 
 void send_cost_req(int sd)
 {   
     //printf("SENDING COST REQUEST ---->\n");
@@ -336,7 +338,10 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
     int local_socket = -1;
     create_local_node(local_host);
     
+	// NUMBER OF EXECUTED ACTIONS
     int actions_executed = 0;
+
+	// THE NEXT ACTION
     int next_action = 0;
 
     // REMAINING ACTIONS
@@ -431,10 +436,13 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         FD_CLR(i, &input_sockets);
 
                         int preamble = recv_byte_int(i);
+                        printf("PREAMBLE: %i\n", preamble);
                         if(preamble == CMD_ACK) FD_SET(i, &output_sockets); // JUST RECVEVING AN ACK sockfd CAN GO BACK TO OUTPUT STATE
-
+						
+						
                         else if(preamble == CMD_QUOTE_REPLY)
                         {   
+							// RECEIVE THE COST OF CONNECTION
                             int cost = recv_byte_int(i);
                             //printf("COST RECEIVED: %i\n", cost);
                             add_cost(quote_list, i, cost);
@@ -442,6 +450,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         }
                         else if(preamble == CMD_RETURN_STATUS)
                         {
+							// RECEIVE THE RETURN STATUS
                             int return_code = recv_byte_int(i);
                             if (return_code == 0) preamble = recv_byte_int(i);
 
@@ -458,6 +467,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         else if (preamble == CMD_RETURN_STDOUT)
                         {
                             int return_code = recv_byte_int(i);
+                            printf("RETURN CODE STDOUT: %i\n", return_code);
                             if (return_code > 0 && return_code < 5)
                             {   
                                 int size = recv_byte_int(i);
@@ -468,11 +478,14 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if (preamble == CMD_RETURN_STDERR)
                         {
                             int return_code = recv_byte_int(i);
+                            printf("RETURN CODE STDERR: %i\n", return_code);
                             if (return_code > 5)
                             {
                                 int size = recv_byte_int(i);
@@ -483,10 +496,13 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if(preamble == CMD_NO_OUTPUT)
                         {   
+							// NO OUTPUT RECORDED AFTER THE ACTION
                             int return_code = recv_byte_int(i);
                             printf("RETURN CODE %i\n",return_code);
                             ++actions_executed;

@@ -16,45 +16,10 @@
 #include <limits.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include "structures.h"
 
 #define MAX_BYTES_SIGMA 4
 #define MAX_QUEUE_ITEMS 64
-
-typedef enum _cmd{
-    CMD_DEBUG = 0,
-
-    CMD_QUOTE_REQUEST,
-    CMD_QUOTE_REPLY,
-
-    CMD_BIN_FILE,
-    CMD_SEND_FILE,
-
-    CMD_EXECUTE,
-    CMD_RETURN_STATUS,
-    CMD_RETURN_STDOUT,
-    CMD_RETURN_STDERR,
-    CMD_RETURN_FILE,
-    
-    CMD_ACK,
-    CMD_NO_OUTPUT
-} CMD;
-
-
-//---------------------STRUCTS----------------------------------
-
-
-typedef struct _node
-{
-    int sock;
-    char *ip;
-    int port;
-    int cost;
-    CMD curr_req;
-    ACTION *actions;
-    struct _node *next;
-    struct _node *prev;
-    
-} NODE;
 
 // INIT FUNCTION FOR NODES
 void create_node(NODE *new_node, char *ip, int port)
@@ -75,7 +40,7 @@ void append_new_node(NODE *head, NODE *new_node)
     new_node->prev = temp;
 }
 
-
+// FREE THE NODE LIST
 void free_list(NODE *pList)
 {
     NODE* temp;
@@ -142,7 +107,7 @@ void add_cost(NODE *head, int sd, int cost)
     temp->sock = -1;
 }
 
-
+// CLOSE THE LOCAL HOST
 void close_local_sock(NODE *local, int *sd)
 {   
     shutdown(local->sock, SHUT_RDWR);
@@ -151,5 +116,21 @@ void close_local_sock(NODE *local, int *sd)
     *sd = -1;
 }
 
+//-------------------------FUNCTION DECLARATIONS------------------------
+extern void     init_actions(char *, ACTION_SET *, int *, HOST *, int *);
+extern void     send_byte_int(int, CMD);
+extern int      recv_byte_int(int);
+extern void     send_string(int, char *);
+extern void     send_file(int, char *); 
+extern void     recv_string(int, char *, int);
+extern void     recv_bin_file(int); 
+extern void     create_local_node(NODE *);
+extern char*    get_lowest_cost(NODE*, int*);
+extern CMD      get_curr_req(NODE *, NODE *, NODE *, int);
+extern void     send_cost_req(int sd);
+extern NODE*    get_node(NODE *, NODE *, int);
+extern void     send_cmd(int, char *);
+extern void     create_quote_team(HOST *, int, NODE *, fd_set);
+extern void     handle_conn(HOST *, int, ACTION*, int);
 
 #endif
