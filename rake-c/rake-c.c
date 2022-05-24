@@ -187,40 +187,14 @@ int check_folder_exists (char *filename)
 */ 
 void recv_bin_file(int sock)
 {
-    // RECEIVE THE SIZE OF THE FILENAME
     int str_size = recv_byte_int(sock);
-    //printf("SIZE OF FILE NAME: %d\n", str_size);
     char filename[str_size]; 
-
-    // RECEIVE THE FILENAME 
     recv_string(sock, filename, str_size);
-    //printf("FILE NAME: %s\n", filename);
 
-    // RECEIVE THE SIZE OF THE FILE
-    //printf("RECEIVING FILE SIZE\n");
     int file_size = recv_byte_int(sock);
-    //printf("FILE SIZE: %d BYTES\n", file_size);
 
-    // TODO: MAKE THIS A CHECK FUNCTION
-    // #DEFINE "./tmp/"
-    // CAN REUSE THIS CHECK BEFORE EXECUTING LOCAL COMMANDS
-    // SINCE WE MIGHT WANT TO RUN THE COMMANDS IN THIS DIR
-    if(check_folder_exists(TEMP_FOLDER) == -1)
-    {   
-        // THERE A MACRO FOR 0777?
-        printf("MAKING NEW FOLDER\n");
-        mkdir(TEMP_FOLDER, 0777);
-    }   
-
-    int new_file_size = strlen(TEMP_FOLDER) + strlen(filename) + 1;
-    char dir_for_file[new_file_size];
-    strcpy(dir_for_file, TEMP_FOLDER);
-    strcat(dir_for_file, filename);
-    printf("DIRECTORY FOR FILE: %s\n", dir_for_file);
-
-    
     // OPEN THE FILE
-    FILE *fp = fopen(dir_for_file, "wb");
+    FILE *fp = fopen(filename, "wb");
     if (fp == NULL)
     {
         printf("PROBLEM: FILE DOES NOT EXIST\n");
@@ -352,25 +326,27 @@ void reset_socket_node(NODE *list)
 }
 
 
-void get_lowest_cost(NODE *list, char *ip, int *port)
-{
+char *get_lowest_cost(NODE *list, int *port)
+{   
+    
     int curr = INT_MAX;
     char *temp_ip;
     int temp_port = -1;
     
     NODE *temp = list;
     while(temp != NULL)
-    {
+    {   
         if(temp->cost < curr)
-        {
+        {   
             temp_ip = strdup(temp->ip);
             temp_port = temp->port;
         }
+        temp = temp->next;
     }
-    ip = temp_ip;
     *port = temp_port;
     
     free_list(list);
+    return temp_ip;
 }
 
 void make_free(NODE *sockets, int sd)
@@ -517,11 +493,11 @@ void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list, fd_set outputs)
 void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals) 
 {
     // SOCKETS TO READ FROM
-    fd_set input_sockets;
+    fd_set input_sockets, read_ready;
     FD_ZERO(&input_sockets);
 
     // SOCKETS TO WRITE TO
-    fd_set output_sockets;
+    fd_set output_sockets, write_ready;
     FD_ZERO(&output_sockets);
 
     // LIST OF SOCKETS MAKING A REQUEST
@@ -590,13 +566,14 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             // TODO: LOOP THROUGH ALL HOSTS TO SEND TO FIND QUOTE
             else if( (next_action < remaining_actions) && (quote_recv == n_hosts) )
             {   
-                printf("PICKING LOWEST COST...\n");
                 quote_recv = 0;
-                char ip[MAX_LINE_LENGTH];
+                
                 int port = -1;
-                get_lowest_cost(quote_list, ip, &port);
+                char *ip = get_lowest_cost(quote_list, &port);
                 quote_list = NULL;
+                printf("PICKING LOWEST COST...\n");
 
+                printf("ip:%s , port:%i\n", ip, port);
                 int sock = create_conn(ip, port);
                 // printf("APPEND\n");
                 NODE *slave = (NODE*)malloc(sizeof(NODE));
@@ -615,9 +592,12 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
         struct timeval tv;
         tv.tv_sec = 5;
+        tv.tv_usec = 0;
 
+        read_ready = input_sockets;
+        write_ready = output_sockets;
         printf("SELECTING....\n");
-        int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, &tv);
+        int activity = select(FD_SETSIZE+1, &read_ready, &write_ready, NULL, &tv);
         printf("SELECT RESULT: %i\n", activity);
         switch (activity)
         {
@@ -626,14 +606,16 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                 close_all_sockets();
                 break;
             case 0:
-                perror("select() returned 0\n");
+                printf("select() returned 0\n");
                 break;
+                
             default:
 
-                for (size_t i = 0; i < FD_SETSIZE; i++)
+                for (int i = 0; i < FD_SETSIZE; i++)
                 {   
                     if (FD_ISSET(i, &input_sockets))
                     {   
+                        printf("INPUT %i\n",i);
                         //sleep(2);
                         int preamble = recv_byte_int(i);
                         //printf("PREAMBLE NUMBER: %d\n", preamble);

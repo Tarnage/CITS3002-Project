@@ -102,12 +102,29 @@ void free_list(NODE *pList)
 void remove_sd(NODE *conn_list, int sd)
 {
     NODE *temp = conn_list;
+    
     while(temp->sock != sd) temp = temp->next;
     shutdown(temp->sock, SHUT_RDWR);
     close(temp->sock);
-    NODE *prev = temp->prev;
-    temp->next->prev = prev;
-    prev->next = temp->next;
+    
+    // ITS THE HEAD
+    if (temp->prev == NULL)
+    {   
+        //ITS THE ONLY ONE IN THE LIST
+        if (temp->next == NULL) conn_list = NULL;
+        else
+        {
+            temp = temp->next;
+            temp->prev = NULL;
+            conn_list = temp;
+        }
+    }
+    else
+    {
+        NODE *prev = temp->prev;
+        temp->next->prev = prev;
+        prev->next = temp->next;
+    }
 }
 
 void add_cost(NODE *head, int sd, int cost)
