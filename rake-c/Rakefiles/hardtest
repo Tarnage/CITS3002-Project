@@ -9,7 +9,7 @@ actionset1:
 	echo starting actionset1
 	remote-cc -c program.c
 		requires ./test_files/program.c ./test_files/program.h ./test_files/allfunctions.h
-	remote-cc -c rectangle.c
+	remote-cc -c square.c 
 		requires ./test_files/square.c ./test_files/allfunctions.h
 	remote-cc -c cube.c
 		requires ./test_files/cube.c ./test_files/allfunctions.h
