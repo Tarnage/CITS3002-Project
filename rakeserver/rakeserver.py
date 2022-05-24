@@ -77,6 +77,8 @@ class Client():
         self.return_file = None
         self.path_return_file = None
         self.r_output = None
+        self.stderr = None
+        self.stdout = None
 
     def recv_int(self) -> int:
         ''' Helper to get the int of incoming payload
@@ -241,7 +243,9 @@ class Client():
 
         self.scan_dir(path)
         self.path_return_file = path
-        self.r_output = p
+        self.r_output = p.returncode
+        self.stderr = p.stderr
+        self.stdout = p.stdout
 
     def send_string(self, string: str):
         ''' Helper that formats a string and sends it to the connection
@@ -323,7 +327,7 @@ class Client():
                 elif(self.current_ack == self.ACK.CMD_EXECUTE):
                     payload = self.recv_string()
                     self.run_cmd(payload)
-                    r_code = self.r_output.returncode
+                    r_code = self.r_output
 
                     # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
                     if (self.return_file.filename == "") and (r_code == 0):
@@ -341,13 +345,13 @@ class Client():
                     elif 0 < r_code < 5:
                         self.send_int(self.ACK.CMD_RETURN_STDERR)
                         self.send_int(r_code)
-                        self.send_std(self.r_output.stderr)
+                        self.send_std(self.stderr)
 
                     # EXECUTION HAD A FATAL ERROR
                     else:
                         self.send_int(self.ACK.CMD_RETURN_STDOUT)
                         self.send_int(r_code)
-                        self.send_std(self.r_output.stdout)
+                        self.send_std(self.stdout)
                     
                     self.finished = True
 
@@ -499,6 +503,7 @@ def handle_conn(server: Server) -> None:
                     conn.shutdown(socket.SHUT_RDWR)
                     conn.close()
                 else:
+                    print("FORKED..")
                     child = os.fork()
                     if child == 0:
                         client = Client(conn, addr, preamble)
@@ -506,7 +511,6 @@ def handle_conn(server: Server) -> None:
                         if remove_temp:
                             client.rm_client_files()
                         client.disconnect()
-                        sys.exit(0)
                     elif child > 0:
                         signal.signal(signal.SIGCHLD, signal.SIG_IGN)
                     else:
