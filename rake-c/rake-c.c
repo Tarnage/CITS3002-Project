@@ -1,9 +1,5 @@
 #include "rake-c.h"
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#ifndef __APPLE__
-// NOT STANDARD LIB CAN INSTALL WITH sudo apt -y install libexplain-dev
-#include <libexplain/connect.h>
-#endif
 
 #define SERVER_PORT  6327
 #define SERVER_HOST  "127.0.0.1"
@@ -136,10 +132,8 @@ void recv_bin_file(int sock)
     int str_size = recv_byte_int(sock);
     char filename[str_size]; 
     recv_string(sock, filename, str_size);
-
     int file_size = recv_byte_int(sock);
 
-    // OPEN THE FILE
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL)
     {
@@ -147,29 +141,16 @@ void recv_bin_file(int sock)
         exit(EXIT_FAILURE);
     }
 
-    
     unsigned char buffer[file_size];
     int byte_count = recv(sock, buffer, sizeof(buffer), 0);
-
     if(byte_count == 0)
     {
         printf("FILE CONTENTS NOT RECEIVED\n");
         exit(EXIT_FAILURE);
     }
 
-    printf("FILE %s RECEIVED SUCCESSFULLY\n", filename);
-    // RECEIVE THE FILE'S CONTENTS 
     fwrite(buffer, file_size, 1, fp);
-
     fclose(fp);
-}
-
-
-// TODO: IMPLEMENT FIND FILE
-// SEARCH ENTIRE SYSTEM STORE LOCATION IN PATH AND RETURN SUCCESS = 1 OR FAIL = 0
-int find_file(char *filename, char *path)
-{
-    return 0;
 }
 
 
@@ -195,23 +176,12 @@ int create_conn(char *host, int port)
         exit(EXIT_FAILURE);
     }
 
-    // Set the socket to non-blocking
-    // int flags = fcntl(sock, F_GETFL, 0);
-    // fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    // sleep(2);
-
     // CHECK CONNECTION
     int status = -1;
     if( (status = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0 ) {
-#ifndef __APPLE__
-        fprintf(stderr, "%s\n", explain_connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) );
-#else
 		printf("\nConnection failed!!\n");
-#endif
         exit(EXIT_FAILURE);
     }
-
-    //printf("SOCKET CREATION SUCCESSFUL\n");
 
     return sock;
 }
