@@ -12,7 +12,6 @@ import signal
 
 # DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
-#SERVER_HOST = socket.gethostbyname(socket.gethostname())
 SERVER_HOST = '127.0.0.1'
 # THE STANDARD THIS PROGRAM WILL USE TO ENCODE AND DECODE STRINGS
 FORMAT = 'utf-8'
@@ -23,7 +22,7 @@ MAX_BYTE_SIGMA = 4
 # USE BIG BIG_EDIAN FOR BYTE ORDER
 BIG_EDIAN = 'big'
 
-# IF LOCAL HOST SERVER
+# IF SERVER IS LOCAL HOST
 is_local_host = False
 
 # OPTSARGS
@@ -33,35 +32,27 @@ sleep_timer = os.getpid() % rand + 2
 #print( f'sleep for: {timer}' )
 remove_temp = True
 
-
 #------------------------------------------------CLASSES------------------------------------------------------------
 
 class Ack:
 	''' ENUM  Class'''
 	def __init__(self):
-		self.CMD_ECHO = 0
-		self.CMD_ECHOREPLY = 1
+		self.CMD_DEBUG = 0
 
-		self.CMD_QUOTE_REQUEST = 2
-		self.CMD_QUOTE_REPLY = 3
+		self.CMD_QUOTE_REQUEST = 1
+		self.CMD_QUOTE_REPLY = 2
 
-		self.CMD_SEND_REQIUREMENTS = 4
-		self.CMD_BIN_FILE = 5
-		self.CMD_SEND_FILE = 6
-		self.CMD_SEND_SIZE = 7
-		self.CMD_SEND_NAME = 8
+		self.CMD_BIN_FILE = 3
+		self.CMD_SEND_FILE = 4
 
-		self.CMD_EXECUTE_REQ = 9
-		self.CMD_EXECUTE = 10
-		self.CMD_RETURN_STATUS  = 11
+		self.CMD_EXECUTE = 5
+		self.CMD_RETURN_STATUS  = 6
+		self.CMD_RETURN_STDOUT  = 7
+		self.CMD_RETURN_STDERR  = 8
+		self.CMD_RETURN_FILE = 9
 
-		self.CMD_RETURN_STDOUT  = 12
-		self.CMD_RETURN_STDERR  = 13
-
-		self.CMD_RETURN_FILE = 14
-
-		self.CMD_ACK = 15
-		self.CMD_NO_OUTPUT = 16
+		self.CMD_ACK = 10
+		self.CMD_NO_OUTPUT = 11
 
 
 class FileStats():
