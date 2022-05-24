@@ -151,7 +151,7 @@ void close_local_sock(NODE *local, int *sd)
     *sd = -1;
 }
 
-// DECLARATIONS
+// FUNCTION DECLARATIONS
 extern void     init_actions(char *, ACTION_SET *, int *, HOST *, int *);
 extern void     send_byte_int(int, CMD);
 extern int      recv_byte_int(int);
@@ -165,5 +165,7 @@ extern CMD      get_curr_req(NODE *, NODE *, NODE *, int);
 extern void     send_cost_req(int sd);
 extern NODE*    get_node(NODE *, NODE *, int);
 extern void     send_cmd(int, char *);
+extern void     create_quote_team(HOST *, int, NODE *, fd_set);
+extern void     handle_conn(HOST *, int, ACTION*, int);
 
 #endif

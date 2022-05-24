@@ -347,7 +347,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
         if(next_action < remaining_actions)
         {
             // LOCAL 
-            if( !actions[next_action].is_remote && local_socket < 0)
+            if( !actions[next_action].is_remote )
             {
                 int socket_desc = create_conn(local_host->ip, local_host->port);
                 FD_SET(socket_desc, &output_sockets);
@@ -431,6 +431,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         FD_CLR(i, &input_sockets);
 
                         int preamble = recv_byte_int(i);
+						printf("PREAMBLE: %i\n", preamble);
                         if(preamble == CMD_ACK) FD_SET(i, &output_sockets); // JUST RECVEVING AN ACK sockfd CAN GO BACK TO OUTPUT STATE
 
                         else if(preamble == CMD_QUOTE_REPLY)
@@ -458,6 +459,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         else if (preamble == CMD_RETURN_STDOUT)
                         {
                             int return_code = recv_byte_int(i);
+							printf("RETURN CODE: %i\n", return_code);
                             if (return_code > 0 && return_code < 5)
                             {   
                                 int size = recv_byte_int(i);
@@ -468,11 +470,14 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if (preamble == CMD_RETURN_STDERR)
                         {
                             int return_code = recv_byte_int(i);
+							printf("RETURN CODE: %i\n", return_code);
                             if (return_code > 5)
                             {
                                 int size = recv_byte_int(i);
@@ -483,6 +488,8 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if(preamble == CMD_NO_OUTPUT)
