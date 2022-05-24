@@ -241,9 +241,12 @@ class Client():
         self.check_temp_dir(peer_dir)
         path = str('./tmp/' + peer_dir)
         print(f'RUNNING COMMAND: {cmd}')
-        p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
+
+        p = subprocess.Popen(cmd, shell=True, cwd=path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+        self.stdout, self.stderr =  p.communicate()
+        self.r_output = p.returncode
         print(f"CODE: {p.returncode}")
-        self.r_output, self.stderr, self.stdout = p.returncode, p.stderr, p.stdout
         self.scan_dir(path)
         self.path_return_file = path
         
