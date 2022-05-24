@@ -476,6 +476,8 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if (preamble == CMD_RETURN_STDERR)
@@ -491,6 +493,8 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
                                 else remove_sd(conn_list, i);
+
+								exit(EXIT_FAILURE);
                             }
                         }
                         else if(preamble == CMD_NO_OUTPUT)
