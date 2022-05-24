@@ -466,6 +466,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         else if (preamble == CMD_RETURN_STDOUT)
                         {
                             int return_code = recv_byte_int(i);
+                            printf("RETURN CODE STDOUT: %i\n", return_code);
                             if (return_code > 0 && return_code < 5)
                             {   
                                 int size = recv_byte_int(i);
@@ -483,6 +484,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         else if (preamble == CMD_RETURN_STDERR)
                         {
                             int return_code = recv_byte_int(i);
+                            printf("RETURN CODE STDERR: %i\n", return_code);
                             if (return_code > 5)
                             {
                                 int size = recv_byte_int(i);
