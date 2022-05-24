@@ -391,15 +391,17 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
     }
     
     NODE *temp = quote_team;
+    
     while(temp != NULL)
-    {
+    {   
+        
         if(temp->sock == sd)
-        {
+        {   
+            
             return temp->curr_req;
         }
         printf("HAPPENS HERE\n");
         temp = temp->next;
-        
     }
     
     temp = conn_list;
@@ -412,7 +414,6 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
         temp = temp->next;
     }
 
-    free(temp);
     return result;
 }
 
@@ -525,7 +526,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
     FD_ZERO(&output_sockets);
 
     // LIST OF SOCKETS MAKING A REQUEST
-    NODE *quote_list;
+    NODE *quote_list = NULL;
     // CURRENT QUOTE INDEX
     int curr_quote_req = 0;
     // HOW MANY HAVE QUOTES HAVE COME BACK
@@ -573,7 +574,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             {
                 printf("REMOTE ACTION - BUILDING QUOTE FD_SET...\n");
                 // BUILDING THE FD_SET
-                NODE *temp = NULL;
                 for (size_t i = 0; i < n_hosts; i++)
                 {   
                     int sock = create_conn(hosts[i].name, hosts[i].port);
@@ -583,8 +583,8 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                     FD_SET(sock, &output_sockets);
                     new_node->sock = sock;
                     new_node->curr_req = CMD_QUOTE_REQUEST;
-                    if(temp == NULL) temp = new_node;
-                    else append_new_node(temp, new_node); 
+                    if(quote_list == NULL) quote_list = new_node;
+                    else append_new_node(quote_list, new_node); 
                 }
                 ++curr_quote_req;
             }
@@ -629,7 +629,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                 for (size_t i = 0; i < FD_SETSIZE; i++)
                 {   
-                    printf("INPUT AT INDEX %li\n", i);
                     if (FD_ISSET(i, &input_sockets))
                     {   
                         //sleep(2);
@@ -751,7 +750,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                     if (FD_ISSET(i, &output_sockets))
                     {   
-                        printf("OUTPUT AT INDEX %li\n", i);
                         CMD curr_req = get_curr_req(local_host, conn_list, quote_list, i);
                         printf("CURRENT: %i\n", curr_req);
                         if(curr_req == CMD_QUOTE_REQUEST)
