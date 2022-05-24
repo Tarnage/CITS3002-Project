@@ -77,6 +77,8 @@ class Client():
         self.return_file = None
         self.path_return_file = None
         self.r_output = None
+        self.stderr = None
+        self.stdout = None
 
     def recv_int(self) -> int:
         ''' Helper to get the int of incoming payload
@@ -150,7 +152,6 @@ class Client():
 
         buffer = ""
         while len(buffer) < size:
-            print("reading..")
             print(f"{len(buffer)}/{size}", end="\r")
             buffer = self.sockfd.recv(size).decode(FORMAT)
         if sleep:
@@ -176,7 +177,6 @@ class Client():
 
         buffer = b""
         while len(buffer) < size:
-            print("reading..")
             print(f"{len(buffer)}/{size}", end="\r")
             buffer = self.sockfd.recv(size)
         if sleep:
@@ -243,7 +243,9 @@ class Client():
 
         self.scan_dir(path)
         self.path_return_file = path
-        self.r_output = p
+        self.r_output = p.returncode
+        self.stderr = p.stderr
+        self.stdout = p.stdout
 
     def send_string(self, string: str):
         ''' Helper that formats a string and sends it to the connection
@@ -325,7 +327,7 @@ class Client():
                 elif(self.current_ack == self.ACK.CMD_EXECUTE):
                     payload = self.recv_string()
                     self.run_cmd(payload)
-                    r_code = self.r_output.returncode
+                    r_code = self.r_output
 
                     # IF NO OUTPUT FILE WAS PRODUCED AND WAS A SUCCESSFULLY RUN
                     if (self.return_file.filename == "") and (r_code == 0):
@@ -343,19 +345,17 @@ class Client():
                     elif 0 < r_code < 5:
                         self.send_int(self.ACK.CMD_RETURN_STDERR)
                         self.send_int(r_code)
-                        self.send_std(self.r_output.stderr)
+                        self.send_std(self.stderr)
 
                     # EXECUTION HAD A FATAL ERROR
                     else:
                         self.send_int(self.ACK.CMD_RETURN_STDOUT)
                         self.send_int(r_code)
-                        self.send_std(self.r_output.stdout)
+                        self.send_std(self.stdout)
                     
                     self.finished = True
 
                 if not self.finished:
-                    
-                    print("READING NEXT ACTION...")
                     self.recv_next_action()
         except Exception as err:
             print(f"ERROR: Connection to {self.sockfd.getpeername()} disconnected!")
@@ -472,15 +472,16 @@ def usage(prog):
 	print(f"Usage: {prog} [OPTIONS]...PORT...")
 	print("Description")
 	print("\tThe purpose of this server program is to receive source files and compile them on the local machine")
-	print("\tYou are able to combine opts such as -iw [IP]...[PORT] to create a socket connecting to IP:PORT and the program will wait between send requests")
+	print("\tYou are able to combine opts such as -wi [IP]...[PORT] to create a socket connecting to IP:PORT and the program will wait between send requests")
+	print("\tThe [i] opts must always be last followed by the [IP]...[PORT]")
 	print("Option")
 	print("\tIf no options are used, a port number must be given as an argument\n")
 	print("\t-h\tdisplay this help and exit\n")
-	print("\t-d\twill run default hostname and default port: 50008\n")
-	print("\t-v\twill print on delivary of packets\n")
-	print("\t-w\twill add a randomised wait timer (0-10secs) between each send request\n")
+	print("\t-d\twill run on localhost and port: 50008\n")
+	print("\t-v\tverbose mode - default is ON\n")
+	print("\t-w\twill add a randomised wait timer (1-3secs) between each send request\n")
 	print("\t-i\trequires ip and port as arguments. i.e. ./rakeserver -i 127.0.0.1 80006\n")
-	print("\t-r\twill remove temporary files and folders created during the connection of a client\n")
+	print("\t-r\twill NOT remove temporary files and folders created during the connection of a client\n")
 
 
 def handle_conn(server: Server) -> None:
@@ -502,6 +503,7 @@ def handle_conn(server: Server) -> None:
                     conn.shutdown(socket.SHUT_RDWR)
                     conn.close()
                 else:
+                    print("FORKED..")
                     child = os.fork()
                     if child == 0:
                         client = Client(conn, addr, preamble)
@@ -509,7 +511,6 @@ def handle_conn(server: Server) -> None:
                         if remove_temp:
                             client.rm_client_files()
                         client.disconnect()
-                        sys.exit(0)
                     elif child > 0:
                         signal.signal(signal.SIGCHLD, signal.SIG_IGN)
                     else:
@@ -542,11 +543,9 @@ if __name__ == "__main__":
 					usage(prog)
 					sys.exit()
 				elif o == "-v":
-					print("TODO verbose")
-					pass
+					sys.stdout = open(os.devnull, 'w')
 				elif o == "-d":
-					print("TODO default")
-					pass
+					main()
 				elif o == "-w":
 					sleep = True
 				elif o == "-r":

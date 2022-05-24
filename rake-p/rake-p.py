@@ -259,7 +259,6 @@ class Connection:
 
                 if preamble == self.ACK.CMD_RETURN_FILE:
                     self.recv_file()
-                    print("RECV FILE")
                 else:
                     print("SOMETHING WENT WRONG RECVEING THE FILE")
                     sys.exit(1)
@@ -424,7 +423,7 @@ def handle_conn(sets: list, hosts: dict):
             sets(list): the Rakefile after the parse.
             hosts(dict): key=ip value=ports
     '''
-
+    
     input_sockets = list()
     output_sockets = list()
 
@@ -444,11 +443,11 @@ def handle_conn(sets: list, hosts: dict):
 
     while actions_exe < remaing_actions:
         try:
-
+            
             # IF WE STILL HAVE ACTIONS TO EXE OR GET COST FOR
             if next_action < remaing_actions:
                 # IF ITS A LOCAL CMD USE LOCAL HOST OBJ
-                if not sets[next_action].remote:
+                if (not sets[next_action].remote) and local_host.sockfd == -1:
                     local_host.add_actions(sets[next_action])
 
                     local_host.connect()
@@ -460,7 +459,6 @@ def handle_conn(sets: list, hosts: dict):
 
                 # SEND OUT COST REQUESTS FOR THE NEXT ACTION
                 if (curr_qoute_req == next_action) and (sets[next_action].remote) and (quote_recv == 0):
-                    print(f"GETTING QUOTE FOR: {curr_qoute_req}")
                     quote_queue = create_quote_team(hosts)
 
                     for sd in quote_queue:
@@ -469,7 +467,6 @@ def handle_conn(sets: list, hosts: dict):
             
                 # IF WE HAVE RECVEIVED ALL QUOTES FOR THE NEXT ACTION
                 elif (next_action < remaing_actions) and (quote_recv == len(hosts)):
-                    print(f"ACTION no-{next_action} SENT TO PROCESS")
                     quote_recv = 0
                     ip, port = get_lowest_quote(quote_queue)
                     quote_queue = dict()
@@ -532,11 +529,17 @@ def handle_conn(sets: list, hosts: dict):
                 conn_dict[sock].disconnect()
             sys.exit(1)
 
-def main(argv):
-    dict_hosts, actions = parse_rakefile.read_rake(argv[1])
+def main(filname):
+
+    dict_hosts, actions = parse_rakefile.read_rake(filname)
 
     for sets in actions:
+        
         handle_conn(sets, dict_hosts)
         
 if __name__ == "__main__":
-    main(sys.argv)
+    
+    if len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        main("./Rakefile")
