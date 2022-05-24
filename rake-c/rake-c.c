@@ -1,5 +1,5 @@
 #include "rake-c.h"
-
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #ifndef __APPLE__
 // NOT STANDARD LIB CAN INSTALL WITH sudo apt -y install libexplain-dev
 #include <libexplain/connect.h>
@@ -316,7 +316,8 @@ void init_nodes(HOST *hosts, int n_hosts)
 }
 
 void create_local_node(NODE *local)
-{
+{   
+    printf("CREATING NODE\n");
     create_node(local, LOCAL_HOST, default_port);
 }
 
@@ -487,6 +488,7 @@ NODE *get_node(NODE *local, NODE* conn_list, int sd)
         }
         temp = temp->next;
     }
+    return NULL;
 }
 
 
@@ -506,7 +508,7 @@ void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list, fd_set set)
     {
         int sock = create_conn(hosts[i].name, hosts[i].port);
         FD_SET(sock, &set);
-        NODE *new_node;
+        NODE *new_node = (NODE*)malloc(sizeof(NODE));
         create_node(new_node, hosts[i].name, hosts[i].port);
         new_node->sock = sock;
         if(temp == NULL) temp = new_node;
@@ -538,7 +540,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
     NODE *conn_list;
 
     // OUR LOCAL SERVER
-    NODE *local_host;
+    NODE *local_host = (NODE*)malloc(sizeof(NODE));
     int local_socket = -1;
     create_local_node(local_host);
     
@@ -661,10 +663,10 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                             if (return_code > 0 && return_code < 5)
                             {   
                                 int size = recv_byte_int(i);
-                                char *err_msg;
-                                recv_string(i, &err_msg, size);
+                                char err_msg[size];
+                                recv_string(i, err_msg, size);
                                 printf("Errno: %i/n", return_code);
-                                fprintf(stdout, err_msg);
+                                fputs(err_msg, stdout);
                                 FD_CLR(i, &input_sockets);
                                 if(i == local_socket)
                                 {
@@ -684,10 +686,10 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                             if (return_code > 5)
                             {
                                 int size = recv_byte_int(i);
-                                char *err_msg;
-                                recv_string(i, &err_msg, size);
+                                char err_msg[size];
+                                recv_string(i, err_msg, size);
                                 printf("Errno: %i/n", return_code);
-                                fprintf(stderr, err_msg);
+                                fputs(err_msg, stderr);
                                 FD_CLR(i, &input_sockets);
                                 if(i == local_socket)
                                 {

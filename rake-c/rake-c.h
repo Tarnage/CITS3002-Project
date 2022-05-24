@@ -63,7 +63,6 @@ typedef struct _node
 // INIT FUNCTION FOR NODES
 void create_node(NODE *new_node, char *ip, int port)
 {
-    new_node = (NODE*)malloc(sizeof(NODE));
     new_node->sock = -1;
     new_node->ip = ip;
     new_node->port = port;
