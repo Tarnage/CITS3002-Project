@@ -389,7 +389,7 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
     {
         return local->curr_req;
     }
-
+    
     NODE *temp = quote_team;
     while(temp != NULL)
     {
@@ -397,9 +397,11 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
         {
             return temp->curr_req;
         }
+        printf("HAPPENS HERE\n");
         temp = temp->next;
+        
     }
-
+    
     temp = conn_list;
     while(temp != NULL)
     {
@@ -492,7 +494,7 @@ void send_cmd(int sd, char *cmd)
 }
 
 
-void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list)
+void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list, fd_set outputs)
 {   
     NODE *temp = NULL;
     for (size_t i = 0; i < n_hosts; i++)
@@ -501,6 +503,7 @@ void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list)
         printf("%i\n", sock);
         NODE *new_node = (NODE*)malloc(sizeof(NODE));
         create_node(new_node, hosts[i].name, hosts[i].port);
+        FD_SET(sock, &outputs);
         new_node->sock = sock;
         new_node->curr_req = CMD_QUOTE_REQUEST;
         if(temp == NULL) temp = new_node;
@@ -556,6 +559,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             {
                 int socket_desc = create_conn(local_host->ip, local_host->port);
                 // printf("APPEND\n");
+                printf("LOCAL %i\n",socket_desc);
                 local_host->sock = socket_desc;
                 local_socket = socket_desc;
                 local_host->curr_req = CMD_SEND_FILE;
@@ -569,13 +573,18 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             {
                 printf("REMOTE ACTION - BUILDING QUOTE FD_SET...\n");
                 // BUILDING THE FD_SET
-                create_quote_team(hosts, n_hosts ,quote_list);
-
-                NODE *temp = quote_list;
+                NODE *temp = NULL;
                 for (size_t i = 0; i < n_hosts; i++)
-                {
-                    FD_SET(temp->sock, &output_sockets);
-                    temp = temp->next;
+                {   
+                    int sock = create_conn(hosts[i].name, hosts[i].port);
+                    printf("%i\n", sock);
+                    NODE *new_node = (NODE*)malloc(sizeof(NODE));
+                    create_node(new_node, hosts[i].name, hosts[i].port);
+                    FD_SET(sock, &output_sockets);
+                    new_node->sock = sock;
+                    new_node->curr_req = CMD_QUOTE_REQUEST;
+                    if(temp == NULL) temp = new_node;
+                    else append_new_node(temp, new_node); 
                 }
                 ++curr_quote_req;
             }
@@ -615,12 +624,12 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                 break;
             case 0:
                 perror("select() returned 0\n");
-                close_all_sockets();
                 break;
             default:
 
                 for (size_t i = 0; i < FD_SETSIZE; i++)
-                {
+                {   
+                    printf("INPUT AT INDEX %li\n", i);
                     if (FD_ISSET(i, &input_sockets))
                     {   
                         //sleep(2);
@@ -742,6 +751,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                     if (FD_ISSET(i, &output_sockets))
                     {   
+                        printf("OUTPUT AT INDEX %li\n", i);
                         CMD curr_req = get_curr_req(local_host, conn_list, quote_list, i);
                         printf("CURRENT: %i\n", curr_req);
                         if(curr_req == CMD_QUOTE_REQUEST)
