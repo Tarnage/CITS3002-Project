@@ -69,22 +69,6 @@ int recv_byte_int(int sock)
 }
 
 
-// HELPER TO ADD COST TO SOCK LIST 
-void add_quote(int sd, int quote)
-{
-    NODE *head = sockets;
-    while(head != NULL)
-    {
-        if(head->sock == sd)
-        {
-            head->cost = quote;
-            return;
-        }
-        head = head->next;
-    }
-}
-
-
 void send_string(int sd, char *payload)
 {
 	int size = strlen(payload);
@@ -424,14 +408,6 @@ void change_state(int sd, CMD state)
         }
         head = head->next;
     }
-}
-
-
-void recv_cost_reply(int sd)
-{
-    int cost = recv_byte_int(sd);
-    //printf("COST RECEIVED: %d\n", cost);
-    add_quote(sd, cost);
 }
 
 
