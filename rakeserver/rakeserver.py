@@ -30,7 +30,7 @@ sleep = False
 rand = random.randint(1, 3)
 sleep_timer = os.getpid() % rand + 2
 #print( f'sleep for: {timer}' )
-remove_temp = True
+remove_temp = False
 
 #------------------------------------------------CLASSES------------------------------------------------------------
 
@@ -159,6 +159,7 @@ class Client():
         print(f"{len(buffer)}/{size}")
 
         try:
+            time.sleep(0)
             with open(tmp + filename, "w") as f:
                 f.write(buffer)
 
@@ -184,6 +185,7 @@ class Client():
         print(f"{len(buffer)}/{size}")
 
         try:
+            time.sleep(0)
             with open(tmp + filename, "wb") as f:
                 f.write(buffer)
 
@@ -240,12 +242,11 @@ class Client():
         path = str('./tmp/' + peer_dir)
         print(f'RUNNING COMMAND: {cmd}')
         p = subprocess.run(cmd, shell=True, cwd=path, capture_output=True)
-
+        print(f"CODE: {p.returncode}")
+        self.r_output, self.stderr, self.stdout = p.returncode, p.stderr, p.stdout
         self.scan_dir(path)
         self.path_return_file = path
-        self.r_output = p.returncode
-        self.stderr = p.stderr
-        self.stdout = p.stdout
+        
 
     def send_string(self, string: str):
         ''' Helper that formats a string and sends it to the connection
@@ -510,6 +511,7 @@ def handle_conn(server: Server) -> None:
                         client.proc_req()
                         if remove_temp:
                             client.rm_client_files()
+                        print(f"{client.addr}DISCONNECTING..")
                         client.disconnect()
                     elif child > 0:
                         signal.signal(signal.SIGCHLD, signal.SIG_IGN)

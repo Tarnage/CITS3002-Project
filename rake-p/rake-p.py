@@ -229,7 +229,6 @@ class Connection:
     def recv_file(self):
         ''' Receive binary file from server connection
         '''
-
         filename = self.recv_string()
         size = self.recv_int()
         try:
@@ -254,7 +253,7 @@ class Connection:
             self.next_file_index += 1
         else:
             r_code = self.recv_int()
-
+            print(f"RETURN_VAULE: {r_code}")
             if preamble == self.ACK.CMD_RETURN_STATUS:
                 preamble = self.recv_int()
 
