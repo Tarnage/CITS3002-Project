@@ -21,10 +21,7 @@ extern  char    *strdup(const char *str);
 
 //-----------------------------------GLOBALS----------------------------------------------
 
-//int num_hosts;
-
 int num_actions;
-//int num_sets;
 
 int default_port;
 

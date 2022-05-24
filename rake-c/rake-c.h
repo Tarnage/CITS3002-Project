@@ -18,7 +18,6 @@
 #include <fcntl.h>
 
 #define MAX_BYTES_SIGMA 4
-#define TEMP_FOLDER "./tmp/"
 #define MAX_QUEUE_ITEMS 64
 
 typedef enum _cmd{

@@ -9,8 +9,6 @@
 // #define USE_FIND_FILE
 
 //--------------------GLOBALS-------------------
-int num_sockets = 0;
-NODE *sockets;
 
 
 // FILLS STRUCTS WITH RAKEFILE CONTENTS
