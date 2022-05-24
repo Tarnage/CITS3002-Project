@@ -61,10 +61,10 @@ typedef struct _node
 } NODE;
 
 // INIT FUNCTION FOR NODES
-void create_node(NODE *new_node, int sd, char *ip, int port)
+void create_node(NODE *new_node, char *ip, int port)
 {
     new_node = (NODE*)malloc(sizeof(NODE));
-    new_node->sock = sd;
+    new_node->sock = -1;
     new_node->ip = ip;
     new_node->port = port;
     new_node->next = NULL;
@@ -81,11 +81,18 @@ void append_new_node(NODE *head, NODE *new_node)
     free(temp);
 }
 
+
+void add_sockfd(NODE *pList, int sd)
+{
+    return;
+}
+
+
 // REMOVE NODE ASSOCIATED TO THE SOCK FD
 // ALSO CLOSES THE SOCK FD
-void remove_sd(NODE *head, int sd)
+void remove_sd(NODE *conn_list, int sd)
 {
-    NODE *temp = head;
+    NODE *temp = conn_list;
     while(temp->sock != sd) temp = temp->next;
     shutdown(temp->sock, SHUT_RDWR);
     close(temp->sock);
@@ -100,6 +107,8 @@ void add_cost(NODE *head, int sd, int cost)
     NODE *temp = head;
     while(temp->sock != sd) temp = temp->next;
     temp->cost = cost;
+    shutdown(temp->sock, SHUT_RDWR);
+    close(temp->sock);
     free(temp);
 }
 
@@ -114,6 +123,14 @@ void find_sock(NODE *head, NODE *result, int sd)
     while (temp->sock != sd) temp = temp->next;
     // DONT KNOW IF I HAVE DONE THIS RIGHT
     *result = *temp;
+}
+
+void close_local_sock(NODE *local, int *sd)
+{   
+    shutdown(local->sock, SHUT_RDWR);
+    close(local->sock);
+    local->sock = -1;
+    *sd = -1;
 }
 
 
