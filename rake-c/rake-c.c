@@ -265,7 +265,7 @@ int create_conn(char *host, int port)
         exit(EXIT_FAILURE);
     }
 
-    printf("SOCKET CREATION SUCCESSFUL\n");
+    //printf("SOCKET CREATION SUCCESSFUL\n");
 
     return sock;
 }
@@ -291,7 +291,7 @@ void init_nodes(HOST *hosts, int n_hosts)
 
 void create_local_node(NODE *local)
 {   
-    printf("CREATING NODE\n");
+    //printf("CREATING NODE\n");
     create_node(local, LOCAL_HOST, default_port);
 }
 
@@ -338,6 +338,7 @@ char *get_lowest_cost(NODE *list, int *port)
     {   
         if(temp->cost < curr)
         {   
+            curr = temp->cost;
             temp_ip = strdup(temp->ip);
             temp_port = temp->port;
         }
@@ -457,6 +458,7 @@ NODE *get_node(NODE *local, NODE* conn_list, int sd)
         }
         temp = temp->next;
     }
+    printf("CRAHSED\n");
     return NULL;
 }
 
@@ -476,7 +478,6 @@ void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list, fd_set outputs)
     for (size_t i = 0; i < n_hosts; i++)
     {   
         int sock = create_conn(hosts[i].name, hosts[i].port);
-        printf("%i\n", sock);
         NODE *new_node = (NODE*)malloc(sizeof(NODE));
         create_node(new_node, hosts[i].name, hosts[i].port);
         FD_SET(sock, &outputs);
@@ -534,8 +535,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             if( !actions[next_action].is_remote )
             {
                 int socket_desc = create_conn(local_host->ip, local_host->port);
-                // printf("APPEND\n");
-                printf("LOCAL %i\n",socket_desc);
                 local_host->sock = socket_desc;
                 local_socket = socket_desc;
                 local_host->curr_req = CMD_SEND_FILE;
@@ -552,7 +551,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                 for (size_t i = 0; i < n_hosts; i++)
                 {   
                     int sock = create_conn(hosts[i].name, hosts[i].port);
-                    printf("%i\n", sock);
                     NODE *new_node = (NODE*)malloc(sizeof(NODE));
                     create_node(new_node, hosts[i].name, hosts[i].port);
                     FD_SET(sock, &output_sockets);
@@ -571,20 +569,18 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                 int port = -1;
                 char *ip = get_lowest_cost(quote_list, &port);
                 quote_list = NULL;
-                printf("PICKING LOWEST COST...\n");
+                //printf("PICKING LOWEST COST...\n");
 
-                printf("ip:%s , port:%i\n", ip, port);
                 int sock = create_conn(ip, port);
-                // printf("APPEND\n");
                 NODE *slave = (NODE*)malloc(sizeof(NODE));
                 create_node(slave, ip, port);
                 FD_SET(sock, &output_sockets);
                 slave->sock = sock;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[next_action];
+
                 if(conn_list == NULL) conn_list = slave;
                 else append_new_node(conn_list, slave);
-                //printf("SUCCESS\n");
                 next_action++;
             }
 
@@ -596,9 +592,9 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
         read_ready = input_sockets;
         write_ready = output_sockets;
-        printf("SELECTING....\n");
+        //printf("SELECTING....\n");
         int activity = select(FD_SETSIZE+1, &read_ready, &write_ready, NULL, &tv);
-        printf("SELECT RESULT: %i\n", activity);
+        //printf("SELECT RESULT: %i\n", activity);
         switch (activity)
         {
             case -1:
@@ -613,16 +609,14 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
                 for (int i = 0; i < FD_SETSIZE; i++)
                 {   
-                    if (FD_ISSET(i, &input_sockets))
+                    if (FD_ISSET(i, &read_ready))
                     {   
-                        printf("INPUT %i\n",i);
-                        //sleep(2);
+
+                        printf("SOCKFD: %i\n", i);
                         int preamble = recv_byte_int(i);
-                        //printf("PREAMBLE NUMBER: %d\n", preamble);
 
                         if(preamble == CMD_ACK)
                         {   
-                            //printf("ACKNOWLEDGEMENT RECEIVED\n");
                             FD_CLR(i, &input_sockets);
                             FD_SET(i, &output_sockets);
                         }
@@ -631,7 +625,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         {   
                             //recv_cost_reply(i);
                             int cost = recv_byte_int(i);
-                            printf("COST RECEIVED: %i\n", cost);
+                            //printf("COST RECEIVED: %i\n", cost);
                             add_cost(quote_list, i, cost);
                             ++quote_recv;
                             FD_CLR(i, &input_sockets);
@@ -640,11 +634,11 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         if(preamble == CMD_RETURN_STATUS)
                         {
                             int return_code = recv_byte_int(i);
-                            printf("RETURN CODE: %d\n", return_code);
+                            // printf("RETURN CODE: %d\n", return_code);
                             if (return_code == 0)
                             {
                                 preamble = recv_byte_int(i);
-                                printf("RECEIVED: %i\n", preamble);
+                                //printf("RECEIVED: %i\n", preamble);
                                 //change_state(i, preamble);
                             }
                         }
@@ -699,7 +693,6 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         {
                             recv_bin_file(i);
                             FD_CLR(i, &input_sockets);
-                            // printf("INCREMENTING ACTIONS EXECUTED\n");
                             ++actions_executed;
                             FD_CLR(i, &input_sockets);
                             if(i == local_socket)
@@ -715,7 +708,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         else if(preamble == CMD_NO_OUTPUT)
                         {   
                             int return_code = recv_byte_int(i);
-                            printf("NO OUTPUT FILE... RETURN CODE %i\n", return_code);
+                            // printf("NO OUTPUT FILE... RETURN CODE %i\n", return_code);
                             if(return_code == 0)
                             {
                                 printf("RETURN CODE 0\n");
@@ -733,19 +726,15 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         }
                     }
 
-                    if (FD_ISSET(i, &output_sockets))
+                    if (FD_ISSET(i, &write_ready))
                     {   
+                        printf("SOCKFD: %i\n", i);
                         CMD curr_req = get_curr_req(local_host, conn_list, quote_list, i);
-                        printf("CURRENT: %i\n", curr_req);
                         if(curr_req == CMD_QUOTE_REQUEST)
                         {   
-                            // printf("SENDING COST REQUEST\n");
                             send_cost_req(i);
-                            // REMOVE FROM OUTPUT
                             FD_CLR(i, &output_sockets);
-                            // ADD TO INPUT
                             FD_SET(i, &input_sockets);
-                            printf("WAITING...\n");
                         }
                         else if(curr_req == CMD_SEND_FILE)
                         {
@@ -803,6 +792,7 @@ int main (int argc, char *argv[])
 
     for (size_t i = 0; i < num_sets; i++)
     {   
+        printf("SET NUM: %li\n", i+1);
         handle_conn(hosts, num_hosts, action_set[i].actions, action_set[i].action_totals);
     }
 

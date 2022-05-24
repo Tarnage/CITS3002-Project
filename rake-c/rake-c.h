@@ -136,7 +136,6 @@ void add_cost(NODE *head, int sd, int cost)
     }
     
     temp->cost = cost;
-    printf("ADDED %i to %i sockno\n", temp->sock, temp->cost);
     shutdown(temp->sock, SHUT_RDWR);
     close(temp->sock);
     temp->sock = -1;
