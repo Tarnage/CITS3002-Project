@@ -35,14 +35,11 @@ void print_bytes(char *buffer)
     printf("\n");   
 }
 
-
+// CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
+// ALWAYS CONVERTS INTS TO 4 BYTES LONG
 void send_byte_int(int sd, CMD preamble)
 {
-    // CONVERT TO HOST TO NETWORK BYTE ORDER (BIG EDIAN)
-    // ALWAYS CONVERTS INTS TO 4 BYTES LONG
     int cmd  = htonl( preamble );
-
-    // SEND THE REQ
     //printf("SENDING INT ----> %d\n", preamble);
     send(sd, &cmd, sizeof(cmd), 0);
 }
@@ -57,7 +54,6 @@ int recv_byte_int(int sock)
     int byte_count = 0; // SHOULD BE 4
     
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
-    //printf("BYTE COUNT SHOULD BE 4 == %i\n", byte_count);
     if(byte_count < 4){
         printf("INTEGER NOT RECEIVED\n");
         exit(EXIT_FAILURE);
@@ -68,63 +64,41 @@ int recv_byte_int(int sock)
     return ntohl(result);
 }
 
-
+// SENDS THE LEN OF THE STR FOLLOWED BY THE STR
 void send_string(int sd, char *payload)
 {
 	int size = strlen(payload);
 	send_byte_int(sd, size);
-    
 	send(sd, payload, size, 0);
-    //printf("SENDING STRING ----> %s\n", payload);
-    // free(result);
 }
 
 
 // SEND TEXT FILE TO SERVER
 void send_file(int sd, char *filename)
-{   
-    //printf("FILE SENDING PROCESS STARTED\n");
-    
+{    
     char *last = strrchr(filename, '/');
     char *real_file_name;
     if (last != NULL) real_file_name = strdup(last+1);
     else real_file_name = strdup(filename);
 
-    
     if(strstr(filename, ".") != NULL)
     {   
-        printf("TEST\n");
-        if(strstr(filename, ".o") != NULL)
-        {
-            send_byte_int(sd, CMD_BIN_FILE);
-        }   
-        else
-        {
-            send_byte_int(sd, CMD_SEND_FILE);
-        }
+        if(strstr(filename, ".o") != NULL) send_byte_int(sd, CMD_BIN_FILE);   
+        else send_byte_int(sd, CMD_SEND_FILE);
     }
-    else
-    {
-        send_byte_int(sd, CMD_BIN_FILE);
-    }
+    else send_byte_int(sd, CMD_BIN_FILE);
     
     //printf("SENDING FILE NAME ----> %s\n", real_file_name);
 
     send_string(sd, real_file_name);
-
     FILE *fp = fopen(filename, "rb");
-
-    if (fp == NULL)
-    {
-        exit(EXIT_FAILURE);
-    }
+    if (fp == NULL) exit(EXIT_FAILURE);
     else 
     {
         struct stat st;
         stat(filename, &st);
         int size = st.st_size;
         char buffer[size]; 
-        
         fread(buffer, size, 1, fp);
         send_byte_int(sd, size);
         send(sd, buffer, size, 0);
@@ -134,35 +108,19 @@ void send_file(int sd, char *filename)
 }
 
 
+// RECV THE SIZE OF INCOMING PAYLOAD AND THEN RECV THE PAYLOAD
 void recv_string(int sock, char *string, int size)
 {
     char buffer[size]; 
-
     int byte_count = 0; 
     byte_count = recv(sock, buffer, sizeof(buffer), 0);
-
     if(byte_count == 0)
     {
         printf("WE DIDNT RECV ANYTHING\n");
         exit(EXIT_FAILURE);
     }
-    
-
     memcpy(string, buffer, byte_count);
     string[byte_count] = '\0';
-
-    //printf("STRING RECEIVED: %s\n", string);
-    // return string; 
-
-}
-
-
-int check_folder_exists (char *filename)
-{
-    struct stat st;
-    int folder_exists = stat(TEMP_FOLDER, &st);
-
-    return folder_exists;
 }
 
 
