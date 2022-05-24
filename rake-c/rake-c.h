@@ -40,7 +40,7 @@ void append_new_node(NODE *head, NODE *new_node)
     new_node->prev = temp;
 }
 
-
+// FREE THE NODE LIST
 void free_list(NODE *pList)
 {
     NODE* temp;
@@ -107,7 +107,7 @@ void add_cost(NODE *head, int sd, int cost)
     temp->sock = -1;
 }
 
-
+// CLOSE THE LOCAL HOST
 void close_local_sock(NODE *local, int *sd)
 {   
     shutdown(local->sock, SHUT_RDWR);
