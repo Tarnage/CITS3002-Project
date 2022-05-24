@@ -18,38 +18,16 @@ extern  char    *strdup(const char *str);
 #include <stdbool.h>
 
 #include "strsplit.h"
+#include "structures.h"
 
 //-----------------------------------GLOBALS----------------------------------------------
 
 int num_actions;
 
 int default_port;
-
 //-----------------------------------MACROS----------------------------------------------
 
 #define ACTION_DATA(i,j)     action_set[i].actions[j]
-
-//-----------------------------------STRUCTURES------------------------------------------
-
-typedef struct _action
-{
-    char *command; 
-    bool is_remote;
-    int req_count;
-    char **requirements; 
-} ACTION;
-
-typedef struct _host
-{
-    char *name;
-    int port;
-} HOST;
-
-typedef struct _actionset
-{
-    ACTION actions[MAX_ACTIONS];
-    int action_totals;
-} ACTION_SET;
 
 //---------------------------------DECLARATIONS-----------------------------------------
 

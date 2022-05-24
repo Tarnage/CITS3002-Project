@@ -16,45 +16,10 @@
 #include <limits.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include "structures.h"
 
 #define MAX_BYTES_SIGMA 4
 #define MAX_QUEUE_ITEMS 64
-
-typedef enum _cmd{
-    CMD_DEBUG = 0,
-
-    CMD_QUOTE_REQUEST,
-    CMD_QUOTE_REPLY,
-
-    CMD_BIN_FILE,
-    CMD_SEND_FILE,
-
-    CMD_EXECUTE,
-    CMD_RETURN_STATUS,
-    CMD_RETURN_STDOUT,
-    CMD_RETURN_STDERR,
-    CMD_RETURN_FILE,
-    
-    CMD_ACK,
-    CMD_NO_OUTPUT
-} CMD;
-
-
-//---------------------STRUCTS----------------------------------
-
-
-typedef struct _node
-{
-    int sock;
-    char *ip;
-    int port;
-    int cost;
-    CMD curr_req;
-    ACTION *actions;
-    struct _node *next;
-    struct _node *prev;
-    
-} NODE;
 
 // INIT FUNCTION FOR NODES
 void create_node(NODE *new_node, char *ip, int port)
@@ -151,7 +116,7 @@ void close_local_sock(NODE *local, int *sd)
     *sd = -1;
 }
 
-// FUNCTION DECLARATIONS
+//-------------------------FUNCTION DECLARATIONS------------------------
 extern void     init_actions(char *, ACTION_SET *, int *, HOST *, int *);
 extern void     send_byte_int(int, CMD);
 extern int      recv_byte_int(int);
