@@ -185,14 +185,15 @@ class Connection:
         self.sockfd.send( payload )
 
     def send_file(self):
-        filename, path = self.get_next_file()
-        if path != None:
+        try:
+            filename, path = self.get_next_file()
+
             if self.is_bin_file(path):
                 self.send_bin_file(filename, path)
             else:
                 self.send_txt_file(filename, path)
-        else:
-            print(f"{filename} COULD NOT BE LOCATED!")
+        except FileNotFoundError as err:
+            print(f"{filename} COULD NOT BE LOCATED")
             sys.exit(1)
 
     def recv_int(self) -> int:
@@ -536,7 +537,7 @@ def main(filname):
     for sets in actions:
         
         handle_conn(sets, dict_hosts)
-        
+
 if __name__ == "__main__":
     
     if len(sys.argv) == 2:
