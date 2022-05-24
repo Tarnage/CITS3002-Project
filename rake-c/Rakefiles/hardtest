@@ -15,6 +15,6 @@ actionset1:
 		requires ./test_files/cube.c ./test_files/allfunctions.h
 
 actionset2:
-#	echo starting actionset2
+	echo starting actionset2
 	remote-cc -o program program.o square.o cube.o
-		requires .program.o square.o cube.o
+		requires program.o square.o cube.o

@@ -111,20 +111,29 @@ void remove_sd(NODE *conn_list, int sd)
     if (temp->prev == NULL)
     {   
         //ITS THE ONLY ONE IN THE LIST
-        if (temp->next == NULL) conn_list = NULL;
+        if (temp->next == NULL) 
+        {
+            conn_list = NULL;
+        }
         else
         {
-            temp = temp->next;
+            NODE *new_head = temp->next;
             temp->prev = NULL;
-            conn_list = temp;
+            conn_list = new_head;
         }
+    }
+    else if (temp->next == NULL)
+    {
+        temp->prev->next = NULL;
     }
     else
     {
         NODE *prev = temp->prev;
         temp->next->prev = prev;
         prev->next = temp->next;
+        
     }
+    free(temp);
 }
 
 void add_cost(NODE *head, int sd, int cost)
