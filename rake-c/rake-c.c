@@ -400,7 +400,6 @@ CMD get_curr_req(NODE *local, NODE *conn_list, NODE *quote_team, int sd)
             
             return temp->curr_req;
         }
-        printf("HAPPENS HERE\n");
         temp = temp->next;
     }
     
@@ -533,7 +532,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
     int quote_recv = 0;
 
     // LIST OF CONNECTIONS EXECUTING ACTIONS
-    NODE *conn_list;
+    NODE *conn_list = NULL;
 
     // OUR LOCAL SERVER
     NODE *local_host = (NODE*)malloc(sizeof(NODE));
@@ -591,19 +590,23 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             // TODO: LOOP THROUGH ALL HOSTS TO SEND TO FIND QUOTE
             else if( (next_action < remaining_actions) && (quote_recv == n_hosts) )
             {   
-                //printf("PICKING LOWEST COST...\n");
+                printf("PICKING LOWEST COST...\n");
+                quote_recv = 0;
                 char ip[MAX_LINE_LENGTH];
                 int port = -1;
                 get_lowest_cost(quote_list, ip, &port);
-                int socket_desc = create_conn(ip, port);
+                quote_list = NULL;
+
+                int sock = create_conn(ip, port);
                 // printf("APPEND\n");
                 NODE *slave = (NODE*)malloc(sizeof(NODE));
                 create_node(slave, ip, port);
-                slave->sock = socket_desc;
+                FD_SET(sock, &output_sockets);
+                slave->sock = sock;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[next_action];
-                append_new_node(conn_list, slave);
-                FD_SET(socket_desc, &output_sockets);
+                if(conn_list == NULL) conn_list = slave;
+                else append_new_node(conn_list, slave);
                 //printf("SUCCESS\n");
                 next_action++;
             }
@@ -611,7 +614,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
         }
 
         struct timeval tv;
-        tv.tv_sec = 20;
+        tv.tv_sec = 5;
 
         printf("SELECTING....\n");
         int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, &tv);

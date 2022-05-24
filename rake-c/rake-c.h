@@ -113,10 +113,16 @@ void remove_sd(NODE *conn_list, int sd)
 void add_cost(NODE *head, int sd, int cost)
 {
     NODE *temp = head;
-    while(temp->sock != sd) temp = temp->next;
+    while(temp->sock != sd) 
+    {
+        temp = temp->next;
+    }
+    
     temp->cost = cost;
+    printf("ADDED %i to %i sockno\n", temp->sock, temp->cost);
     shutdown(temp->sock, SHUT_RDWR);
     close(temp->sock);
+    temp->sock = -1;
 }
 
 void add_action(NODE *node, ACTION *act)
