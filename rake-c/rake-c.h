@@ -152,5 +152,19 @@ void close_local_sock(NODE *local, int *sd)
     *sd = -1;
 }
 
+// DECLARATIONS
+extern void     init_actions(char *, ACTION_SET *, int *, HOST *, int *);
+extern void     send_byte_int(int, CMD);
+extern int      recv_byte_int(int);
+extern void     send_string(int, char *);
+extern void     send_file(int, char *); 
+extern void     recv_string(int, char *, int);
+extern void     recv_bin_file(int); 
+extern void     create_local_node(NODE *);
+extern char*    get_lowest_cost(NODE*, int*);
+extern CMD      get_curr_req(NODE *, NODE *, NODE *, int);
+extern void     send_cost_req(int sd);
+extern NODE*    get_node(NODE *, NODE *, int);
+extern void     send_cmd(int, char *);
 
 #endif
