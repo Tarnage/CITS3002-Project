@@ -21,9 +21,11 @@ extern  char    *strdup(const char *str);
 
 //-----------------------------------GLOBALS----------------------------------------------
 
-int num_hosts;
+//int num_hosts;
+
 int num_actions;
-int num_sets;
+//int num_sets;
+
 int default_port;
 
 //-----------------------------------MACROS----------------------------------------------
@@ -54,7 +56,7 @@ typedef struct _actionset
 
 //---------------------------------DECLARATIONS-----------------------------------------
 
-extern  void    file_process(char*, ACTION_SET*, HOST*);
+extern  void    file_process(char*, ACTION_SET*, int*, HOST*, int*);
 extern  char    *trim_whitespace(char *);
 extern  void    print_action_sets(ACTION_SET *, int);
 extern  void    print_hosts(HOST*, int);
