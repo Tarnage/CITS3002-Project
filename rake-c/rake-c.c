@@ -347,7 +347,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
         if(next_action < remaining_actions)
         {
             // LOCAL 
-            if( !actions[next_action].is_remote )
+            if( !actions[next_action].is_remote && local_socket < 0)
             {
                 int socket_desc = create_conn(local_host->ip, local_host->port);
                 FD_SET(socket_desc, &output_sockets);
