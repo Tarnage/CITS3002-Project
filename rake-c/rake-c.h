@@ -51,8 +51,6 @@ typedef struct _node
     char *ip;
     int port;
     int cost;
-    bool used;
-    bool local;
     CMD curr_req;
     ACTION *actions;
     struct _node *next;
@@ -77,12 +75,6 @@ void append_new_node(NODE *head, NODE *new_node)
     while(temp->next != NULL) temp = temp->next;
     temp->next = new_node;
     new_node->prev = temp;
-}
-
-
-void add_sockfd(NODE *pList, int sd)
-{
-    return;
 }
 
 
@@ -122,10 +114,12 @@ void remove_sd(NODE *conn_list, int sd)
             conn_list = new_head;
         }
     }
+    // ITS THE TAIL
     else if (temp->next == NULL)
     {
         temp->prev->next = NULL;
     }
+    // ITS IN THE MIDDLE
     else
     {
         NODE *prev = temp->prev;
@@ -150,18 +144,6 @@ void add_cost(NODE *head, int sd, int cost)
     temp->sock = -1;
 }
 
-void add_action(NODE *node, ACTION *act)
-{
-    node->actions = act;
-}
-
-void find_sock(NODE *head, NODE *result, int sd)
-{   
-    NODE *temp = head;
-    while (temp->sock != sd) temp = temp->next;
-    // DONT KNOW IF I HAVE DONE THIS RIGHT
-    *result = *temp;
-}
 
 void close_local_sock(NODE *local, int *sd)
 {   
