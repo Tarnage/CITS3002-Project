@@ -352,34 +352,25 @@ void reset_socket_node(NODE *list)
 }
 
 
-NODE* get_lowest_cost()
+void get_lowest_cost(NODE *list, char *ip, int *port)
 {
-    NODE *low_host = (NODE*)malloc(sizeof(NODE));
-    // COPYING THE HEAD OF THE GLOBAL VAR
-    // DONT CHECK THE FIRST ONE AS ITS THE LOCAL HOST
-    // AND LOCAL HOST NEVER NEEDS TO SEND REQ COSTS
-    NODE *list = sockets->next;
-    int min = list->cost;
-    low_host = list;
-
-    reset_socket_node(list);
-
-    list = list->next;
-    printf("%s\n", list->ip);
-    while(list != NULL)
-    {   
-        printf("%s\n", list->ip);
-        if(list->cost < min)
+    int curr = INT_MAX;
+    char *temp_ip;
+    int temp_port = -1;
+    
+    NODE *temp = list;
+    while(temp != NULL)
+    {
+        if(temp->cost < curr)
         {
-            low_host = list;
-            min = list->cost;
+            temp_ip = strdup(temp->ip);
+            temp_port = temp->port;
         }
-
-        reset_socket_node(list);
-        list = list->next;
     }
-
-    return low_host; 
+    ip = temp_ip;
+    *port = temp_port;
+    
+    free_list(list);
 }
 
 void make_free(NODE *sockets, int sd)
@@ -501,16 +492,17 @@ void send_cmd(int sd, char *cmd)
 }
 
 
-void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list, fd_set set)
+void create_quote_team(HOST *hosts, int n_hosts ,NODE *new_list)
 {   
     NODE *temp = NULL;
     for (size_t i = 0; i < n_hosts; i++)
-    {
+    {   
         int sock = create_conn(hosts[i].name, hosts[i].port);
-        FD_SET(sock, &set);
+        printf("%i\n", sock);
         NODE *new_node = (NODE*)malloc(sizeof(NODE));
         create_node(new_node, hosts[i].name, hosts[i].port);
         new_node->sock = sock;
+        new_node->curr_req = CMD_QUOTE_REQUEST;
         if(temp == NULL) temp = new_node;
         else append_new_node(temp, new_node); 
     }
@@ -577,21 +569,31 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
             {
                 printf("REMOTE ACTION - BUILDING QUOTE FD_SET...\n");
                 // BUILDING THE FD_SET
-                create_quote_team(hosts, n_hosts ,quote_list, output_sockets);
+                create_quote_team(hosts, n_hosts ,quote_list);
+
+                NODE *temp = quote_list;
+                for (size_t i = 0; i < n_hosts; i++)
+                {
+                    FD_SET(temp->sock, &output_sockets);
+                    temp = temp->next;
+                }
                 ++curr_quote_req;
             }
             // TODO: LOOP THROUGH ALL HOSTS TO SEND TO FIND QUOTE
             else if( (next_action < remaining_actions) && (quote_recv == n_hosts) )
             {   
                 //printf("PICKING LOWEST COST...\n");
-                NODE *slave = get_lowest_cost();
-
-                int socket_desc = create_conn(slave->ip, slave->port);
+                char ip[MAX_LINE_LENGTH];
+                int port = -1;
+                get_lowest_cost(quote_list, ip, &port);
+                int socket_desc = create_conn(ip, port);
                 // printf("APPEND\n");
+                NODE *slave = (NODE*)malloc(sizeof(NODE));
+                create_node(slave, ip, port);
                 slave->sock = socket_desc;
-                slave->used = true;
                 slave->curr_req = CMD_SEND_FILE;
                 slave->actions = &actions[next_action];
+                append_new_node(conn_list, slave);
                 FD_SET(socket_desc, &output_sockets);
                 //printf("SUCCESS\n");
                 next_action++;
@@ -599,10 +601,8 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
 
         }
 
-
-
         struct timeval tv;
-        tv.tv_sec = 5;
+        tv.tv_sec = 20;
 
         printf("SELECTING....\n");
         int activity = select(FD_SETSIZE+1, &input_sockets, &output_sockets, NULL, &tv);
@@ -743,6 +743,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                     if (FD_ISSET(i, &output_sockets))
                     {   
                         CMD curr_req = get_curr_req(local_host, conn_list, quote_list, i);
+                        printf("CURRENT: %i\n", curr_req);
                         if(curr_req == CMD_QUOTE_REQUEST)
                         {   
                             // printf("SENDING COST REQUEST\n");

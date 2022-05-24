@@ -27,7 +27,7 @@ BIG_EDIAN = 'big'
 is_local_host = False
 
 # OPTSARGS
-sleep = True
+sleep = False
 rand = random.randint(1, 3)
 sleep_timer = os.getpid() % rand + 2
 #print( f'sleep for: {timer}' )

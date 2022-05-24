@@ -77,7 +77,6 @@ void append_new_node(NODE *head, NODE *new_node)
     while(temp->next != NULL) temp = temp->next;
     temp->next = new_node;
     new_node->prev = temp;
-    free(temp);
 }
 
 
@@ -86,6 +85,17 @@ void add_sockfd(NODE *pList, int sd)
     return;
 }
 
+
+void free_list(NODE *pList)
+{
+    NODE* temp;
+    while(pList != NULL)
+    {
+        temp = pList;
+        pList = pList->next;
+        free(temp);
+    }
+}
 
 // REMOVE NODE ASSOCIATED TO THE SOCK FD
 // ALSO CLOSES THE SOCK FD
@@ -98,7 +108,6 @@ void remove_sd(NODE *conn_list, int sd)
     NODE *prev = temp->prev;
     temp->next->prev = prev;
     prev->next = temp->next;
-    free(temp);
 }
 
 void add_cost(NODE *head, int sd, int cost)
@@ -108,7 +117,6 @@ void add_cost(NODE *head, int sd, int cost)
     temp->cost = cost;
     shutdown(temp->sock, SHUT_RDWR);
     close(temp->sock);
-    free(temp);
 }
 
 void add_action(NODE *node, ACTION *act)
