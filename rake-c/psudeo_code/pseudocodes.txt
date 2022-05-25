@@ -1,0 +1,23 @@
+FUNCTION: get_all_conn
+INPUT: hosts (HOST *), list (NODE*)
+
+ALGORITHM:
+    for i in num_hosts increment i by 1:
+        sd = create_conn(hosts[i].name, hosts[i].port)
+        handle_conn(socket_list, ack)
+        REALLOCATE MEMORY TO socket_list 
+        APPEND TO socket_list:
+            cost = handle_conn(sd, CMD_QUOTE_REQUEST)
+            socket = sd 
+            port = hosts[i].port
+            ip = hosts[i].name
+        
+        list = list->next // GET NEXT NODE
+
+        
+FUNCTION: handle_conn
+INPUT: list (NODE *), CMD ack_type
+OUTPUT: N/A 
+
+ALGORITHM: 
+    // SET UP read_sockets, write_sockets and error_sockets 

@@ -1,0 +1,21 @@
+# A typical Rakefile
+# Add constant for readability for \t
+# tab = "\t"
+# Currently index out of range when it reaches blank line!
+# DONT ADD LOCAL HOST HERE, LOCAL HOST IS AUTO ADDED IN CLIENT
+PORT  = 6327
+HOSTS = 127.0.1.2 127.0.3.1
+
+actionset1:
+	echo starting actionset1
+	remote-cc [] program.c
+		requires test_files/program.c test_files/program.h test_files/allfunctions.h
+	remote-cc -c square.c
+		requires test_files/square.c test_files/allfunctions.h
+	remote-cc -c cube.c
+		requires test_files/cube.c test_files/allfunctions.h
+
+actionset2:
+	echo starting actionset2
+	remote-cc -o program program.o square.o cube.o
+		requires program.o square.o cube.o

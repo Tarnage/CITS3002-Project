@@ -6,12 +6,8 @@ PROJECT = rake-c
 HEADERS = $(PROJECT).h
 OBJ = parse_c.o rake-c.o strsplit.o
 TARGETS = $(basename $(SOURCES))
+LIBS =
 
-ifeq ($(UNAME),Darwin)        # Mac OS X
-    LIBS =
-else
-	LIBS = -lexplain #logger_c.c 
-endif
 
 C11		= cc -std=c11
 CFLAGS 	= -Wall -Werror -pedantic

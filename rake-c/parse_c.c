@@ -1,6 +1,8 @@
 #include "parse_c.h"
 //----------------------------------------------
 
+
+
 char *trim_whitespace(char *str)
 {
     char *end;
@@ -22,7 +24,7 @@ char *trim_whitespace(char *str)
 }
 
 
-void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
+void file_process(char *file_name, ACTION_SET *action_set, int *n_sets, HOST *hosts, int *n_hosts)
 {
     FILE *fp = fopen(file_name, "r");
     if(fp == NULL)
@@ -31,7 +33,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         exit(EXIT_FAILURE);
     }
 
-    int default_port = 0;
+    
     char line[MAX_LINE_LENGTH] = "";
 
     // READ AND PARSE FILES LINE BY LINE
@@ -52,7 +54,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
             }
             char *port_val = &line[i];
             default_port = atoi(port_val);
-            printf("DEFAULT PORT: %i\n", default_port);
+            //printf("DEFAULT PORT: %i\n", default_port);
         }
 
         // CHECK IF THE LINE GIVES THE HOST NAMES
@@ -60,7 +62,8 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
         {   
             int nwords = 0;
             char **words = strsplit(line, &nwords);
-
+            //num_hosts = nwords - 2;
+            *n_hosts = nwords - 2;
             // START FROM 2 BECAUSE 0 AND 1 ARE NOT NEEDED
             for(int i = 2; i < nwords; i++)
             {   
@@ -83,26 +86,26 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     // printf("ADDED A HOST AND PORT, %s:%i\n", hosts->name, hosts->port);
                     hosts++;
                 }
-                num_hosts++;
+                
             }
         }
 
         if (strstr(line, "actionset") != NULL && line[0] != '\t') 
         {
-            num_sets++;
+            *n_sets += 1;
         }
         
         // CHECK FOR TABS
         if (line[0] == '\t')
         {   
-            int action_index = action_set[num_sets-1].action_totals;
+            int action_index = action_set[*n_sets-1].action_totals;
             // IS NOT A DOUBLE 
             if(line[1] != '\t')
             {   
                 // CHECKS IF THIS IS A REMOTE COMMAND
                 if (strstr(line, "remote-") != NULL)
                 {
-                    ACTION_DATA(num_sets-1, action_index).is_remote = 1;
+                    ACTION_DATA(*n_sets-1, action_index).is_remote = true;
                     int j = 0;
                     while (line[j] != '-')
                     {   
@@ -110,15 +113,15 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                     }
                     j++;
                     char *cmd = &line[j];
-                    ACTION_DATA(num_sets-1, action_index).command = trim_whitespace(strdup(cmd));
+                    ACTION_DATA(*n_sets-1, action_index).command = trim_whitespace(strdup(cmd));
                 }
                 else
                 {
-                    ACTION_DATA(num_sets-1, action_index).is_remote = -1;
+                    ACTION_DATA(*n_sets-1, action_index).is_remote = false;
                     char *buffer = trim_whitespace(line);
-                    ACTION_DATA(num_sets-1, action_index).command = strdup(buffer);
+                    ACTION_DATA(*n_sets-1, action_index).command = strdup(buffer);
                 }
-                action_set[num_sets-1].action_totals++;
+                action_set[*n_sets-1].action_totals++;
             }
             // ELSE IS A DOUBLE
             else
@@ -126,7 +129,7 @@ void file_process(char *file_name, ACTION_SET *action_set, HOST *hosts)
                 // GO BACK AN INDEX TO FILL OUT REQUIREMENTS 
                 --action_index;
                 char *buffer = trim_whitespace(line);
-                ACTION_DATA(num_sets-1, action_index).requirements = strsplit(buffer, &ACTION_DATA(num_sets-1, action_index).req_count);
+                ACTION_DATA(*n_sets-1, action_index).requirements = strsplit(buffer, &ACTION_DATA(*n_sets-1, action_index).req_count);
             }
         }
     }

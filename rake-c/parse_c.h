@@ -15,43 +15,23 @@ extern  char    *strdup(const char *str);
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
+
 #include "strsplit.h"
+#include "structures.h"
 
 //-----------------------------------GLOBALS----------------------------------------------
 
-int num_hosts;
 int num_actions;
-int num_sets;
 
+int default_port;
 //-----------------------------------MACROS----------------------------------------------
 
 #define ACTION_DATA(i,j)     action_set[i].actions[j]
 
-//-----------------------------------STRUCTURES------------------------------------------
-
-typedef struct _action
-{
-    char *command; 
-    int is_remote;
-    int req_count;
-    char **requirements; 
-} ACTION;
-
-typedef struct _host
-{
-    char *name;
-    int port;
-} HOST;
-
-typedef struct _actionset
-{
-    ACTION actions[MAX_ACTIONS];
-    int action_totals;
-} ACTION_SET;
-
 //---------------------------------DECLARATIONS-----------------------------------------
 
-extern  void    file_process(char*, ACTION_SET*, HOST*);
+extern  void    file_process(char*, ACTION_SET*, int*, HOST*, int*);
 extern  char    *trim_whitespace(char *);
 extern  void    print_action_sets(ACTION_SET *, int);
 extern  void    print_hosts(HOST*, int);

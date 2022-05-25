@@ -1,9 +1,0 @@
-
-PORT  = 6326
-HOSTS = 127.0.0.1
-
-actionset1:
-	remote-echo starting actionset1
-
-actionset2:
-	echo starting actionset2
