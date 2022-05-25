@@ -9,6 +9,7 @@ import socket
 import sys
 import subprocess
 import signal
+import psutil
 
 # DEFAULT PORSTS AND HOSTS
 SERVER_PORT = 50008
@@ -242,7 +243,7 @@ class Client():
         path = str('./tmp/' + peer_dir)
         print(f'RUNNING COMMAND: {cmd}')
 
-        p = subprocess.Popen(cmd, shell=True, cwd=path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, shell=True, cwd=path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setpgrp)
         p.wait()
         self.stdout, self.stderr =  p.communicate()
         self.r_output = p.returncode
@@ -315,7 +316,7 @@ class Client():
             compeletion of the connection
         '''
         try:
-            while not self.finished:
+            while self.sockfd:
                 
                	if sleep:
                     time.sleep(sleep_timer)
@@ -357,12 +358,13 @@ class Client():
                         self.send_int(r_code)
                         self.send_std(self.stdout)
                     
+                    self.disconnect()
                     self.finished = True
 
                 if not self.finished:
                     self.recv_next_action()
         except Exception as err:
-            print(f"ERROR: Connection to {self.sockfd.getpeername()} disconnected!")
+            print(f"ERROR: Connection to {self.addr} disconnected!")
 
         
 class Server():
@@ -375,6 +377,7 @@ class Server():
         self.sockfd = -1
         self.backlog = backlog
         self.ACK = Ack()
+        self.children = list()
 
     def create_server(self) -> int:
         ''' Binds the object to an ip and port
@@ -468,6 +471,16 @@ class Server():
         except socket.error as err:
             print(f"Error {err}\nConnection to {client.getpeername()} disconnected!")
 
+    def sig_handler(self, signum, frame):
+        try:
+            # EXECPTION RAISED WHEN SUBPROCESS FROM run_cmd IS SINGALED
+            # WE ONLY WANT DIRECT CHILDREN OF THE PARENT PROCESS
+            child_pid, _ = os.waitpid(-1, os.WNOHANG)
+            parent = psutil.Process(os.getpid())
+            if parent.pid == os.getpid():
+                os.wait()
+        except Exception as err:
+            pass
 #------------------------------------------------MAIN------------------------------------------------------------
 # INIT ENUM CLASS
 ACK = Ack()
@@ -509,15 +522,16 @@ def handle_conn(server: Server) -> None:
                 else:
                     print("FORKED..")
                     child = os.fork()
+                    print(f"CHILD {os.getpid()}")
                     if child == 0:
                         client = Client(conn, addr, preamble)
                         client.proc_req()
                         if remove_temp:
                             client.rm_client_files()
                         print(f"{client.addr}DISCONNECTING..")
-                        client.disconnect()
+                        sys.exit(0)
                     elif child > 0:
-                        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+                        signal.signal(signal.SIGCHLD, server.sig_handler)
                     else:
                         sys.exit(1)
         except KeyboardInterrupt:
