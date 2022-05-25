@@ -1,7 +1,0 @@
-Just a text file to keep track of my local ip addresses
-cmd to find local ip on linux `hostname -I`
-macos path `system preferences/network`
-windows *I think* `ipconfig`
-
-192.168.1.111   thanh-desktop
-192.168.1.105   192-168-1-105.tpgi.com.au
