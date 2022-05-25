@@ -468,7 +468,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         {
                             int return_code = recv_byte_int(i);
                             printf("RETURN CODE STDOUT: %i\n", return_code);
-                            if (return_code > 0 && return_code < 5)
+                            if (return_code > 5)
                             {   
                                 int size = recv_byte_int(i);
                                 char err_msg[size];
@@ -486,12 +486,12 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         {
                             int return_code = recv_byte_int(i);
                             printf("RETURN CODE STDERR: %i\n", return_code);
-                            if (return_code > 5)
+                            if (return_code < 5 && return_code > 0)
                             {
                                 int size = recv_byte_int(i);
                                 char err_msg[size];
                                 recv_string(i, err_msg, size);
-                                printf("Errno: %i/n", return_code);
+                                printf("Errno: %i\n", return_code);
                                 fputs(err_msg, stderr);
 
                                 if(i == local_socket) close_local_sock(local_host, &local_socket);
