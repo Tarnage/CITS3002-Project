@@ -103,9 +103,10 @@ void send_file(int sd, char *filename)
     }
     else send_byte_int(sd, CMD_BIN_FILE);
     
-    //printf("SENDING FILE NAME ----> %s\n", real_file_name);
+   
 
     send_string(sd, real_file_name);
+    printf("SENDING FILE ----> %s\n", real_file_name);
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) exit(EXIT_FAILURE);
     else 
@@ -153,6 +154,8 @@ void recv_bin_file(int sock)
     recv_string(sock, filename, str_size);
     int file_size = recv_byte_int(sock);
 
+    printf("RECEIVING FILE ----> %s\n", filename);
+
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL)
     {
@@ -170,6 +173,8 @@ void recv_bin_file(int sock)
 
     fwrite(buffer, file_size, 1, fp);
     fclose(fp);
+
+    printf("FILE %s RECEIVED\n", filename);
 }
 
 
