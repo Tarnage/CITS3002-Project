@@ -436,7 +436,7 @@ void handle_conn(HOST *hosts, int n_hosts, ACTION* actions, int action_totals)
                         FD_CLR(i, &input_sockets);
 
                         int preamble = recv_byte_int(i);
-                        printf("PREAMBLE: %i\n", preamble);
+                        // printf("PREAMBLE: %i\n", preamble);
                         if(preamble == CMD_ACK) FD_SET(i, &output_sockets); // JUST RECVEVING AN ACK sockfd CAN GO BACK TO OUTPUT STATE
 						
 						
